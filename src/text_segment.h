@@ -18,15 +18,64 @@
 *
 ***************************************************************************************************/
 
-#include "terminal_state.h"
+#ifndef TEXT_SEGMENT_H
+#define TEXT_SEGMENT_H
 
-#include <QtGui/QGuiApplication>
+#include <QtCore/QString>
+#include <QtGui/QColor>
 
-int main(int argc, char *argv[])
+class TextSegment
 {
-    QGuiApplication app(argc, argv);
+public:
 
-    TerminalState state;
+    TextSegment(const QString &text, const QColor &forground, const QColor &background);
+    TextSegment();
 
-    return app.exec();
+    QString text() const;
+
+    QColor forgroundColor() const;
+    void  setForgroundColor(const QColor &color);
+
+    QColor backgroundColor() const;
+    void setBackgroundColor(const QColor &color);
+
+private:
+    QString m_text;
+    QColor m_forground_color;
+    QColor m_background_color;
+
+};
+
+typedef QList<TextSegment> TextSegmentLine;
+
+inline
+QString TextSegment::text() const
+{
+    return m_text;
 }
+
+inline
+QColor TextSegment::forgroundColor() const
+{
+    return m_forground_color;
+}
+
+inline
+void TextSegment::setForgroundColor(const QColor &color)
+{
+    m_forground_color = color;
+}
+
+inline
+QColor TextSegment::backgroundColor() const
+{
+    return m_background_color;
+}
+
+inline
+void TextSegment::setBackgroundColor(const QColor &color)
+{
+    m_background_color = color;
+}
+
+#endif // TEXT_SEGMENT_H

@@ -1,5 +1,5 @@
 /**************************************************************************************************
-* Copyright (c) <year> <copyright holders>
+* Copyright (c) 2012 Jørgen Lind
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 * associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -22,6 +22,7 @@
 #define YAT_PTY_H
 
 #include <unistd.h>
+#include <pty.h>
 
 #include <QtCore/QObject>
 
@@ -34,15 +35,24 @@ public:
     YatPty(QObject *parent = 0);
     ~YatPty();
 
+    QByteArray read();
+    void write(const QByteArray &data);
+
+    void resizeTerminal(const QSize &size);
+    QSize size() const;
 signals:
     void readyRead();
 
 private:
     pid_t m_terminal_pid;
-    int master_fd;
+    int m_master_fd;
     QSocketNotifier *m_master_fd_read_notify;
-    char *m_slave_file_name;
-    struct termios *m_termios;
+    QByteArray m_buffer;
+    int m_buffer_not_parsed;
+    int m_buffer_max_size;
+    int m_buffer_current_size;
+    char m_slave_file_name[PATH_MAX];
+    struct termios m_termios;
     struct winsize *m_winsize;
 };
 
