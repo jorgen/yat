@@ -29,28 +29,50 @@
 
 #include "tokenizer.h"
 
-TerminalState::TerminalState(QObject *parent)
-    : QObject(parent)
+TerminalState::TerminalState()
+    : QObject(0)
     , m_pty(new YatPty(this))
+    , m_screen(new TerminalScreen(this))
     , m_parser(new Tokenizer)
 {
     connect(m_pty, &YatPty::readyRead,
             this, &TerminalState::readData);
 
-    //make sure we have atleast one line
-    m_screen_lines << TextSegmentLine();
     m_pty->write("ls /usr/lib\n");
-
+    m_screen->resize(m_pty->size());
 }
 
 TerminalState::~TerminalState()
 {
+    delete m_parser;
+    delete m_screen;
+    delete m_pty;
 }
 
 void TerminalState::resetState()
 {
-    m_forground_color = defaultForgroundColor();
-    m_background_color = defaultBackgroundColor();
+    m_forground_color = m_screen->defaultForgroundColor();
+    m_background_color = m_screen->defaultBackgroundColor();
+}
+
+int TerminalState::width() const
+{
+    return size().width();
+}
+
+void TerminalState::setWidth(int width)
+{
+    resize(QSize(width,size().height()));
+}
+
+int TerminalState::height() const
+{
+    return size().height();
+}
+
+void TerminalState::setHeight(int height)
+{
+    resize(QSize(size().width(), height));
 }
 
 QSize TerminalState::size() const
@@ -58,27 +80,18 @@ QSize TerminalState::size() const
     return m_pty->size();
 }
 
+TerminalScreen *TerminalState::screen() const
+{
+    return m_screen;
+}
+
 void TerminalState::resize(const QSize &size)
 {
-    if (m_pty->size().height() > size.height() &&
-            m_screen_lines.size() > size.height()) {
-        int removeElements = m_pty->size().height() - size.height();
-        for (int i = 0; i < removeElements; i++)
-            m_screen_lines.removeFirst();
-    }
-
+    qDebug() << "Resizing" << size;
+    m_screen->resize(size);
     m_pty->resizeTerminal(size);
 }
 
-QColor TerminalState::defaultForgroundColor()
-{
-    return QColor(Qt::white);
-}
-
-QColor TerminalState::defaultBackgroundColor()
-{
-    return QColor(Qt::black);
-}
 
 void TerminalState::readData()
 {
@@ -87,31 +100,15 @@ void TerminalState::readData()
     m_parser->addData(data);
 
     Token token;
-    int new_lines = 0;
     foreach(token, m_parser->tokens()) {
         if (token.controllSequence() == TerminalState::NoControllSequence) {
-            TextSegment textSegment(token.text(), m_forground_color, m_background_color);
-            m_screen_lines[(m_cursor_pos.y())].append(textSegment);
+            TextSegment *textSegment = new TextSegment(token.text(), m_forground_color, m_background_color);
+            m_screen->insertAtCursor(textSegment);
         }
 
         if (token.controllSequence() == TerminalState::NewLine) {
-            new_lines++;
-            if (m_cursor_pos.y() == m_screen_lines.size() -1 &&
-                    m_cursor_pos.y() == size().height()) {
-                m_screen_lines.takeFirst();
-                m_screen_lines.append(TextSegmentLine());
-            } else {
-                m_screen_lines.append(TextSegmentLine());
-                m_cursor_pos.setY(m_cursor_pos.y()+1);
-            }
-            TextSegment textSegment;
-            foreach(textSegment, m_screen_lines.at(m_screen_lines.size()-2  )) {
-                fprintf(stderr, "%s", qPrintable(textSegment.text()));
-            }
-            fprintf(stderr, "\n");
+            m_screen->newLine();
         }
     }
     m_parser->clear();
-    if (new_lines)
-        emit linesAdded(new_lines);
 }

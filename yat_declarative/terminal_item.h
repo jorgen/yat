@@ -18,64 +18,33 @@
 *
 ***************************************************************************************************/
 
-#ifndef TEXT_SEGMENT_H
-#define TEXT_SEGMENT_H
+#ifndef TERMINALITEM_H
+#define TERMINALITEM_H
 
-#include <QtCore/QString>
-#include <QtGui/QColor>
+#include <QtCore/QObject>
+#include <QtQuick/QQuickItem>
 
-class TextSegment
+#include "terminal_state.h"
+
+class TerminalItem : public QQuickItem
 {
+    Q_OBJECT
+
 public:
+    TerminalItem(QQuickItem *parent = 0);
 
-    TextSegment(const QString &text, const QColor &forground, const QColor &background);
-    TextSegment();
+    Q_INVOKABLE TerminalScreen *terminalScreen() const;
+    Q_INVOKABLE TerminalState *terminalState() const;
 
-    QString text() const;
+signals:
+    void screenGeometryChanged();
 
-    QColor forgroundColor() const;
-    void  setForgroundColor(const QColor &color);
-
-    QColor backgroundColor() const;
-    void setBackgroundColor(const QColor &color);
+public slots:
+    void onWidthChanged();
+    void onHeightChanged();
 
 private:
-    QString m_text;
-    QColor m_forground_color;
-    QColor m_background_color;
-
+    TerminalState *m_state;
 };
 
-typedef QList<TextSegment> TextSegmentLine;
-
-inline
-QString TextSegment::text() const
-{
-    return m_text;
-}
-
-inline
-QColor TextSegment::forgroundColor() const
-{
-    return m_forground_color;
-}
-
-inline
-void TextSegment::setForgroundColor(const QColor &color)
-{
-    m_forground_color = color;
-}
-
-inline
-QColor TextSegment::backgroundColor() const
-{
-    return m_background_color;
-}
-
-inline
-void TextSegment::setBackgroundColor(const QColor &color)
-{
-    m_background_color = color;
-}
-
-#endif // TEXT_SEGMENT_H
+#endif // TERMINALITEM_H

@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qml/yat_declarative/main.qml</file>
+        <file>qml/yat_declarative/TerminalLine.qml</file>
+    </qresource>
+</RCC>

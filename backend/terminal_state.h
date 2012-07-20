@@ -27,7 +27,7 @@
 #include <QtCore/QPoint>
 #include <QtGui/QColor>
 
-#include "text_segment.h"
+#include "terminal_screen.h"
 #include "yat_pty.h"
 
 class Tokenizer;
@@ -35,6 +35,8 @@ class Tokenizer;
 class TerminalState : public QObject
 {
     Q_OBJECT
+
+
 public:
 
     enum ControllSequence {
@@ -86,27 +88,34 @@ public:
         ChangeWindowTitle
     };
 
-    TerminalState(QObject *parent = 0);
+    TerminalState();
     ~TerminalState();
+
     void resetState();
 
-    QSize size() const;
-    void resize(const QSize &size);
+    int width() const;
+    void setWidth(int width);
 
-    QColor defaultForgroundColor();
-    QColor defaultBackgroundColor();
+    int height() const;
+    void setHeight(int height);
+
+    Q_INVOKABLE void resize(const QSize &size);
+    Q_INVOKABLE QSize size() const;
+
+    TerminalScreen *screen() const;
 
 signals:
-    void linesAdded(int new_lines);
+    void widthChanged();
+    void heightChanged();
 
 private:
     void readData();
 
-    YatPty *m_pty;
     QColor m_forground_color;
     QColor m_background_color;
-    QList<TextSegmentLine> m_screen_lines;
-    QPoint m_cursor_pos;
+    YatPty *m_pty;
+    TerminalScreen *m_screen;
+
     Tokenizer *m_parser;
 };
 
