@@ -23,7 +23,7 @@
 TerminalScreen::TerminalScreen(QObject *parent)
     : QObject(parent)
 {
-    m_font.setPixelSize(10);
+    m_font.setPixelSize(14);
     m_font.setFamily(QStringLiteral("Monospace"));
 }
 
@@ -54,6 +54,8 @@ void TerminalScreen::resize(const QSize &size)
             m_screen_lines.remove(m_screen_lines.size() - i -1);
         }
     } else if (m_screen_lines.size() < size.height()){
+        int diff = size.height() - m_screen_lines.size();
+        m_cursor_pos.setY(m_cursor_pos.y() + diff);
         int rowsToAdd = size.height() - m_screen_lines.size();
         for (int i = 0; i < rowsToAdd; i++) {
             m_screen_lines.insert(0, new TextSegmentLine(this));
@@ -93,6 +95,7 @@ void TerminalScreen::insertAtCursor(TextSegment *segment)
 {
     TextSegmentLine *line = m_screen_lines.at(m_cursor_pos.y());
     line->insertAtPos(m_cursor_pos.x(), segment);
+    m_cursor_pos.setX(m_cursor_pos.x() + segment->text().size());
 }
 
 void TerminalScreen::newLine()
@@ -102,7 +105,12 @@ void TerminalScreen::newLine()
     int rows_to_move = m_screen_lines.size() - m_cursor_pos.y() -1;
     memmove(lines+1,lines,sizeof(lines) * rows_to_move);
     m_screen_lines.replace(m_cursor_pos.y(), new TextSegmentLine());
-    emit scrollUp(m_cursor_pos.y());
+    if(m_cursor_pos.y() == 0)
+        emit scrollUp(m_cursor_pos.y());
+    else {
+        m_cursor_pos.setY(m_cursor_pos.y() - 1);
+        m_cursor_pos.setX(0);
+    }
 }
 
 TextSegmentLine *TerminalScreen::at(int i) const

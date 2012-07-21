@@ -24,6 +24,7 @@
 #include <QtCore/QString>
 #include <QtGui/QColor>
 #include <QtCore/QObject>
+#include <QtCore/QSize>
 
 class TextSegment : public QObject
 {
@@ -52,6 +53,8 @@ private:
 class TextSegmentLine : public QObject
 {
     Q_OBJECT
+
+    Q_PROPERTY(int size READ size NOTIFY sizeChanged)
 public:
 
     TextSegmentLine(QObject *parent = 0);
@@ -59,7 +62,7 @@ public:
 
     void reset();
 
-    Q_INVOKABLE int size() const;
+    int size() const;
     Q_INVOKABLE TextSegment *at(int i) const;
     Q_INVOKABLE QList<TextSegment *> segments() const;
 
@@ -68,7 +71,7 @@ public:
     void insertAtPos(int i, TextSegment *segment);
 
 signals:
-    void changed();
+    void sizeChanged();
 
 private:
     QList<TextSegment *> m_segments;

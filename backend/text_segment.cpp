@@ -20,6 +20,8 @@
 
 #include "text_segment.h"
 
+#include <QtCore/QDebug>
+
 TextSegment::TextSegment(const QString &text, const QColor &forground, const QColor &background, QObject *parent)
     : QObject(parent)
     , m_text(text)
@@ -102,12 +104,14 @@ void TextSegmentLine::append(TextSegment *segment)
 {
     segment->setParent(this);
     m_segments.append(segment);
+    emit sizeChanged();
 }
 
 void TextSegmentLine::prepend(TextSegment *segment)
 {
     segment->setParent(this);
-    return m_segments.prepend(segment);
+    m_segments.prepend(segment);
+    emit sizeChanged();
 }
 
 void TextSegmentLine::insertAtPos(int pos, TextSegment *segment)
@@ -115,6 +119,7 @@ void TextSegmentLine::insertAtPos(int pos, TextSegment *segment)
     segment->setParent(this);
     if (m_segments.size() == 0 || pos == 0) {
         m_segments.prepend(segment);
+        emit sizeChanged();
         return;
     }
 
@@ -126,9 +131,11 @@ void TextSegmentLine::insertAtPos(int pos, TextSegment *segment)
             TextSegment *right = left->split(split_position);
             m_segments.insert(i+1,segment);
             m_segments.insert(i+1,right);
+            emit sizeChanged();
             return;
         }
         char_count += m_segments.at(i)->text().size();
     }
     m_segments << segment;
+    sizeChanged();
 }

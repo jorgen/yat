@@ -18,17 +18,9 @@ Rectangle {
         id: dummyText
         text: "A"
         font: terminalItem.terminalScreen().font
+        visible: false
     }
 
-    Connections {
-        target: terminalItem.terminalScreen();
-        onScrollUp: {
-            var screen = terminalItem.terminalScreen();
-            if (terminalItem.terminalScreen().at(screen.geometry.height-1).size() > 0)
-                print(terminalItem.terminalScreen().at(screen.geometry.height-1).at(0).text());
-        }
-
-    }
     onWidthChanged: {
         setTerminalWidth();
     }
@@ -45,14 +37,12 @@ Rectangle {
 
     function setTerminalWidth() {
         if (fontWidth > 0) {
-            console.log("witdth changed " + width / fontWidth);
             terminalItem.width = width / fontWidth;
         }
     }
 
     function setTerminalHeight() {
         if (fontHeight > 0) {
-            console.log("height changed " + height / fontHeight);
             terminalItem.height = height / fontHeight;
         }
     }
@@ -64,7 +54,8 @@ Rectangle {
                 height: fontHeight
                 width: terminal.width
 
-                textLine: terminalItem.terminalScreen().at(index)
+                textLine: terminalItem.terminalScreen().at(terminalItem.terminalScreen().height - index -1)
+
 
             }
         }

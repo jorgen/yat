@@ -87,7 +87,6 @@ TerminalScreen *TerminalState::screen() const
 
 void TerminalState::resize(const QSize &size)
 {
-    qDebug() << "Resizing" << size;
     m_screen->resize(size);
     m_pty->resizeTerminal(size);
 }
