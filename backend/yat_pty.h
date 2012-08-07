@@ -48,9 +48,8 @@ private:
     int m_master_fd;
     QSocketNotifier *m_master_fd_read_notify;
     QByteArray m_buffer;
-    int m_buffer_not_parsed;
     int m_buffer_max_size;
-    int m_buffer_current_size;
+    size_t m_buffer_current_size;
     char m_slave_file_name[PATH_MAX];
     struct termios m_termios;
     struct winsize *m_winsize;

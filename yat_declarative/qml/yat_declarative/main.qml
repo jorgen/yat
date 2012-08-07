@@ -1,10 +1,10 @@
 import QtQuick 2.0
 
-import com.yat 1.0
+import org.yat 1.0
 
 Rectangle {
     id:terminal
-    width: 360
+    width: 1200
     height: 360
 
     property int fontWidth: dummyText.paintedWidth
@@ -17,7 +17,7 @@ Rectangle {
     Text {
         id: dummyText
         text: "A"
-        font: terminalItem.terminalScreen().font
+        font: terminalItem.screen().font
         visible: false
     }
 
@@ -37,27 +37,18 @@ Rectangle {
 
     function setTerminalWidth() {
         if (fontWidth > 0) {
-            terminalItem.width = width / fontWidth;
+            terminalItem.state().setWidth(width / fontWidth);
         }
     }
 
     function setTerminalHeight() {
         if (fontHeight > 0) {
-            terminalItem.height = height / fontHeight;
+            terminalItem.state().setHeight(height / fontHeight);
         }
     }
 
-    Column {
-        Repeater {
-            model: terminalItem.terminalScreen().height
-            TerminalLine {
-                height: fontHeight
-                width: terminal.width
-
-                textLine: terminalItem.terminalScreen().at(terminalItem.terminalScreen().height - index -1)
-
-
-            }
-        }
+    TerminalScreen {
+        anchors.fill: parent
+        terminalScreen: terminalItem.screen()
     }
 }

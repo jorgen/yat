@@ -20,19 +20,27 @@
 
 #include "text_segment.h"
 
+#include "terminal_screen.h"
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QDebug>
 
-TextSegment::TextSegment(const QString &text, const QColor &forground, const QColor &background, QObject *parent)
-    : QObject(parent)
+TextSegment::TextSegment(const QString &text, const QColor &forground, const QColor &background, TerminalScreen *terminalScreen)
+    : QObject(terminalScreen)
     , m_text(text)
     , m_forground_color(forground)
     , m_background_color(background)
+    , m_screen(terminalScreen)
 {
+    connect(terminalScreen, &TerminalScreen::dispatchTextSegmentChanges,
+            this, &TextSegment::dispatchEvents);
 }
 
-TextSegment::TextSegment(QObject *parent)
-    : QObject(parent)
+TextSegment::TextSegment(TerminalScreen *terminalScreen)
+    : QObject(terminalScreen)
+    , m_forground_color(QColor(Qt::black))
 {
+    connect(terminalScreen, &TerminalScreen::dispatchTextSegmentChanges,
+            this, &TextSegment::dispatchEvents);
 }
 
 QString TextSegment::text() const
@@ -63,79 +71,43 @@ void TextSegment::setBackgroundColor(const QColor &color)
 TextSegment *TextSegment::split(int i)
 {
     QString str = m_text.right(i);
-    TextSegment *right = new TextSegment(str,m_forground_color,m_background_color,parent());
+    TextSegment *right = new TextSegment(str,m_forground_color,m_background_color,m_screen);
+    right->setParent(parent());
     m_text.truncate(i);
+    m_dirty = true;
+
     return right;
 }
 
-TextSegmentLine::TextSegmentLine(QObject *parent)
-    : QObject(parent)
+bool TextSegment::isCompatible(TextSegment *other)
 {
+    return other->m_forground_color == m_forground_color &&
+            other->m_background_color == m_background_color;
 }
 
-TextSegmentLine::~TextSegmentLine()
+void TextSegment::prependTextSegment(TextSegment *other)
 {
+    m_text.prepend(other->text());
+    m_dirty = true;
 }
 
-void TextSegmentLine::reset()
+void TextSegment::insertTextSegment(int index, TextSegment *other)
 {
-    for (int i = 0; i < m_segments.size(); i++) {
-        delete m_segments.at(i);
+    m_text.insert(index, other->text());
+    m_dirty = true;
+}
+
+void TextSegment::appendTextSegment(TextSegment *other)
+{
+    m_text.append(other->text());
+    m_dirty = true;
+}
+
+void TextSegment::dispatchEvents()
+{
+    if (m_dirty) {
+        m_dirty = false;
+        emit textChanged();
     }
-    m_segments.clear();
 }
 
-int TextSegmentLine::size() const
-{
-    return m_segments.size();
-}
-
-TextSegment *TextSegmentLine::at(int i) const
-{
-    return m_segments.at(i);
-}
-
-QList<TextSegment *> TextSegmentLine::segments() const
-{
-    return m_segments;
-}
-
-void TextSegmentLine::append(TextSegment *segment)
-{
-    segment->setParent(this);
-    m_segments.append(segment);
-    emit sizeChanged();
-}
-
-void TextSegmentLine::prepend(TextSegment *segment)
-{
-    segment->setParent(this);
-    m_segments.prepend(segment);
-    emit sizeChanged();
-}
-
-void TextSegmentLine::insertAtPos(int pos, TextSegment *segment)
-{
-    segment->setParent(this);
-    if (m_segments.size() == 0 || pos == 0) {
-        m_segments.prepend(segment);
-        emit sizeChanged();
-        return;
-    }
-
-    int char_count = 0;
-    for (int i = 0; i < m_segments.size(); i++) {
-        TextSegment *left = m_segments.at(i);
-        if (pos < char_count + left->text().size()) {
-            int split_position = pos - char_count;
-            TextSegment *right = left->split(split_position);
-            m_segments.insert(i+1,segment);
-            m_segments.insert(i+1,right);
-            emit sizeChanged();
-            return;
-        }
-        char_count += m_segments.at(i)->text().size();
-    }
-    m_segments << segment;
-    sizeChanged();
-}

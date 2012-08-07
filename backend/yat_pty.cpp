@@ -29,7 +29,6 @@
 
 YatPty::YatPty(QObject *parent)
     : QObject(parent)
-    , m_buffer_not_parsed(0)
     , m_buffer_max_size(1024)
     , m_buffer_current_size(0)
     , m_winsize(0)
@@ -44,7 +43,7 @@ YatPty::YatPty(QObject *parent)
     m_master_fd_read_notify = new QSocketNotifier(m_master_fd, QSocketNotifier::Read);
     connect(m_master_fd_read_notify, &QSocketNotifier::activated,
             this, &YatPty::readyRead);
-    resizeTerminal(QSize(150,24));
+    resizeTerminal(QSize(10,10));
     m_buffer.resize(m_buffer_max_size);
 }
 
@@ -56,12 +55,7 @@ YatPty::~YatPty()
 QByteArray YatPty::read()
 {
     char *buf = const_cast<char *>(m_buffer.constData());
-    if (m_buffer_not_parsed) {
-        memmove(buf,buf + m_buffer_current_size - m_buffer_not_parsed, m_buffer_not_parsed);
-    }
-    ssize_t buffer_size = ::read(m_master_fd,buf + m_buffer_not_parsed, m_buffer_max_size - m_buffer_not_parsed);
-    m_buffer_current_size = m_buffer_not_parsed + buffer_size;
-    m_buffer_not_parsed = 0;
+    m_buffer_current_size = ::read(m_master_fd,buf, m_buffer_max_size);
 
     return QByteArray::fromRawData(buf, m_buffer_current_size);
 }

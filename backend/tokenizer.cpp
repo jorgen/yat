@@ -107,8 +107,11 @@ void Tokenizer::decodeC0(uchar character)
     case C0::ACK:
     case C0::BEL:
     case C0::BS:
-    case C0::HT:
         qDebug() << "Unhandled Controll character" << character;
+        break;
+    case C0::HT:
+        m_current_token.setControllSequence(TerminalState::HorizontalTab);
+        tokenFinished();
         break;
     case C0::LF:
         m_current_token.setControllSequence(TerminalState::NewLine);
@@ -119,6 +122,7 @@ void Tokenizer::decodeC0(uchar character)
         qDebug() << "Unhandled Controll character" << character;
         break;
     case C0::CR:
+        m_current_token.setControllSequence(TerminalState::CursorHome);
         tokenFinished();
         //next should be a linefeed;
         break;
@@ -267,7 +271,13 @@ void Tokenizer::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::CUP:
                     case FinalBytesNoIntermediate::CHT:
                     case FinalBytesNoIntermediate::ED:
+                        m_current_token.setControllSequence(TerminalState::UnknownControllSequence);
+                        tokenFinished();
+                        break;
                     case FinalBytesNoIntermediate::EL:
+                        m_current_token.setControllSequence(TerminalState::EraseLine);
+                        tokenFinished();
+                        break;
                     case FinalBytesNoIntermediate::IL:
                     case FinalBytesNoIntermediate::DL:
                     case FinalBytesNoIntermediate::EF:

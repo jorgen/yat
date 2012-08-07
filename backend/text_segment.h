@@ -26,55 +26,43 @@
 #include <QtCore/QObject>
 #include <QtCore/QSize>
 
+class TerminalScreen;
+
 class TextSegment : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(QString text READ text NOTIFY textChanged)
 public:
-    TextSegment(const QString &text, const QColor &forground, const QColor &background, QObject *parent = 0 );
-    TextSegment(QObject *parent = 0);
+    TextSegment(const QString &text, const QColor &forground, const QColor &background, TerminalScreen *terminalScreen);
+    TextSegment(TerminalScreen *terminalScreen);
 
-    Q_INVOKABLE QString text() const;
+    QString text() const;
 
-    QColor forgroundColor() const;
+    Q_INVOKABLE QColor forgroundColor() const;
     void  setForgroundColor(const QColor &color);
 
     QColor backgroundColor() const;
     void setBackgroundColor(const QColor &color);
 
     TextSegment *split(int i);
+    bool isCompatible(TextSegment *other);
+    void prependTextSegment(TextSegment *other);
+    void insertTextSegment(int index, TextSegment *other);
+    void appendTextSegment(TextSegment *other);
+
+signals:
+    void textChanged();
 
 private:
+    void dispatchEvents();
+
     QString m_text;
     QColor m_forground_color;
     QColor m_background_color;
+    bool m_dirty;
+    TerminalScreen *m_screen;
 
 };
 
-class TextSegmentLine : public QObject
-{
-    Q_OBJECT
-
-    Q_PROPERTY(int size READ size NOTIFY sizeChanged)
-public:
-
-    TextSegmentLine(QObject *parent = 0);
-    ~TextSegmentLine();
-
-    void reset();
-
-    int size() const;
-    Q_INVOKABLE TextSegment *at(int i) const;
-    Q_INVOKABLE QList<TextSegment *> segments() const;
-
-    void append(TextSegment *segment);
-    void prepend(TextSegment *segment);
-    void insertAtPos(int i, TextSegment *segment);
-
-signals:
-    void sizeChanged();
-
-private:
-    QList<TextSegment *> m_segments;
-};
 
 #endif // TEXT_SEGMENT_H

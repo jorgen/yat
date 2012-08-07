@@ -24,25 +24,17 @@ TerminalItem::TerminalItem(QQuickItem *parent)
     : QQuickItem(parent)
     , m_state(new TerminalState)
 {
-    connect(m_state->screen(), &TerminalScreen::geometryChanged,
-            this, &TerminalItem::screenGeometryChanged);
-
-    connect(this,&TerminalItem::widthChanged,
-            this, &TerminalItem::onWidthChanged);
-    connect(this, &TerminalItem::heightChanged,
-            this, &TerminalItem::onHeightChanged);
 }
 
-TerminalScreen *TerminalItem::terminalScreen() const
+TerminalScreen *TerminalItem::screen() const
 {
     return m_state->screen();
 }
 
-TerminalState *TerminalItem::terminalState() const
+TerminalState *TerminalItem::state() const
 {
     return m_state;
 }
-
 
 void TerminalItem::onWidthChanged()
 {

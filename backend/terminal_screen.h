@@ -30,20 +30,21 @@
 #include <QtCore/QVector>
 #include <QtGui/QFont>
 
+class TextSegmentLine;
+
 class TerminalScreen : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(QSize geometry READ size WRITE resize NOTIFY geometryChanged)
     Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
-    Q_PROPERTY(int height READ height NOTIFY heightChanged)
 
 public:
     explicit TerminalScreen(QObject *parent = 0);
+    ~TerminalScreen();
     
     QSize size() const;
     Q_INVOKABLE void resize(const QSize &size);
-    int height() const;
+    Q_INVOKABLE int height() const;
 
     QFont font() const;
     void setFont(const QFont &font);
@@ -52,21 +53,39 @@ public:
     QColor defaultBackgroundColor();
 
     QPoint cursorPosition() const;
+    void moveCursorHome();
+    void moveCursorUp();
+    void moveCursorDown();
+    void moveCursorLeft();
+    void moveCursorRight();
 
-    void insertAtCursor(TextSegment *segment);
+    void insertAtCursor(const QString &text, const QColor &bg, const QColor &fg);
+
+    void eraseLine();
 
     void newLine();
 
     Q_INVOKABLE TextSegmentLine *at(int i) const;
 
-signals:
-    void geometryChanged();
-    void heightChanged();
-    void fontChanged();
-    void scrollUp(int count);
-    void scrollDown(int count);
+    Q_INVOKABLE void printScreen() const;
 
+    void dispatchChanges();
+signals:
+    void scrollUp(int from_line, int count);
+    void scrollDown(int from_line, int count);
+
+    void linesInserted(int count);
+    void linesRemoved(int count);
+
+    void fontChanged();
+
+    void dispatchLineChanges();
+    void dispatchTextSegmentChanges();
 private:
+    void doScrollOneLineUpAt(int line);
+    void doScrollOneLineDownAt(int line);
+
+    TextSegmentLine *line_at_cursor();
     QVector<TextSegmentLine *> m_screen_lines;
     QPoint m_cursor_pos;
     QFont m_font;

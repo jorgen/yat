@@ -1,16 +1,55 @@
 import QtQuick 2.0
 
 Item{
-    property QtObject textLine
+    id: text_line
+    property QtObject textLine: null
 
     Row {
+        anchors.fill: parent
         Repeater {
-            model: textLine === null ? 0 : textLine.size
+            id: line_repeater
+            model: lineModel
             Text {
-                text: textLine.at(index).text()
-                font: terminalItem.terminalScreen().font
+                height: parent.height
+                width: paintedWidth
+                text: textSegment.text
+                font: terminalItem.screen().font
+                color: textSegment.forgroundColor()
+                textFormat: Text.PlainText
             }
+        }
+    }
 
+    ListModel {
+        id: lineModel
+    }
+
+    onTextLineChanged: ;
+
+    function resetModel() {
+        lineModel.clear();
+        for (var i = 0; i < textLine.size(); i++) {
+            lineModel.append({
+                                 "textSegment": textLine.at(i)
+                             })
+        }
+    }
+
+    Connections {
+        target: textLine
+
+        onNewTextSegment: {
+            lineModel.insert(index, {
+                                 "textSegment": textLine.at(index)
+                             });
+        }
+
+        onTextSegmentRemoved: {
+            lineModel.remove(index);
+        }
+
+        onReset: {
+            resetModel();
         }
     }
 }

@@ -20,11 +20,19 @@
 
 #include "terminal_screen.h"
 
+#include "text_segment_line.h"
+
+#include <QtCore/QDebug>
+
 TerminalScreen::TerminalScreen(QObject *parent)
     : QObject(parent)
 {
     m_font.setPixelSize(14);
-    m_font.setFamily(QStringLiteral("Monospace"));
+    m_font.setFamily(QStringLiteral("Courier"));
+}
+
+TerminalScreen::~TerminalScreen()
+{
 }
 
 QSize TerminalScreen::size() const
@@ -45,29 +53,24 @@ QColor TerminalScreen::defaultBackgroundColor()
 
 void TerminalScreen::resize(const QSize &size)
 {
-    bool emitGeometryChanged = m_screen_lines.size() != size.height();
-
     if (m_screen_lines.size() > size.height()) {
         int removeElements = m_screen_lines.size() - size.height();
         for (int i = 0; i < removeElements; i++) {
-            delete m_screen_lines.at(m_screen_lines.size() - i - 1);
-            m_screen_lines.remove(m_screen_lines.size() - i -1);
+            delete m_screen_lines[i];
         }
+        m_screen_lines.remove(0, removeElements);
+        emit linesRemoved(removeElements);
     } else if (m_screen_lines.size() < size.height()){
-        int diff = size.height() - m_screen_lines.size();
-        m_cursor_pos.setY(m_cursor_pos.y() + diff);
         int rowsToAdd = size.height() - m_screen_lines.size();
         for (int i = 0; i < rowsToAdd; i++) {
-            m_screen_lines.insert(0, new TextSegmentLine(this));
+            TextSegmentLine *newLine = new TextSegmentLine(this);
+            m_screen_lines.append(newLine);
         }
+        emit linesInserted(rowsToAdd);
     }
     if(m_cursor_pos.y() >= m_screen_lines.size())
         m_cursor_pos.setY(m_screen_lines.size()-1);
 
-    if (emitGeometryChanged) {
-        emit geometryChanged();
-        emit heightChanged();
-    }
 }
 
 int TerminalScreen::height() const
@@ -91,25 +94,58 @@ QPoint TerminalScreen::cursorPosition() const
     return m_cursor_pos;
 }
 
-void TerminalScreen::insertAtCursor(TextSegment *segment)
+void TerminalScreen::moveCursorHome()
 {
-    TextSegmentLine *line = m_screen_lines.at(m_cursor_pos.y());
-    line->insertAtPos(m_cursor_pos.x(), segment);
+    m_cursor_pos.setX(0);
+}
+
+void TerminalScreen::moveCursorUp()
+{
+    m_cursor_pos.ry() -= 1;
+}
+
+void TerminalScreen::moveCursorDown()
+{
+    m_cursor_pos.ry() += 1;
+}
+
+void TerminalScreen::moveCursorLeft()
+{
+    m_cursor_pos.rx() += 1;
+}
+
+void TerminalScreen::moveCursorRight()
+{
+    m_cursor_pos.rx() -= 1;
+}
+
+void TerminalScreen::insertAtCursor(const QString &text, const QColor &bg, const QColor &fg)
+{
+    TextSegment *segment = new TextSegment(text,bg,fg, this);
+    TextSegmentLine *line = line_at_cursor();
     m_cursor_pos.setX(m_cursor_pos.x() + segment->text().size());
+    line->insertAtPos(m_cursor_pos.x(), segment);
+}
+
+void TerminalScreen::eraseLine()
+{
+    TextSegmentLine *line = line_at_cursor();
+    line->clear();
 }
 
 void TerminalScreen::newLine()
 {
-    delete m_screen_lines.at(m_screen_lines.size() -1);
-    TextSegmentLine **lines = m_screen_lines.data() + m_cursor_pos.y();
-    int rows_to_move = m_screen_lines.size() - m_cursor_pos.y() -1;
-    memmove(lines+1,lines,sizeof(lines) * rows_to_move);
-    m_screen_lines.replace(m_cursor_pos.y(), new TextSegmentLine());
-    if(m_cursor_pos.y() == 0)
-        emit scrollUp(m_cursor_pos.y());
-    else {
-        m_cursor_pos.setY(m_cursor_pos.y() - 1);
-        m_cursor_pos.setX(0);
+    if(m_cursor_pos.y() == m_screen_lines.size() -1) {
+        TextSegmentLine *firstLine = m_screen_lines.at(0);
+        TextSegmentLine **lines = m_screen_lines.data();
+        int rows_to_move = m_cursor_pos.y();
+        memmove(lines,lines+1,sizeof(lines) * rows_to_move);
+        firstLine->clear();
+        m_screen_lines.replace(m_cursor_pos.y(),firstLine);
+        doScrollOneLineUpAt(m_cursor_pos.y());
+    } else {
+        moveCursorDown();
+        moveCursorHome();
     }
 }
 
@@ -118,4 +154,35 @@ TextSegmentLine *TerminalScreen::at(int i) const
     return m_screen_lines.at(i);
 }
 
+void TerminalScreen::printScreen() const
+{
+    for (int line = 0; line < m_screen_lines.size(); line++) {
+        for (int i = 0; i < m_screen_lines.at(line)->size(); i++) {
+            fprintf(stderr, "%s", qPrintable(m_screen_lines.at(line)->at(i)->text()));
+        }
+        fprintf(stderr, "\n");
+    }
+}
 
+
+TextSegmentLine *TerminalScreen::line_at_cursor()
+{
+    return m_screen_lines.at(m_cursor_pos.y());
+}
+
+void TerminalScreen::dispatchChanges()
+{
+    emit dispatchLineChanges();
+    emit dispatchTextSegmentChanges();
+
+}
+
+void TerminalScreen::doScrollOneLineUpAt(int line)
+{
+    emit scrollUp(line,1);
+}
+
+void TerminalScreen::doScrollOneLineDownAt(int line)
+{
+    emit scrollDown(line, 1);
+}

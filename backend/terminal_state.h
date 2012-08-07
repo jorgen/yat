@@ -43,6 +43,7 @@ public:
         NoControllSequence,
         UnknownControllSequence,
         NewLine,
+        HorizontalTab,
         QueryDeviceCode,
         ReportDeviceCode,
         QueryDeviceStatus,
@@ -93,20 +94,19 @@ public:
 
     void resetState();
 
-    int width() const;
-    void setWidth(int width);
+    Q_INVOKABLE int width() const;
+    Q_INVOKABLE void setWidth(int width);
 
-    int height() const;
-    void setHeight(int height);
+    Q_INVOKABLE int height() const;
+    Q_INVOKABLE void setHeight(int height);
 
     Q_INVOKABLE void resize(const QSize &size);
     Q_INVOKABLE QSize size() const;
 
     TerminalScreen *screen() const;
 
-signals:
-    void widthChanged();
-    void heightChanged();
+public slots:
+    void write(const QString &data);
 
 private:
     void readData();

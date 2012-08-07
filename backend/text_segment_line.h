@@ -18,33 +18,63 @@
 *
 ***************************************************************************************************/
 
-#ifndef TERMINALITEM_H
-#define TERMINALITEM_H
+#ifndef TEXT_SEGMENT_LINE_H
+#define TEXT_SEGMENT_LINE_H
 
 #include <QtCore/QObject>
-#include <QtQuick/QQuickItem>
 
-#include "terminal_state.h"
+class TextSegment;
+class TerminalScreen;
 
-class TerminalItem : public QQuickItem
+class TextSegmentLine : public QObject
 {
     Q_OBJECT
-
 public:
-    TerminalItem(QQuickItem *parent = 0);
+    TextSegmentLine(TerminalScreen *terminalScreen);
+    ~TextSegmentLine();
 
-    Q_INVOKABLE TerminalScreen *screen() const;
-    Q_INVOKABLE TerminalState *state() const;
+    void clear();
+
+    Q_INVOKABLE int size() const;
+    Q_INVOKABLE TextSegment *at(int i) const;
+    Q_INVOKABLE QList<TextSegment *> segments() const;
+
+    void append(TextSegment *segment);
+    void prepend(TextSegment *segment);
+    void insertAtPos(int i, TextSegment *segment);
 
 signals:
-    void screenGeometryChanged();
+    void newTextSegment(int index);
+    void textSegmentRemoved(int index);
 
-public slots:
-    void onWidthChanged();
-    void onHeightChanged();
+    void reset();
 
 private:
-    TerminalState *m_state;
+    class UpdateAction {
+    public:
+        enum Action {
+            InvalidAction,
+            NewText,
+            RemovedText,
+            Reset
+        };
+        UpdateAction()
+            : action(InvalidAction)
+            , index(0)
+        {}
+        UpdateAction(Action action, int index)
+            : action(action)
+            , index(index)
+        { }
+        Action action;
+        int index;
+    };
+
+    void dispatchEvents();
+
+    QList<TextSegment *> m_segments;
+    QList<UpdateAction> m_update_actions;
+    TerminalScreen *m_screen;
 };
 
-#endif // TERMINALITEM_H
+#endif // TEXT_SEGMENT_LINE_H

@@ -26,11 +26,14 @@
 #include <QtCore/QPoint>
 
 #include <QtCore/QDebug>
+#include <QtCore/QElapsedTimer>
 
 #include "tokenizer.h"
 
 TerminalState::TerminalState()
     : QObject(0)
+    , m_forground_color(Qt::black)
+    , m_background_color(Qt::black)
     , m_pty(new YatPty(this))
     , m_screen(new TerminalScreen(this))
     , m_parser(new Tokenizer)
@@ -38,7 +41,6 @@ TerminalState::TerminalState()
     connect(m_pty, &YatPty::readyRead,
             this, &TerminalState::readData);
 
-    m_pty->write("ls /usr/lib\n");
     m_screen->resize(m_pty->size());
 }
 
@@ -85,6 +87,11 @@ TerminalScreen *TerminalState::screen() const
     return m_screen;
 }
 
+void TerminalState::write(const QString &data)
+{
+    m_pty->write(data.toUtf8());
+}
+
 void TerminalState::resize(const QSize &size)
 {
     m_screen->resize(size);
@@ -100,14 +107,30 @@ void TerminalState::readData()
 
     Token token;
     foreach(token, m_parser->tokens()) {
-        if (token.controllSequence() == TerminalState::NoControllSequence) {
-            TextSegment *textSegment = new TextSegment(token.text(), m_forground_color, m_background_color);
-            m_screen->insertAtCursor(textSegment);
+        switch(token.controllSequence()) {
+        case TerminalState::NoControllSequence:
+            m_screen->insertAtCursor(token.text(), m_forground_color, m_background_color);
+            break;
+        case TerminalState::NewLine:
+            m_screen->newLine();
+            break;
+        case TerminalState::CursorHome:
+            m_screen->moveCursorHome();
+            break;
+        case TerminalState::EraseLine:
+            m_screen->eraseLine();
+            break;
+        case TerminalState::HorizontalTab: {
+            int x = m_screen->cursorPosition().x();
+            int spaces = 8 - (x % 8);
+            m_screen->insertAtCursor(QString(spaces,' '),m_forground_color,m_background_color);
+        }
+            break;
+        default:
+            break;
         }
 
-        if (token.controllSequence() == TerminalState::NewLine) {
-            m_screen->newLine();
-        }
     }
+    m_screen->dispatchChanges();
     m_parser->clear();
 }
