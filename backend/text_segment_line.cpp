@@ -139,19 +139,15 @@ void TextSegmentLine::dispatchEvents()
     foreach(action, m_update_actions) {
         switch(action.action) {
         case UpdateAction::Reset:
-            qDebug() << "Emitting reset";
             emit reset();
             break;
         case UpdateAction::NewText:
-            qDebug() << "New Text reset";
             emit newTextSegment(action.index);
             break;
         case UpdateAction::RemovedText:
-            qDebug() << "Removed Text reset";
             emit textSegmentRemoved(action.index);
             break;
         default:
-            qDebug() << "Unknown update action";
             break;
         }
     }

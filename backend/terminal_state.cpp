@@ -26,7 +26,6 @@
 #include <QtCore/QPoint>
 
 #include <QtCore/QDebug>
-#include <QtCore/QElapsedTimer>
 
 #include "tokenizer.h"
 
@@ -42,6 +41,7 @@ TerminalState::TerminalState()
             this, &TerminalState::readData);
 
     m_screen->resize(m_pty->size());
+
 }
 
 TerminalState::~TerminalState()
@@ -101,36 +101,40 @@ void TerminalState::resize(const QSize &size)
 
 void TerminalState::readData()
 {
-    QByteArray data = m_pty->read();
+    for (int i = 0; i < 20 && m_pty->moreInput(); i++) {
+        QByteArray data = m_pty->read();
 
-    m_parser->addData(data);
+        m_parser->addData(data);
 
-    Token token;
-    foreach(token, m_parser->tokens()) {
-        switch(token.controllSequence()) {
-        case TerminalState::NoControllSequence:
-            m_screen->insertAtCursor(token.text(), m_forground_color, m_background_color);
-            break;
-        case TerminalState::NewLine:
-            m_screen->newLine();
-            break;
-        case TerminalState::CursorHome:
-            m_screen->moveCursorHome();
-            break;
-        case TerminalState::EraseLine:
-            m_screen->eraseLine();
-            break;
-        case TerminalState::HorizontalTab: {
-            int x = m_screen->cursorPosition().x();
-            int spaces = 8 - (x % 8);
-            m_screen->insertAtCursor(QString(spaces,' '),m_forground_color,m_background_color);
+        Token token;
+        foreach(token, m_parser->tokens()) {
+            switch(token.controllSequence()) {
+            case TerminalState::NoControllSequence:
+                m_screen->insertAtCursor(token.text(), m_forground_color, m_background_color);
+                break;
+            case TerminalState::NewLine:
+                m_screen->newLine();
+                break;
+            case TerminalState::CursorHome:
+                m_screen->moveCursorHome();
+                break;
+            case TerminalState::EraseLine:
+                m_screen->eraseLine();
+                break;
+            case TerminalState::HorizontalTab: {
+                int x = m_screen->cursorPosition().x();
+                int spaces = 8 - (x % 8);
+                m_screen->insertAtCursor(QString(spaces,' '),m_forground_color,m_background_color);
+            }
+                break;
+            default:
+                break;
+            }
+
         }
-            break;
-        default:
-            break;
-        }
+
+        m_parser->clearTokensList();
 
     }
     m_screen->dispatchChanges();
-    m_parser->clear();
 }

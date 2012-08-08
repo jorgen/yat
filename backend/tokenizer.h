@@ -62,7 +62,7 @@ public:
     void addData(const QByteArray &data);
 
     QLinkedList<Token> tokens() const { return m_tokens; }
-    void clear() { m_tokens.clear(); }
+    void clearTokensList() { m_tokens.clear(); }
 private:
 
     enum DecodeState {

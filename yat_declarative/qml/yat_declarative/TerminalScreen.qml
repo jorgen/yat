@@ -29,16 +29,12 @@ Item {
         target: terminalScreen
 
         onScrollUp: {
-            screenModel.move(0,from_line,count);
+            screenModel.move(0,from_line - (count -1), count);
         }
 
         onScrollDown: {
-            screenModel.move(screenModel.count-1, from_line,count);
+            console.log("FIXME SCROLLDOWN TerminalScreen.qml");
         }
-
-//        onLinesChanged: {
-//            console.log("should I do something\n");
-//        }
 
         onLinesInserted: {
             resetModel();
@@ -51,7 +47,6 @@ Item {
 
     function resetModel() {
         screenModel.clear();
-        console.log("TESTING")
         for (var i = 0; i < terminalScreen.height(); i++) {
             screenModel.append({
                                    "line": terminalScreen.at(i)

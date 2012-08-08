@@ -4,20 +4,19 @@ Item{
     id: text_line
     property QtObject textLine: null
 
-    Row {
+    ListView {
         anchors.fill: parent
-        Repeater {
-            id: line_repeater
-            model: lineModel
-            Text {
+        model: lineModel
+        delegate: Text {
                 height: parent.height
                 width: paintedWidth
                 text: textSegment.text
                 font: terminalItem.screen().font
                 color: textSegment.forgroundColor()
                 textFormat: Text.PlainText
-            }
         }
+        orientation: ListView.Horizontal
+        cacheBuffer: 10
     }
 
     ListModel {
@@ -53,3 +52,4 @@ Item{
         }
     }
 }
+

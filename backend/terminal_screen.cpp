@@ -172,17 +172,51 @@ TextSegmentLine *TerminalScreen::line_at_cursor()
 
 void TerminalScreen::dispatchChanges()
 {
+    for (int i = 0; i < m_update_actions.size(); i++) {
+        UpdateAction action = m_update_actions.at(i);
+        switch(action.action) {
+        case UpdateAction::ScrollUp: {
+            int lines_to_move = action.count % (action.from_line + 1);
+            if (lines_to_move)
+                emit scrollUp(action.from_line, lines_to_move);
+        }
+            break;
+        case UpdateAction::ScrollDown: {
+            int lines_to_move = action.count % (height() - action.from_line);
+            if (lines_to_move)
+                emit scrollDown(action.from_line, lines_to_move);
+        }
+            break;
+        default:
+            qDebug() << "unhandeled UpdatAction in TerminalScreen";
+            break;
+        }
+    }
+
+    m_update_actions.clear();
+
     emit dispatchLineChanges();
     emit dispatchTextSegmentChanges();
-
 }
 
 void TerminalScreen::doScrollOneLineUpAt(int line)
 {
-    emit scrollUp(line,1);
+    if (m_update_actions.size() &&
+            m_update_actions.last().action == UpdateAction::ScrollUp &&
+            m_update_actions.last().from_line == line) {
+        m_update_actions.last().count++;
+    } else {
+        m_update_actions << UpdateAction(UpdateAction::ScrollUp, line, 1);
+    }
 }
 
 void TerminalScreen::doScrollOneLineDownAt(int line)
 {
-    emit scrollDown(line, 1);
+    if (m_update_actions.size() &&
+            m_update_actions.last().action == UpdateAction::ScrollDown &&
+            m_update_actions.last().from_line == line) {
+        m_update_actions.last().count++;
+    } else {
+        m_update_actions << UpdateAction(UpdateAction::ScrollDown,line,1);
+    }
 }

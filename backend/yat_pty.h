@@ -40,6 +40,8 @@ public:
 
     void resizeTerminal(const QSize &size);
     QSize size() const;
+
+    bool moreInput();
 signals:
     void readyRead();
 

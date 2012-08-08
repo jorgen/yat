@@ -21,7 +21,6 @@
 #include "text_segment.h"
 
 #include "terminal_screen.h"
-#include <QtCore/QElapsedTimer>
 #include <QtCore/QDebug>
 
 TextSegment::TextSegment(const QString &text, const QColor &forground, const QColor &background, TerminalScreen *terminalScreen)

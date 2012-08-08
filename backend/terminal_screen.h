@@ -82,6 +82,35 @@ signals:
     void dispatchLineChanges();
     void dispatchTextSegmentChanges();
 private:
+
+    class UpdateAction
+    {
+    public:
+        enum Action {
+            InvalidAction,
+            ScrollUp,
+            ScrollDown,
+            LinesInserted,
+            LinesRemoved
+        };
+
+        UpdateAction(Action action, int from_line, int count)
+            : action(action)
+            , from_line(from_line)
+            , count(count)
+        { }
+
+        UpdateAction(Action action, int count)
+            : action(action)
+            , from_line(0)
+            , count(count)
+        { }
+
+        Action action;
+        int from_line;
+        int count;
+    };
+
     void doScrollOneLineUpAt(int line);
     void doScrollOneLineDownAt(int line);
 
@@ -89,6 +118,7 @@ private:
     QVector<TextSegmentLine *> m_screen_lines;
     QPoint m_cursor_pos;
     QFont m_font;
+    QList<UpdateAction> m_update_actions;
 };
 
 #endif // TERMINALSCREEN_H

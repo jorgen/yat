@@ -29,7 +29,7 @@
 
 YatPty::YatPty(QObject *parent)
     : QObject(parent)
-    , m_buffer_max_size(1024)
+    , m_buffer_max_size(4096)
     , m_buffer_current_size(0)
     , m_winsize(0)
 {
@@ -84,4 +84,11 @@ QSize YatPty::size() const
         ioctl(m_master_fd, TIOCGWINSZ, m_winsize);
     }
     return QSize(m_winsize->ws_col, m_winsize->ws_row);
+}
+
+bool YatPty::moreInput()
+{
+    int data_in_buffer;
+    ::ioctl(m_master_fd,FIONREAD, &data_in_buffer);
+    return data_in_buffer;
 }
