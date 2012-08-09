@@ -72,27 +72,27 @@ TextSegment *TextSegment::split(int i)
     return right;
 }
 
-bool TextSegment::isCompatible(TextSegment *other)
+bool TextSegment::isCompatible(const TextStyle &style)
 {
-    return m_style.forground == other->m_style.forground &&
-            m_style.background == other->m_style.background;
+    return m_style.forground == style.forground &&
+            m_style.background == style.background;
 }
 
-void TextSegment::prependTextSegment(TextSegment *other)
+void TextSegment::prependText(const QString &text)
 {
-    m_text.prepend(other->text());
+    m_text.prepend(text);
     m_dirty = true;
 }
 
-void TextSegment::insertTextSegment(int index, TextSegment *other)
+void TextSegment::insertText(int index, const QString &text)
 {
-    m_text.insert(index, other->text());
+    m_text.insert(index, text);
     m_dirty = true;
 }
 
-void TextSegment::appendTextSegment(TextSegment *other)
+void TextSegment::appendText(const QString &text)
 {
-    m_text.append(other->text());
+    m_text.append(text);
     m_dirty = true;
 }
 

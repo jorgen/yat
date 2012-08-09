@@ -23,7 +23,8 @@
 
 #include <QtCore/QObject>
 
-class TextSegment;
+#include "text_segment.h"
+
 class TerminalScreen;
 
 class TextSegmentLine : public QObject
@@ -39,9 +40,7 @@ public:
     Q_INVOKABLE TextSegment *at(int i) const;
     Q_INVOKABLE QList<TextSegment *> segments() const;
 
-    void append(TextSegment *segment);
-    void prepend(TextSegment *segment);
-    void insertAtPos(int i, TextSegment *segment);
+    void insertAtPos(int i, const QString &text, const TextStyle &style);
 
     void removeCharAtPos(int pos);
     void removeCharFromPos(int pos);
@@ -73,6 +72,8 @@ private:
         int index;
     };
 
+    void append(const QString &text, const TextStyle &style);
+    void prepend(const QString &text, const TextStyle &style);
     void dispatchEvents();
     int findSegmentIndexForChar(int pos, int *index, int *chars_before_index);
 

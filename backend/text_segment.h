@@ -48,10 +48,10 @@ public:
     QColor backgroundColor() const;
 
     TextSegment *split(int i);
-    bool isCompatible(TextSegment *other);
-    void prependTextSegment(TextSegment *other);
-    void insertTextSegment(int index, TextSegment *other);
-    void appendTextSegment(TextSegment *other);
+    bool isCompatible(const TextStyle &style);
+    void prependText(const QString &text);
+    void insertText(int index, const QString &text);
+    void appendText(const QString &text);
 
     void removeCharAtPos(int index);
     void truncate(int index);

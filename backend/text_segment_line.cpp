@@ -63,14 +63,14 @@ QList<TextSegment *> TextSegmentLine::segments() const
     return m_segments;
 }
 
-void TextSegmentLine::append(TextSegment *segment)
+void TextSegmentLine::append(const QString &text, const TextStyle &style)
 {
-    if (m_segments.size() && m_segments.last()->isCompatible(segment)) {
-        m_segments.last()->appendTextSegment(segment);
-        delete segment;
+    if (m_segments.size() && m_segments.last()->isCompatible(style)) {
+        m_segments.last()->appendText(text);
     } else {
-        segment->setParent(this);
-        m_segments.append(segment);
+        TextSegment *textSegment = new TextSegment(text,style,m_screen);
+        textSegment->setParent(this);
+        m_segments.append(textSegment);
         if (m_update_actions.size() == 0 ||
                 m_update_actions.last().action != UpdateAction::Reset) {
             UpdateAction action(UpdateAction::NewText, m_segments.size()-1);
@@ -79,14 +79,14 @@ void TextSegmentLine::append(TextSegment *segment)
     }
 }
 
-void TextSegmentLine::prepend(TextSegment *segment)
+void TextSegmentLine::prepend(const QString &text, const TextStyle &style)
 {
-    if (m_segments.size() && m_segments.first()->isCompatible(segment)) {
-        m_segments.first()->prependTextSegment(segment);
-        delete segment;
+    if (m_segments.size() && m_segments.first()->isCompatible(style)) {
+        m_segments.first()->prependText(text);
     } else {
-        segment->setParent(this);
-        m_segments.prepend(segment);
+        TextSegment *textSegment = new TextSegment(text,style,m_screen);
+        textSegment->setParent(this);
+        m_segments.prepend(textSegment);
         if (m_update_actions.size() == 0 ||
                 m_update_actions.last().action != UpdateAction::Reset) {
             for (int i = 0; i < m_update_actions.size(); i++) {
@@ -97,28 +97,28 @@ void TextSegmentLine::prepend(TextSegment *segment)
     }
 }
 
-void TextSegmentLine::insertAtPos(int pos, TextSegment *segment)
+void TextSegmentLine::insertAtPos(int pos, const QString &text, const TextStyle &style)
 {
     if (m_segments.size() == 0 || pos == 0) {
-        prepend(segment);
+        prepend(text, style);
         return;
     }
 
     int char_count;
     int index_for_segment;
     if (findSegmentIndexForChar(pos, &index_for_segment,&char_count) < 0) {
-        append(segment);
+        append(text,style);
         return;
     }
 
     TextSegment *left = m_segments.at(index_for_segment);
     if (pos < char_count + left->text().size()) {
         int split_position = pos - char_count;
-        if (left->isCompatible(segment)) {
-            left->insertTextSegment(split_position, segment);
-            delete segment;
+        if (left->isCompatible(style)) {
+            left->insertText(split_position, text);
         } else {
             TextSegment *right = left->split(split_position);
+            TextSegment *segment = new TextSegment(text,style,m_screen);
             m_segments.insert(index_for_segment+1,segment);
             m_segments.insert(index_for_segment+1,right);
             if (m_update_actions.size() == 0 ||

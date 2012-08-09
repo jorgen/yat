@@ -142,10 +142,9 @@ void TerminalScreen::moveCursorRight()
 
 void TerminalScreen::insertAtCursor(const QString &text)
 {
-    TextSegment *segment = new TextSegment(text, m_current_text_style, this);
     TextSegmentLine *line = line_at_cursor();
-    m_cursor_pos.setX(m_cursor_pos.x() + segment->text().size());
-    line->insertAtPos(m_cursor_pos.x(), segment);
+    m_cursor_pos.setX(m_cursor_pos.x() + text.size());
+    line->insertAtPos(m_cursor_pos.x(), text, m_current_text_style);
 }
 
 void TerminalScreen::backspace()
