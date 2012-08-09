@@ -38,6 +38,9 @@ TerminalScreen::TerminalScreen(QObject *parent)
 
     setWidth(80);
     setHeight(25);
+
+    m_current_text_style.forground = defaultForgroundColor();
+    m_current_text_style.background = defaultBackgroundColor();
 }
 
 TerminalScreen::~TerminalScreen()
@@ -46,12 +49,12 @@ TerminalScreen::~TerminalScreen()
 
 QColor TerminalScreen::defaultForgroundColor()
 {
-    return QColor(Qt::white);
+    return QColor(Qt::black);
 }
 
 QColor TerminalScreen::defaultBackgroundColor()
 {
-    return QColor(Qt::black);
+    return QColor(Qt::transparent);
 }
 
 void TerminalScreen::setHeight(int height)
@@ -166,6 +169,38 @@ void TerminalScreen::eraseFromPresentationPositionToEndOfLine()
     line->removeCharFromPos(active_presentation_pos);
 }
 
+void TerminalScreen::setColor(bool bold, ushort color)
+{
+    Q_ASSERT(color >= 30 && color < 50);
+
+    if (color < 38) {
+        if (bold) {
+            m_current_text_style.forground = m_palette.normalColor(ColorPalette::Color(color - 30));
+        } else {
+            m_current_text_style.forground = m_palette.lightColor(ColorPalette::Color(color - 30));
+        }
+        return;
+    }
+
+    if (color == 39) {
+        m_current_text_style.forground = defaultForgroundColor();
+        return;
+    }
+
+    if (color >= 40 && color < 48) {
+        if (bold) {
+            m_current_text_style.background = m_palette.normalColor(ColorPalette::Color(color - 40));
+        } else {
+            m_current_text_style.background = m_palette.lightColor(ColorPalette::Color(color - 40));
+        }
+    }
+
+    if (color == 49) {
+        m_current_text_style.background = defaultBackgroundColor();
+    }
+
+}
+
 void TerminalScreen::newLine()
 {
     if(m_cursor_pos.y() == m_screen_lines.size() -1) {
@@ -278,15 +313,10 @@ void TerminalScreen::readData()
                         resetStyle();
                         break;
                     case 1:
-
-                    case 39:
-                    case 40:
-                    case 41:
-                    case 42:
-                    case 43:
-                    case 44:
-                    case 45:
+                        setColor(true, token.parameters().at(1));
                         break;
+                    case 2:
+                        setColor(false, token.parameters().at(1));
                     }
                 } else {
                     resetStyle();

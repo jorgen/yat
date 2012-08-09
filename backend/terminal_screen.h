@@ -72,6 +72,8 @@ public:
     void eraseLine();
     void eraseFromPresentationPositionToEndOfLine();
 
+    void setColor(bool bold, ushort color);
+
     void newLine();
 
     Q_INVOKABLE TextSegmentLine *at(int i) const;
@@ -127,19 +129,18 @@ private:
     void doScrollOneLineDownAt(int line);
 
     TextSegmentLine *line_at_cursor();
-    QVector<TextSegmentLine *> m_screen_lines;
-    QPoint m_cursor_pos;
-    QFont m_font;
-    TextStyle m_current_text_style;
-    QList<UpdateAction> m_update_actions;
 
     ColorPalette m_palette;
-    QColor m_forground_color;
-    QColor m_background_color;
-
     YatPty m_pty;
     Tokenizer m_parser;
 
+    QVector<TextSegmentLine *> m_screen_lines;
+    QPoint m_cursor_pos;
+
+    QFont m_font;
+    TextStyle m_current_text_style;
+
+    QList<UpdateAction> m_update_actions;
 };
 
 #endif // TERMINALSCREEN_H
