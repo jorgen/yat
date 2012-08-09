@@ -61,7 +61,10 @@ public:
 
     void insertAtCursor(const QString &text, const QColor &bg, const QColor &fg);
 
+    void backspace();
+
     void eraseLine();
+    void eraseFromPresentationPositionToEndOfLine();
 
     void newLine();
 

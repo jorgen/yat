@@ -16,7 +16,6 @@ Item{
                 textFormat: Text.PlainText
         }
         orientation: ListView.Horizontal
-        cacheBuffer: 10
     }
 
     ListModel {

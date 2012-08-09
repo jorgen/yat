@@ -43,6 +43,9 @@ public:
     void prepend(TextSegment *segment);
     void insertAtPos(int i, TextSegment *segment);
 
+    void removeCharAtPos(int pos);
+    void removeCharFromPos(int pos);
+
 signals:
     void newTextSegment(int index);
     void textSegmentRemoved(int index);
@@ -71,6 +74,7 @@ private:
     };
 
     void dispatchEvents();
+    int findSegmentIndexForChar(int pos, int *index, int *chars_before_index);
 
     QList<TextSegment *> m_segments;
     QList<UpdateAction> m_update_actions;

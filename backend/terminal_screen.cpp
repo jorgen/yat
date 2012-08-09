@@ -127,10 +127,23 @@ void TerminalScreen::insertAtCursor(const QString &text, const QColor &bg, const
     line->insertAtPos(m_cursor_pos.x(), segment);
 }
 
+void TerminalScreen::backspace()
+{
+    if (m_cursor_pos.x() > 0)
+        m_cursor_pos.rx()--;
+}
+
 void TerminalScreen::eraseLine()
 {
     TextSegmentLine *line = line_at_cursor();
     line->clear();
+}
+
+void TerminalScreen::eraseFromPresentationPositionToEndOfLine()
+{
+    int active_presentation_pos = m_cursor_pos.x();
+    TextSegmentLine *line = line_at_cursor();
+    line->removeCharFromPos(active_presentation_pos);
 }
 
 void TerminalScreen::newLine()

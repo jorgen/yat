@@ -35,6 +35,7 @@ class TextSegment : public QObject
 public:
     TextSegment(const QString &text, const QColor &forground, const QColor &background, TerminalScreen *terminalScreen);
     TextSegment(TerminalScreen *terminalScreen);
+    ~TextSegment();
 
     QString text() const;
 
@@ -50,6 +51,9 @@ public:
     void insertTextSegment(int index, TextSegment *other);
     void appendTextSegment(TextSegment *other);
 
+    void removeCharAtPos(int index);
+    void truncate(int index);
+
 signals:
     void textChanged();
 
@@ -63,6 +67,5 @@ private:
     TerminalScreen *m_screen;
 
 };
-
 
 #endif // TEXT_SEGMENT_H

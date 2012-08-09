@@ -42,6 +42,10 @@ TextSegment::TextSegment(TerminalScreen *terminalScreen)
             this, &TextSegment::dispatchEvents);
 }
 
+TextSegment::~TextSegment()
+{
+}
+
 QString TextSegment::text() const
 {
     return m_text;
@@ -99,6 +103,18 @@ void TextSegment::insertTextSegment(int index, TextSegment *other)
 void TextSegment::appendTextSegment(TextSegment *other)
 {
     m_text.append(other->text());
+    m_dirty = true;
+}
+
+void TextSegment::removeCharAtPos(int index)
+{
+    m_text.remove(index,1);
+    m_dirty = true;
+}
+
+void TextSegment::truncate(int index)
+{
+    m_text.truncate(index);
     m_dirty = true;
 }
 

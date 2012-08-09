@@ -118,19 +118,24 @@ void TerminalState::readData()
             case TerminalState::CursorHome:
                 m_screen->moveCursorHome();
                 break;
-            case TerminalState::EraseLine:
-                m_screen->eraseLine();
+            case TerminalState::EraseOnLine:
+                if (!token.parameters().size() || token.parameters().at(0) == 0) {
+                   m_screen->eraseFromPresentationPositionToEndOfLine();
+                } else {
+                    m_screen->eraseLine();
+                }
                 break;
             case TerminalState::HorizontalTab: {
                 int x = m_screen->cursorPosition().x();
                 int spaces = 8 - (x % 8);
                 m_screen->insertAtCursor(QString(spaces,' '),m_forground_color,m_background_color);
             }
+            case TerminalState::Backspace:
+                m_screen->backspace();
                 break;
             default:
                 break;
             }
-
         }
 
         m_parser->clearTokensList();

@@ -104,34 +104,70 @@ void TextSegmentLine::insertAtPos(int pos, TextSegment *segment)
         return;
     }
 
-    int char_count = 0;
-    for (int i = 0; i < m_segments.size(); i++) {
-        TextSegment *left = m_segments.at(i);
-        if (pos < char_count + left->text().size()) {
-            int split_position = pos - char_count;
-            if (left->isCompatible(segment)) {
-                left->insertTextSegment(split_position, segment);
-                delete segment;
-            } else {
-                TextSegment *right = left->split(split_position);
-                m_segments.insert(i+1,segment);
-                m_segments.insert(i+1,right);
-                if (m_update_actions.size() == 0 ||
-                        m_update_actions.last().action != UpdateAction::Reset) {
-                    for (int update_index = 0; update_index < m_update_actions.size(); update_index++) {
-                        if (m_update_actions.at(update_index).index >= i)
-                            m_update_actions[update_index].index++;
-                    }
-                    m_update_actions << UpdateAction(UpdateAction::NewText, i);
-                }
-            }
-            return;
-        }
-        char_count += m_segments.at(i)->text().size();
+    int char_count;
+    int index_for_segment;
+    if (findSegmentIndexForChar(pos, &index_for_segment,&char_count) < 0) {
+        append(segment);
+        return;
     }
-    append(segment);
+
+    TextSegment *left = m_segments.at(index_for_segment);
+    if (pos < char_count + left->text().size()) {
+        int split_position = pos - char_count;
+        if (left->isCompatible(segment)) {
+            left->insertTextSegment(split_position, segment);
+            delete segment;
+        } else {
+            TextSegment *right = left->split(split_position);
+            m_segments.insert(index_for_segment+1,segment);
+            m_segments.insert(index_for_segment+1,right);
+            if (m_update_actions.size() == 0 ||
+                    m_update_actions.last().action != UpdateAction::Reset) {
+                for (int update_index = 0; update_index < m_update_actions.size(); update_index++) {
+                    if (m_update_actions.at(update_index).index >= index_for_segment)
+                        m_update_actions[update_index].index++;
+                }
+                m_update_actions << UpdateAction(UpdateAction::NewText, index_for_segment);
+            }
+        }
+    }
+
 }
 
+void TextSegmentLine::removeCharAtPos(int pos)
+{
+    int char_count;
+    int index_for_segment;
+    if (findSegmentIndexForChar(pos, &index_for_segment,&char_count) < 0)
+        return;
+
+    TextSegment *text_segment = m_segments.at(index_for_segment);
+    if (pos < char_count + text_segment->text().size()) {
+        if (text_segment->text().size() == 1) {
+            delete m_segments.takeAt(index_for_segment);
+        } else {
+            int char_index_in_segment = pos - char_count;
+            text_segment->removeCharAtPos(char_index_in_segment);
+        }
+    }
+}
+
+void TextSegmentLine::removeCharFromPos(int pos)
+{
+    int char_count;
+    int index_for_segment;
+    if (findSegmentIndexForChar(pos, &index_for_segment,&char_count) < 0)
+        return;
+    int index_in_segment = pos - index_for_segment;
+    TextSegment *toTruncate = m_segments.at(index_for_segment);
+    toTruncate->truncate(index_in_segment);
+    if (m_segments.size() -1 > index_for_segment) {
+        int segments_to_remove = m_segments.size() - index_for_segment + 1;
+        for (int i = 0; i < segments_to_remove; i++) {
+            delete m_segments.takeLast();
+        }
+    }
+}
 
 void TextSegmentLine::dispatchEvents()
 {
@@ -152,4 +188,20 @@ void TextSegmentLine::dispatchEvents()
         }
     }
     m_update_actions.clear();
+}
+
+int TextSegmentLine::findSegmentIndexForChar(int pos, int *index, int *chars_before_index)
+{
+    int char_count = 0;
+
+    for (int i = 0; i < m_segments.size(); i++) {
+        if (pos < char_count + m_segments.at(i)->text().size()) {
+            *index = i;
+            *chars_before_index = char_count;
+            return 0;
+        }
+
+        char_count += m_segments.at(i)->text().size();
+    }
+    return -1;
 }
