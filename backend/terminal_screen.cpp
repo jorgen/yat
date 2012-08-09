@@ -22,22 +22,26 @@
 
 #include "text_segment_line.h"
 
+#include <QtCore/QElapsedTimer>
+
 #include <QtCore/QDebug>
 
 TerminalScreen::TerminalScreen(QObject *parent)
     : QObject(parent)
+    , m_current_text_style(TextStyle(TextStyle::Normal,Qt::white))
 {
+    connect(&m_pty, &YatPty::readyRead,
+            this, &TerminalScreen::readData);
+
     m_font.setPixelSize(14);
     m_font.setFamily(QStringLiteral("Courier"));
+
+    setWidth(80);
+    setHeight(25);
 }
 
 TerminalScreen::~TerminalScreen()
 {
-}
-
-QSize TerminalScreen::size() const
-{
-    return QSize(100,m_screen_lines.size());
 }
 
 QColor TerminalScreen::defaultForgroundColor()
@@ -50,18 +54,17 @@ QColor TerminalScreen::defaultBackgroundColor()
     return QColor(Qt::black);
 }
 
-
-void TerminalScreen::resize(const QSize &size)
+void TerminalScreen::setHeight(int height)
 {
-    if (m_screen_lines.size() > size.height()) {
-        int removeElements = m_screen_lines.size() - size.height();
+    if (m_screen_lines.size() > height) {
+        int removeElements = m_screen_lines.size() - height;
         for (int i = 0; i < removeElements; i++) {
             delete m_screen_lines[i];
         }
         m_screen_lines.remove(0, removeElements);
         emit linesRemoved(removeElements);
-    } else if (m_screen_lines.size() < size.height()){
-        int rowsToAdd = size.height() - m_screen_lines.size();
+    } else if (m_screen_lines.size() < height){
+        int rowsToAdd = height - m_screen_lines.size();
         for (int i = 0; i < rowsToAdd; i++) {
             TextSegmentLine *newLine = new TextSegmentLine(this);
             m_screen_lines.append(newLine);
@@ -71,6 +74,12 @@ void TerminalScreen::resize(const QSize &size)
     if(m_cursor_pos.y() >= m_screen_lines.size())
         m_cursor_pos.setY(m_screen_lines.size()-1);
 
+    m_pty.setHeight(height);
+}
+
+void TerminalScreen::setWidth(int width)
+{
+    m_pty.setWidth(width);
 }
 
 int TerminalScreen::height() const
@@ -87,6 +96,18 @@ void TerminalScreen::setFont(const QFont &font)
 {
     m_font = font;
     emit fontChanged();
+}
+
+void TerminalScreen::resetStyle()
+{
+    m_current_text_style.background = defaultBackgroundColor();
+    m_current_text_style.forground = defaultForgroundColor();
+    m_current_text_style.style = TextStyle::Normal;
+}
+
+TextStyle TerminalScreen::currentTextStyle() const
+{
+    return m_current_text_style;
 }
 
 QPoint TerminalScreen::cursorPosition() const
@@ -119,9 +140,9 @@ void TerminalScreen::moveCursorRight()
     m_cursor_pos.rx() -= 1;
 }
 
-void TerminalScreen::insertAtCursor(const QString &text, const QColor &bg, const QColor &fg)
+void TerminalScreen::insertAtCursor(const QString &text)
 {
-    TextSegment *segment = new TextSegment(text,bg,fg, this);
+    TextSegment *segment = new TextSegment(text, m_current_text_style, this);
     TextSegmentLine *line = line_at_cursor();
     m_cursor_pos.setX(m_cursor_pos.x() + segment->text().size());
     line->insertAtPos(m_cursor_pos.x(), segment);
@@ -177,6 +198,11 @@ void TerminalScreen::printScreen() const
     }
 }
 
+void TerminalScreen::write(const QString &data)
+{
+    m_pty.write(data.toUtf8());
+}
+
 
 TextSegmentLine *TerminalScreen::line_at_cursor()
 {
@@ -210,6 +236,76 @@ void TerminalScreen::dispatchChanges()
 
     emit dispatchLineChanges();
     emit dispatchTextSegmentChanges();
+}
+
+void TerminalScreen::readData()
+{
+    for (int i = 0; i < 20; i++) {
+        QByteArray data = m_pty.read();
+
+        m_parser.addData(data);
+
+        Token token;
+        foreach(token, m_parser.tokens()) {
+            switch(token.controllSequence()) {
+            case Token::NoControllSequence:
+                insertAtCursor(token.text());
+                break;
+            case Token::NewLine:
+                newLine();
+                break;
+            case Token::CursorHome:
+                moveCursorHome();
+                break;
+            case Token::EraseOnLine:
+               if (!token.parameters().size() || token.parameters().at(0) == 0) {
+                   eraseFromPresentationPositionToEndOfLine();
+                } else {
+                    eraseLine();
+                }
+                break;
+            case Token::HorizontalTab: {
+                int x = cursorPosition().x();
+                int spaces = 8 - (x % 8);
+                insertAtCursor(QString(spaces,' '));
+            }
+            case Token::Backspace:
+                backspace();
+                break;
+            case Token::SetAttributeMode:
+                if (token.parameters().size()) {
+                    switch(token.parameters().at(0)) {
+                    case 0:
+                        resetStyle();
+                        break;
+                    case 1:
+
+                    case 39:
+                    case 40:
+                    case 41:
+                    case 42:
+                    case 43:
+                    case 44:
+                    case 45:
+                        break;
+                    }
+                } else {
+                    resetStyle();
+                }
+
+                break;
+            default:
+                break;
+            }
+        }
+
+        m_parser.clearTokensList();
+
+        if (!m_pty.moreInput())
+            break;
+    }
+
+    dispatchChanges();
 }
 
 void TerminalScreen::doScrollOneLineUpAt(int line)

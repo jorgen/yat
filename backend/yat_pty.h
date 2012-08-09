@@ -38,7 +38,8 @@ public:
     QByteArray read();
     void write(const QByteArray &data);
 
-    void resizeTerminal(const QSize &size);
+    void setWidth(int width);
+    void setHeight(int height);
     QSize size() const;
 
     bool moreInput();

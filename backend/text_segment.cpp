@@ -23,11 +23,10 @@
 #include "terminal_screen.h"
 #include <QtCore/QDebug>
 
-TextSegment::TextSegment(const QString &text, const QColor &forground, const QColor &background, TerminalScreen *terminalScreen)
+TextSegment::TextSegment(const QString &text, const TextStyle &style, TerminalScreen *terminalScreen)
     : QObject(terminalScreen)
     , m_text(text)
-    , m_forground_color(forground)
-    , m_background_color(background)
+    , m_style(style)
     , m_screen(terminalScreen)
 {
     connect(terminalScreen, &TerminalScreen::dispatchTextSegmentChanges,
@@ -36,7 +35,8 @@ TextSegment::TextSegment(const QString &text, const QColor &forground, const QCo
 
 TextSegment::TextSegment(TerminalScreen *terminalScreen)
     : QObject(terminalScreen)
-    , m_forground_color(QColor(Qt::black))
+    , m_style(terminalScreen->currentTextStyle())
+    , m_screen(terminalScreen)
 {
     connect(terminalScreen, &TerminalScreen::dispatchTextSegmentChanges,
             this, &TextSegment::dispatchEvents);
@@ -53,28 +53,18 @@ QString TextSegment::text() const
 
 QColor TextSegment::forgroundColor() const
 {
-    return m_forground_color;
-}
-
-void TextSegment::setForgroundColor(const QColor &color)
-{
-    m_forground_color = color;
+    return m_style.forground;
 }
 
 QColor TextSegment::backgroundColor() const
 {
-    return m_background_color;
-}
-
-void TextSegment::setBackgroundColor(const QColor &color)
-{
-    m_background_color = color;
+    return m_style.background;
 }
 
 TextSegment *TextSegment::split(int i)
 {
     QString str = m_text.right(i);
-    TextSegment *right = new TextSegment(str,m_forground_color,m_background_color,m_screen);
+    TextSegment *right = new TextSegment(str,m_style,m_screen);
     right->setParent(parent());
     m_text.truncate(i);
     m_dirty = true;
@@ -84,8 +74,8 @@ TextSegment *TextSegment::split(int i)
 
 bool TextSegment::isCompatible(TextSegment *other)
 {
-    return other->m_forground_color == m_forground_color &&
-            other->m_background_color == m_background_color;
+    return m_style.forground == other->m_style.forground &&
+            m_style.background == other->m_style.background;
 }
 
 void TextSegment::prependTextSegment(TextSegment *other)

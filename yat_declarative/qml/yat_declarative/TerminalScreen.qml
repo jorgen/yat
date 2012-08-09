@@ -58,7 +58,7 @@ Item {
         id: keyHandler
         focus: true
         Keys.onPressed: {
-            terminalItem.state().write(event.text)
+            terminalItem.screen().write(event.text)
             if (event.text === "?") {
                 terminalItem.screen().printScreen()
             }

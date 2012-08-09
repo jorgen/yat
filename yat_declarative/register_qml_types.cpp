@@ -10,7 +10,6 @@
 void register_qml_types()
 {
     qmlRegisterType<TerminalItem>("org.yat", 1, 0, "TerminalItem");
-    qmlRegisterType<TerminalState>();
     qmlRegisterType<TerminalScreen>();
     qmlRegisterType<TextSegment>();
     qmlRegisterType<TextSegmentLine>();

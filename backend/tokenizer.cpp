@@ -25,7 +25,7 @@
 #include <QtCore/QDebug>
 
 Token::Token()
-    : m_controll_sequense(TerminalState::NoControllSequence)
+    : m_controll_sequense(Token::NoControllSequence)
     , m_parameters(0)
 {
 }
@@ -40,7 +40,7 @@ void Token::addParameter(ushort parameter)
     m_parameters.append(parameter);
 }
 
-void Token::setControllSequence(TerminalState::ControllSequence controll_sequence)
+void Token::setControllSequence(Token::ControllSequence controll_sequence)
 {
     m_controll_sequense = controll_sequence;
 }
@@ -111,15 +111,15 @@ void Tokenizer::decodeC0(uchar character)
         break;
 
     case C0::BS:
-        m_current_token.setControllSequence(TerminalState::Backspace);
+        m_current_token.setControllSequence(Token::Backspace);
         tokenFinished();
         break;
     case C0::HT:
-        m_current_token.setControllSequence(TerminalState::HorizontalTab);
+        m_current_token.setControllSequence(Token::HorizontalTab);
         tokenFinished();
         break;
     case C0::LF:
-        m_current_token.setControllSequence(TerminalState::NewLine);
+        m_current_token.setControllSequence(Token::NewLine);
         tokenFinished();
         break;
     case C0::VT:
@@ -127,7 +127,7 @@ void Tokenizer::decodeC0(uchar character)
         qDebug() << "Unhandled Controll character" << character;
         break;
     case C0::CR:
-        m_current_token.setControllSequence(TerminalState::CursorHome);
+        m_current_token.setControllSequence(Token::CursorHome);
         tokenFinished();
         //next should be a linefeed;
         break;
@@ -260,7 +260,7 @@ void Tokenizer::decodeCSI(uchar character)
                     case FinalBytesSingleIntermediate::SCP:
                     default:
                         qDebug() << "unhandled CSI sequence";
-                        m_current_token.setControllSequence(TerminalState::UnknownControllSequence);
+                        m_current_token.setControllSequence(Token::UnknownControllSequence);
                         break;
                     }
                 } else {
@@ -276,11 +276,13 @@ void Tokenizer::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::CUP:
                     case FinalBytesNoIntermediate::CHT:
                     case FinalBytesNoIntermediate::ED:
-                        m_current_token.setControllSequence(TerminalState::UnknownControllSequence);
+                        m_current_token.setControllSequence(Token::UnknownControllSequence);
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::EL:
-                        m_current_token.setControllSequence(TerminalState::EraseOnLine);
+                        if (!m_parameter_string.isEmpty())
+                            m_current_token.addParameter(m_parameter_string.toUShort());
+                        m_current_token.setControllSequence(Token::EraseOnLine);
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::IL:
@@ -310,11 +312,11 @@ void Tokenizer::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::VPR:
                     case FinalBytesNoIntermediate::HVP:
                     case FinalBytesNoIntermediate::TBC:
-                        m_current_token.setControllSequence(TerminalState::UnknownControllSequence);
+                        m_current_token.setControllSequence(Token::UnknownControllSequence);
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::SM:
-                        m_current_token.setControllSequence(TerminalState::UnknownControllSequence);
+                        m_current_token.setControllSequence(Token::UnknownControllSequence);
                         qDebug() << "SET MODE!!!!";
                         tokenFinished();
                         break;
@@ -322,11 +324,11 @@ void Tokenizer::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::HPB:
                     case FinalBytesNoIntermediate::VPB:
                     case FinalBytesNoIntermediate::RM:
-                        m_current_token.setControllSequence(TerminalState::UnknownControllSequence);
+                        m_current_token.setControllSequence(Token::UnknownControllSequence);
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::SGR:
-                        m_current_token.setControllSequence(TerminalState::SetAttributeMode);
+                        m_current_token.setControllSequence(Token::SetAttributeMode);
                         if (!m_parameter_string.isEmpty())
                             m_current_token.addParameter(m_parameter_string.toUShort());
                         tokenFinished();
@@ -335,7 +337,7 @@ void Tokenizer::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::DAQ:
                     default:
                         qDebug() << "Unhandeled CSI squence\n";
-                        m_current_token.setControllSequence(TerminalState::UnknownControllSequence);
+                        m_current_token.setControllSequence(Token::UnknownControllSequence);
                         tokenFinished();
                         break;
                     }
@@ -350,25 +352,25 @@ void Tokenizer::decodeOSC(uchar character)
                 character >= 0x30 && character <= 0x3f) {
             decodeParameters(character);
         } else {
-            if (m_current_token.controllSequence() ==  TerminalState::NoControllSequence) {
+            if (m_current_token.controllSequence() ==  Token::NoControllSequence) {
                 if (m_parameter_string.size()) {
                     m_current_token.addParameter(m_parameter_string.toUShort());
                     m_parameter_string = QString();
                 }
                 Q_ASSERT(m_current_token.parameters().size() == 1);
-                TerminalState::ControllSequence windowAttribute;
+                Token::ControllSequence windowAttribute;
                 switch (m_current_token.parameters().at(0)) {
                 case 0:
-                    windowAttribute = TerminalState::ChangeWindowAndIconName;
+                    windowAttribute = Token::ChangeWindowAndIconName;
                     break;
                 case 1:
-                    windowAttribute = TerminalState::ChangeIconTitle;
+                    windowAttribute = Token::ChangeIconTitle;
                     break;
                 case 2:
-                    windowAttribute = TerminalState::ChangeWindowTitle;
+                    windowAttribute = Token::ChangeWindowTitle;
                     break;
                 default:
-                    windowAttribute = TerminalState::UnknownControllSequence;
+                    windowAttribute = Token::UnknownControllSequence;
                     break;
                 }
                 m_current_token.setControllSequence(windowAttribute);

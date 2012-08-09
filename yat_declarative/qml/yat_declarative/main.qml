@@ -37,13 +37,13 @@ Rectangle {
 
     function setTerminalWidth() {
         if (fontWidth > 0) {
-            terminalItem.state().setWidth(width / fontWidth);
+            terminalItem.screen().setWidth(width / fontWidth);
         }
     }
 
     function setTerminalHeight() {
         if (fontHeight > 0) {
-            terminalItem.state().setHeight(height / fontHeight);
+            terminalItem.screen().setHeight(height / fontHeight);
         }
     }
 

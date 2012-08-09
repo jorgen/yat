@@ -22,6 +22,7 @@
 
 #include <QtCore/QSocketNotifier>
 
+#include <pty.h>
 #include <fcntl.h>
 
 #include <QtCore/QSize>
@@ -43,7 +44,6 @@ YatPty::YatPty(QObject *parent)
     m_master_fd_read_notify = new QSocketNotifier(m_master_fd, QSocketNotifier::Read);
     connect(m_master_fd_read_notify, &QSocketNotifier::activated,
             this, &YatPty::readyRead);
-    resizeTerminal(QSize(10,10));
     m_buffer.resize(m_buffer_max_size);
 }
 
@@ -65,15 +65,30 @@ void YatPty::write(const QByteArray &data)
     ::write(m_master_fd, data.constData(), data.size());
 }
 
-void YatPty::resizeTerminal(const QSize &size)
+void YatPty::setWidth(int width)
 {
-    if (!m_winsize)
+    if (!m_winsize) {
         m_winsize = new struct winsize;
-    m_winsize->ws_col = size.width();
-    m_winsize->ws_row = size.height();
-    m_winsize->ws_xpixel = 0;
-    m_winsize->ws_ypixel = 0;
+        m_winsize->ws_row = 25;
+        m_winsize->ws_xpixel = 0;
+        m_winsize->ws_ypixel = 0;
+    }
+
+    m_winsize->ws_col = width;
     ioctl(m_master_fd, TIOCSWINSZ, m_winsize);
+}
+
+void YatPty::setHeight(int height)
+{
+    if (!m_winsize) {
+        m_winsize = new struct winsize;
+        m_winsize->ws_col = 80;
+        m_winsize->ws_xpixel = 0;
+        m_winsize->ws_ypixel = 0;
+    }
+    m_winsize->ws_row = height;
+    ioctl(m_master_fd, TIOCSWINSZ, m_winsize);
+
 }
 
 QSize YatPty::size() const

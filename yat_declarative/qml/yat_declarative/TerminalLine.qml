@@ -12,7 +12,7 @@ Item{
                 width: paintedWidth
                 text: textSegment.text
                 font: terminalItem.screen().font
-                color: textSegment.forgroundColor()
+                color: "black"
                 textFormat: Text.PlainText
         }
         orientation: ListView.Horizontal

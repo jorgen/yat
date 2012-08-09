@@ -24,7 +24,7 @@
 #include <QtCore/QObject>
 #include <QtQuick/QQuickItem>
 
-#include "terminal_state.h"
+#include "terminal_screen.h"
 
 class TerminalItem : public QQuickItem
 {
@@ -34,17 +34,12 @@ public:
     TerminalItem(QQuickItem *parent = 0);
 
     Q_INVOKABLE TerminalScreen *screen() const;
-    Q_INVOKABLE TerminalState *state() const;
 
 signals:
     void screenGeometryChanged();
 
-public slots:
-    void onWidthChanged();
-    void onHeightChanged();
-
 private:
-    TerminalState *m_state;
+    TerminalScreen *m_screen;
 };
 
 #endif // TERMINALITEM_H

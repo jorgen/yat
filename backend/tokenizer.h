@@ -26,17 +26,66 @@
 #include <QtCore/QLinkedList>
 
 #include "text_segment.h"
-#include "terminal_state.h"
 
 class Token
 {
 public:
+    enum ControllSequence {
+        NoControllSequence,
+        UnknownControllSequence,
+        NewLine,
+        HorizontalTab,
+        Backspace,
+        QueryDeviceCode,
+        ReportDeviceCode,
+        QueryDeviceStatus,
+        ReportDeviceOK,
+        ReportDeviceFailure,
+        QueryCursorPosition,
+        ReportCursorPosistion,
+        ResetDevice,
+        EnableLineWrap,
+        DisableLineWrap,
+        FontSetG0,
+        FontSetG1,
+        CursorHome,
+        CursorUp,
+        CursorDown,
+        CursorForward,
+        CursorBackward,
+        ForceCursorPosition,
+        SaveCursor,
+        UnsaveCursor,
+        SaveCursorAndAttrs,
+        RestoreCursorAndAttrs,
+        ScrollScreen,
+        ScrollDown,
+        ScrollUp,
+        SetTab,
+        ClearTab,
+        ClearAllTabs,
+        EraseEndOfLine,
+        EraseStartofLine,
+        EraseOnLine,
+        EraseDown,
+        EraseUp,
+        EraseScreen,
+        PrintScreen,
+        PrintLine,
+        StopPrintLog,
+        StartPrintLog,
+        SetKeyDefinition,
+        SetAttributeMode,
+        ChangeWindowAndIconName,
+        ChangeIconTitle,
+        ChangeWindowTitle
+    };
     Token();
     void appendText(const QByteArray &string);
     bool isEmpty() const
     {
         return m_text.isEmpty() &&
-                m_controll_sequense == TerminalState::NoControllSequence &&
+                m_controll_sequense == Token::NoControllSequence &&
                 m_parameters.size() == 0;
     }
     bool isText() const { return !m_text.isEmpty(); }
@@ -46,11 +95,11 @@ public:
     void addParameter(ushort parameter);
     QVector<ushort> parameters() const { return m_parameters; }
 
-    TerminalState::ControllSequence controllSequence() const { return m_controll_sequense; }
-    void setControllSequence(TerminalState::ControllSequence controll_sequence);
+    Token::ControllSequence controllSequence() const { return m_controll_sequense; }
+    void setControllSequence(Token::ControllSequence controll_sequence);
 private:
     QString m_text;
-    TerminalState::ControllSequence m_controll_sequense;
+    Token::ControllSequence m_controll_sequense;
     QVector<ushort> m_parameters;
 };
 

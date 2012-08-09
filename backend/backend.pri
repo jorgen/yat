@@ -8,17 +8,19 @@ OBJECTS_DIR = .obj
 
 HEADERS += \
            $$PWD/yat_pty.h \
-           $$PWD/terminal_state.h \
            $$PWD/text_segment.h \
            $$PWD/controll_chars.h \
            $$PWD/tokenizer.h \
            $$PWD/terminal_screen.h \
-    ../backend/text_segment_line.h
+           $$PWD/text_segment_line.h \
+           $$PWD/color_palette.h \
+           $$PWD/text_style.h
 
 SOURCES += \
            $$PWD/yat_pty.cpp \
-           $$PWD/terminal_state.cpp \
            $$PWD/text_segment.cpp \
            $$PWD/tokenizer.cpp \
            $$PWD/terminal_screen.cpp \
-    ../backend/text_segment_line.cpp
+           $$PWD/text_segment_line.cpp \
+           $$PWD/color_palette.cpp \
+           $$PWD/text_style.cpp

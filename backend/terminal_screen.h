@@ -24,6 +24,9 @@
 #include <QObject>
 
 #include "text_segment.h"
+#include "color_palette.h"
+#include "tokenizer.h"
+#include "yat_pty.h"
 
 #include <QtCore/QPoint>
 #include <QtCore/QSize>
@@ -42,12 +45,15 @@ public:
     explicit TerminalScreen(QObject *parent = 0);
     ~TerminalScreen();
     
-    QSize size() const;
-    Q_INVOKABLE void resize(const QSize &size);
+    Q_INVOKABLE void setHeight(int height);
+    Q_INVOKABLE void setWidth(int width);
     Q_INVOKABLE int height() const;
 
     QFont font() const;
     void setFont(const QFont &font);
+
+    void resetStyle();
+    TextStyle currentTextStyle() const;
 
     QColor defaultForgroundColor();
     QColor defaultBackgroundColor();
@@ -59,7 +65,7 @@ public:
     void moveCursorLeft();
     void moveCursorRight();
 
-    void insertAtCursor(const QString &text, const QColor &bg, const QColor &fg);
+    void insertAtCursor(const QString &text);
 
     void backspace();
 
@@ -71,6 +77,8 @@ public:
     Q_INVOKABLE TextSegmentLine *at(int i) const;
 
     Q_INVOKABLE void printScreen() const;
+
+    Q_INVOKABLE void write(const QString &data);
 
     void dispatchChanges();
 signals:
@@ -114,6 +122,7 @@ private:
         int count;
     };
 
+    void readData();
     void doScrollOneLineUpAt(int line);
     void doScrollOneLineDownAt(int line);
 
@@ -121,7 +130,16 @@ private:
     QVector<TextSegmentLine *> m_screen_lines;
     QPoint m_cursor_pos;
     QFont m_font;
+    TextStyle m_current_text_style;
     QList<UpdateAction> m_update_actions;
+
+    ColorPalette m_palette;
+    QColor m_forground_color;
+    QColor m_background_color;
+
+    YatPty m_pty;
+    Tokenizer m_parser;
+
 };
 
 #endif // TERMINALSCREEN_H

@@ -26,24 +26,26 @@
 #include <QtCore/QObject>
 #include <QtCore/QSize>
 
+#include "text_style.h"
+
 class TerminalScreen;
 
 class TextSegment : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString text READ text NOTIFY textChanged)
+    Q_PROPERTY(QColor forgroundColor READ forgroundColor NOTIFY forgroundColorChanged)
+    Q_PROPERTY(QColor backgroundColor READ backgroundColor NOTIFY backgroundColorChanged)
 public:
-    TextSegment(const QString &text, const QColor &forground, const QColor &background, TerminalScreen *terminalScreen);
+    TextSegment(const QString &text, const TextStyle &style, TerminalScreen *terminalScreen);
     TextSegment(TerminalScreen *terminalScreen);
     ~TextSegment();
 
     QString text() const;
 
-    Q_INVOKABLE QColor forgroundColor() const;
-    void  setForgroundColor(const QColor &color);
+    QColor forgroundColor() const;
 
     QColor backgroundColor() const;
-    void setBackgroundColor(const QColor &color);
 
     TextSegment *split(int i);
     bool isCompatible(TextSegment *other);
@@ -56,13 +58,15 @@ public:
 
 signals:
     void textChanged();
+    void forgroundColorChanged();
+    void backgroundColorChanged();
 
 private:
     void dispatchEvents();
 
     QString m_text;
-    QColor m_forground_color;
-    QColor m_background_color;
+    TextStyle m_style;
+
     bool m_dirty;
     TerminalScreen *m_screen;
 

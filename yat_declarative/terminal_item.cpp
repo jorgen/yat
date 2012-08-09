@@ -22,26 +22,11 @@
 
 TerminalItem::TerminalItem(QQuickItem *parent)
     : QQuickItem(parent)
-    , m_state(new TerminalState)
+    , m_screen(new TerminalScreen(this))
 {
 }
 
 TerminalScreen *TerminalItem::screen() const
 {
-    return m_state->screen();
-}
-
-TerminalState *TerminalItem::state() const
-{
-    return m_state;
-}
-
-void TerminalItem::onWidthChanged()
-{
-    m_state->setWidth(width());
-}
-
-void TerminalItem::onHeightChanged()
-{
-    m_state->setHeight(height());
+    return m_screen;
 }
