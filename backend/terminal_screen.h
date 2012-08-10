@@ -25,7 +25,7 @@
 
 #include "text_segment.h"
 #include "color_palette.h"
-#include "tokenizer.h"
+#include "parser.h"
 #include "yat_pty.h"
 
 #include <QtCore/QPoint>
@@ -132,7 +132,7 @@ private:
 
     ColorPalette m_palette;
     YatPty m_pty;
-    Tokenizer m_parser;
+    Parser m_parser;
 
     QVector<TextSegmentLine *> m_screen_lines;
     QPoint m_cursor_pos;

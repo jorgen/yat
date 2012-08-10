@@ -28,6 +28,7 @@
 
 TerminalScreen::TerminalScreen(QObject *parent)
     : QObject(parent)
+    , m_parser(this)
     , m_current_text_style(TextStyle(TextStyle::Normal,Qt::white))
 {
     connect(&m_pty, &YatPty::readyRead,
@@ -274,6 +275,8 @@ void TerminalScreen::dispatchChanges()
 
 void TerminalScreen::readData()
 {
+    QElapsedTimer timer;
+    timer.start();
     for (int i = 0; i < 20; i++) {
         QByteArray data = m_pty.read();
 
@@ -333,8 +336,11 @@ void TerminalScreen::readData()
         if (!m_pty.moreInput())
             break;
     }
+    qDebug() << "parsing took" << timer.elapsed();
 
+    timer.restart();
     dispatchChanges();
+    qDebug() << "dispatching events took" << timer.elapsed();
 }
 
 void TerminalScreen::doScrollOneLineUpAt(int line)

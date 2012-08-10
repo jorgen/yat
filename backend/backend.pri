@@ -10,7 +10,7 @@ HEADERS += \
            $$PWD/yat_pty.h \
            $$PWD/text_segment.h \
            $$PWD/controll_chars.h \
-           $$PWD/tokenizer.h \
+           $$PWD/parser.h \
            $$PWD/terminal_screen.h \
            $$PWD/text_segment_line.h \
            $$PWD/color_palette.h \
@@ -19,7 +19,7 @@ HEADERS += \
 SOURCES += \
            $$PWD/yat_pty.cpp \
            $$PWD/text_segment.cpp \
-           $$PWD/tokenizer.cpp \
+           $$PWD/parser.cpp \
            $$PWD/terminal_screen.cpp \
            $$PWD/text_segment_line.cpp \
            $$PWD/color_palette.cpp \

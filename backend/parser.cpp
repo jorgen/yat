@@ -18,7 +18,7 @@
 *
 ***************************************************************************************************/
 
-#include "tokenizer.h"
+#include "parser.h"
 
 #include "controll_chars.h"
 
@@ -45,15 +45,16 @@ void Token::setControllSequence(Token::ControllSequence controll_sequence)
     m_controll_sequense = controll_sequence;
 }
 
-Tokenizer::Tokenizer()
+Parser::Parser(TerminalScreen *screen)
     : m_decode_state(PlainText)
     , m_current_token_start(0)
     , m_currrent_position(0)
     , m_intermediate_char(QChar())
+    , m_screen(screen)
 {
 }
 
-void Tokenizer::addData(const QByteArray &data)
+void Parser::addData(const QByteArray &data)
 {
     m_current_token_start = 0;
     m_current_data = data;
@@ -95,7 +96,7 @@ void Tokenizer::addData(const QByteArray &data)
     m_current_data = QByteArray();
 }
 
-void Tokenizer::decodeC0(uchar character)
+void Parser::decodeC0(uchar character)
 {
     switch (character) {
     case C0::NUL:
@@ -158,7 +159,7 @@ void Tokenizer::decodeC0(uchar character)
     }
 }
 
-void Tokenizer::decodeC1_7bit(uchar character)
+void Parser::decodeC1_7bit(uchar character)
 {
     switch(character) {
     case C1_7bit::CSI:
@@ -172,7 +173,7 @@ void Tokenizer::decodeC1_7bit(uchar character)
     }
 }
 
-void Tokenizer::decodeParameters(uchar character)
+void Parser::decodeParameters(uchar character)
 {
     switch (character) {
     case 0x30:
@@ -205,7 +206,7 @@ void Tokenizer::decodeParameters(uchar character)
     }
 }
 
-void Tokenizer::decodeCSI(uchar character)
+void Parser::decodeCSI(uchar character)
 {
         if (character >= 0x30 && character <= 0x3f) {
             decodeParameters(character);
@@ -346,7 +347,7 @@ void Tokenizer::decodeCSI(uchar character)
         }
 }
 
-void Tokenizer::decodeOSC(uchar character)
+void Parser::decodeOSC(uchar character)
 {
         if (!m_current_token.parameters().size() &&
                 character >= 0x30 && character <= 0x3f) {
@@ -384,7 +385,7 @@ void Tokenizer::decodeOSC(uchar character)
         }
 }
 
-void Tokenizer::tokenFinished()
+void Parser::tokenFinished()
 {
     if (!m_current_token.isEmpty()) {
         m_tokens << m_current_token;

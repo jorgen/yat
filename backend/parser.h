@@ -18,8 +18,8 @@
 *
 ***************************************************************************************************/
 
-#ifndef LINE_PARSER_H
-#define LINE_PARSER_H
+#ifndef PARSER_H
+#define PARSER_H
 
 #include <QtCore/QString>
 #include <QtCore/QVector>
@@ -103,10 +103,10 @@ private:
     QVector<ushort> m_parameters;
 };
 
-class Tokenizer
+class Parser
 {
 public:
-    Tokenizer();
+    Parser(TerminalScreen *screen);
 
     void addData(const QByteArray &data);
 
@@ -140,6 +140,7 @@ private:
     QString m_parameter_string;
     QLinkedList<Token> m_tokens;
 
+    TerminalScreen *m_screen;
 };
 
-#endif // LINE_PARSER_H
+#endif // PARSER_H
