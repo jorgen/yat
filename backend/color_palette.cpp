@@ -9,10 +9,10 @@ ColorPalette::ColorPalette()
     m_normalColors[1].setRgb(194,54,33);
     m_normalColors[2].setRgb(37,188,36);
     m_normalColors[3].setRgb(173,173,39);
-    m_normalColors[4].setRgb(73,46,255);
+    m_normalColors[4].setRgb(63,84,255);
     m_normalColors[5].setRgb(211,56,211);
     m_normalColors[6].setRgb(51,187,199);
-    m_normalColors[7].setRgb(203,204,203);
+    m_normalColors[7].setRgb(133,169,142);
 
     m_lightColors[0].setRgb(129,131,131);
     m_lightColors[1].setRgb(252,57,31);

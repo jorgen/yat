@@ -7,13 +7,22 @@ Item{
     ListView {
         anchors.fill: parent
         model: lineModel
-        delegate: Text {
-                height: parent.height
+        delegate: Rectangle {
+            height: text.paintedHeight
+            width: text.paintedWidth
+            color: textSegment.backgroundColor
+            Text {
+                id: text
+                height: paintedHeight
                 width: paintedWidth
                 text: textSegment.text
-                font: terminalItem.screen().font
+                font.family: "courier"
+                font.pointSize: 10
                 color: textSegment.forgroundColor
+                font.bold: true
                 textFormat: Text.PlainText
+//                renderType: Text.NativeRendering
+            }
         }
         orientation: ListView.Horizontal
     }

@@ -48,9 +48,15 @@ TerminalScreen::~TerminalScreen()
 {
 }
 
-QColor TerminalScreen::defaultForgroundColor()
+
+QColor TerminalScreen::screenBackground()
 {
     return QColor(Qt::black);
+}
+
+QColor TerminalScreen::defaultForgroundColor()
+{
+    return QColor(Qt::white);
 }
 
 QColor TerminalScreen::defaultBackgroundColor()
@@ -124,6 +130,11 @@ void TerminalScreen::moveCursorHome()
     m_cursor_pos.setX(0);
 }
 
+void TerminalScreen::moveCursorTop()
+{
+    m_cursor_pos.ry() = 0;
+}
+
 void TerminalScreen::moveCursorUp()
 {
     m_cursor_pos.ry() -= 1;
@@ -142,6 +153,12 @@ void TerminalScreen::moveCursorLeft()
 void TerminalScreen::moveCursorRight()
 {
     m_cursor_pos.rx() -= 1;
+}
+
+void TerminalScreen::moveCursor(int x, int y)
+{
+    m_cursor_pos.setX(x);
+    m_cursor_pos.setY(y);
 }
 
 void TerminalScreen::insertAtCursor(const QString &text)
@@ -163,11 +180,35 @@ void TerminalScreen::eraseLine()
     line->clear();
 }
 
-void TerminalScreen::eraseFromPresentationPositionToEndOfLine()
+void TerminalScreen::eraseFromCursorPositionToEndOfLine()
 {
     int active_presentation_pos = m_cursor_pos.x();
     TextSegmentLine *line = line_at_cursor();
     line->removeCharFromPos(active_presentation_pos);
+}
+
+void TerminalScreen::eraseFromCurrentLineToEndOfScreen()
+{
+    for(int i = m_cursor_pos.y(); i < m_screen_lines.size(); i++) {
+        TextSegmentLine *line = m_screen_lines.at(i);
+        line->clear();
+    }
+}
+
+void TerminalScreen::eraseFromCurrentLineToBeginningOfScreen()
+{
+    for (int i = m_cursor_pos.y(); i >= 0; i--) {
+        TextSegmentLine *line = m_screen_lines.at(i);
+        line->clear();
+    }
+}
+
+void TerminalScreen::eraseScreen()
+{
+    for (int i = 0; i < m_screen_lines.size(); i++) {
+        TextSegmentLine *line = m_screen_lines.at(i);
+        line->clear();
+    }
 }
 
 void TerminalScreen::setColor(bool bold, ushort color)

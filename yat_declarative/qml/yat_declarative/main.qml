@@ -4,9 +4,9 @@ import org.yat 1.0
 
 Rectangle {
     id:terminal
-    width: 1200
-    height: 360
-
+    width: 800
+    height: 600
+    color: terminalItem.screen().screenBackground();
     property int fontWidth: dummyText.paintedWidth
     property int fontHeight: dummyText.paintedHeight
 

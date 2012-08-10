@@ -23,6 +23,8 @@
 
 //This is taken largely from Standard ECMA-48
 //http://www.ecma-international.org/publications/standards/Ecma-048.htm
+//Also to heres a very good reference for various escape codes
+//http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
 
 namespace C0 {
 enum C0 {

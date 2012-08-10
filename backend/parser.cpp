@@ -257,16 +257,48 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::CNL:
                     case FinalBytesNoIntermediate::CPL:
                     case FinalBytesNoIntermediate::CHA:
+                        tokenFinished();
+                        break;
                     case FinalBytesNoIntermediate::CUP:
+                        if (!m_parameter_string.isEmpty())
+                            m_parameters.append(m_parameter_string.toUShort());
+                        qDebug() << "Setting cursor position";
+                        if (!m_parameters.size()) {
+                            m_screen->moveCursorHome();
+                            m_screen->moveCursorTop();
+                        } else if (m_parameters.size() == 2){
+                            m_screen->moveCursor(m_parameters.at(0), m_parameters.at(1));
+                        }
+                        tokenFinished();
+                        break;
                     case FinalBytesNoIntermediate::CHT:
+                        tokenFinished();
+                        break;
                     case FinalBytesNoIntermediate::ED:
+                        if (!m_parameter_string.isEmpty())
+                            m_parameters.append(m_parameter_string.toUShort());
+                        if (!m_parameters.size()) {
+                            m_screen->eraseFromCurrentLineToEndOfScreen();
+                        } else {
+                            switch (m_parameters.at(0)) {
+                            case 1:
+                                m_screen->eraseFromCurrentLineToBeginningOfScreen();
+                                break;
+                            case 2:
+                                m_screen->eraseScreen();
+                                break;
+                            default:
+                                qDebug() << "Invalid parameter value for FinalBytesNoIntermediate::ED";
+                            }
+                        }
+
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::EL:
                         if (!m_parameter_string.isEmpty())
                             m_parameters.append(m_parameter_string.toUShort());
                         if (!m_parameters.size() || m_parameters.at(0) == 0) {
-                            m_screen->eraseFromPresentationPositionToEndOfLine();
+                            m_screen->eraseFromCursorPositionToEndOfLine();
                          } else {
                             m_screen->eraseLine();
                          }
@@ -302,13 +334,21 @@ void Parser::decodeCSI(uchar character)
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::SM:
+                        if (!m_parameter_string.isEmpty())
+                            m_parameters.append(m_parameter_string.toUShort());
                         qDebug() << "SET MODE!!!!";
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::MC:
                     case FinalBytesNoIntermediate::HPB:
                     case FinalBytesNoIntermediate::VPB:
+                        tokenFinished();
+                        break;
                     case FinalBytesNoIntermediate::RM:
+                        if (!m_parameter_string.isEmpty())
+                            m_parameters.append(m_parameter_string.toUShort());
+
+                        qDebug() << "Resetting mode";
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::SGR: {

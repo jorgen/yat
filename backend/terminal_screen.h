@@ -56,22 +56,28 @@ public:
     void resetStyle();
     TextStyle currentTextStyle() const;
 
+    Q_INVOKABLE QColor screenBackground();
     QColor defaultForgroundColor();
     QColor defaultBackgroundColor();
 
     QPoint cursorPosition() const;
     void moveCursorHome();
+    void moveCursorTop();
     void moveCursorUp();
     void moveCursorDown();
     void moveCursorLeft();
     void moveCursorRight();
+    void moveCursor(int x, int y);
 
     void insertAtCursor(const QString &text);
 
     void backspace();
 
     void eraseLine();
-    void eraseFromPresentationPositionToEndOfLine();
+    void eraseFromCursorPositionToEndOfLine();
+    void eraseFromCurrentLineToEndOfScreen();
+    void eraseFromCurrentLineToBeginningOfScreen();
+    void eraseScreen();
 
     void setColor(bool bold, ushort color);
 
