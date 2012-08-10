@@ -218,6 +218,17 @@ void TerminalScreen::newLine()
     }
 }
 
+void TerminalScreen::setTitle(const QString &title)
+{
+    m_title = title;
+    emit screenTitleChanged();
+}
+
+QString TerminalScreen::title() const
+{
+    return m_title;
+}
+
 TextSegmentLine *TerminalScreen::at(int i) const
 {
     return m_screen_lines.at(i);
@@ -282,64 +293,15 @@ void TerminalScreen::readData()
 
         m_parser.addData(data);
 
-        Token token;
-        foreach(token, m_parser.tokens()) {
-            switch(token.controllSequence()) {
-            case Token::NoControllSequence:
-                insertAtCursor(token.text());
-                break;
-            case Token::NewLine:
-                newLine();
-                break;
-            case Token::CursorHome:
-                moveCursorHome();
-                break;
-            case Token::EraseOnLine:
-               if (!token.parameters().size() || token.parameters().at(0) == 0) {
-                   eraseFromPresentationPositionToEndOfLine();
-                } else {
-                    eraseLine();
-                }
-                break;
-            case Token::HorizontalTab: {
-                int x = cursorPosition().x();
-                int spaces = 8 - (x % 8);
-                insertAtCursor(QString(spaces,' '));
-            }
-            case Token::Backspace:
-                backspace();
-                break;
-            case Token::SetAttributeMode:
-                if (token.parameters().size()) {
-                    switch(token.parameters().at(0)) {
-                    case 0:
-                        resetStyle();
-                        break;
-                    case 1:
-                        setColor(true, token.parameters().at(1));
-                        break;
-                    case 2:
-                        setColor(false, token.parameters().at(1));
-                    }
-                } else {
-                    resetStyle();
-                }
-
-                break;
-            default:
-                break;
-            }
-        }
-
-        m_parser.clearTokensList();
-
         if (!m_pty.moreInput())
             break;
     }
+
     qDebug() << "parsing took" << timer.elapsed();
 
     timer.restart();
     dispatchChanges();
+
     qDebug() << "dispatching events took" << timer.elapsed();
 }
 

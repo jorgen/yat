@@ -21,29 +21,9 @@
 #include "parser.h"
 
 #include "controll_chars.h"
+#include "terminal_screen.h"
 
 #include <QtCore/QDebug>
-
-Token::Token()
-    : m_controll_sequense(Token::NoControllSequence)
-    , m_parameters(0)
-{
-}
-
-void Token::appendText(const QByteArray &string)
-{
-    m_text.append(QString::fromUtf8(string));
-}
-
-void Token::addParameter(ushort parameter)
-{
-    m_parameters.append(parameter);
-}
-
-void Token::setControllSequence(Token::ControllSequence controll_sequence)
-{
-    m_controll_sequense = controll_sequence;
-}
 
 Parser::Parser(TerminalScreen *screen)
     : m_decode_state(PlainText)
@@ -66,8 +46,8 @@ void Parser::addData(const QByteArray &data)
                     (character >= C1_8bit::C1_8bit_Start &&
                      character <= C1_8bit::C1_8bit_Stop)) {
                 if (m_currrent_position != m_current_token_start) {
-                    m_current_token.appendText(data.mid(m_current_token_start,
-                                                     m_currrent_position - m_current_token_start));
+                    m_screen->insertAtCursor(QString::fromUtf8(data.mid(m_current_token_start,
+                                                                        m_currrent_position - m_current_token_start)));
                     tokenFinished();
                     m_current_token_start--;
                 }
@@ -90,7 +70,7 @@ void Parser::addData(const QByteArray &data)
        }
     }
     if (m_decode_state == PlainText) {
-        m_current_token.appendText(data.mid(m_current_token_start));
+        m_screen->insertAtCursor(QString::fromUtf8(data.mid(m_current_token_start)));
         tokenFinished();
     }
     m_current_data = QByteArray();
@@ -112,15 +92,18 @@ void Parser::decodeC0(uchar character)
         break;
 
     case C0::BS:
-        m_current_token.setControllSequence(Token::Backspace);
+        m_screen->backspace();
         tokenFinished();
         break;
-    case C0::HT:
-        m_current_token.setControllSequence(Token::HorizontalTab);
+    case C0::HT: {
+        int x = m_screen->cursorPosition().x();
+        int spaces = 8 - (x % 8);
+        m_screen->insertAtCursor(QString(spaces,' '));
+    }
         tokenFinished();
         break;
     case C0::LF:
-        m_current_token.setControllSequence(Token::NewLine);
+        m_screen->newLine();
         tokenFinished();
         break;
     case C0::VT:
@@ -128,7 +111,7 @@ void Parser::decodeC0(uchar character)
         qDebug() << "Unhandled Controll character" << character;
         break;
     case C0::CR:
-        m_current_token.setControllSequence(Token::CursorHome);
+        m_screen->moveCursorHome();
         tokenFinished();
         //next should be a linefeed;
         break;
@@ -192,8 +175,8 @@ void Parser::decodeParameters(uchar character)
         qDebug() << "Encountered special delimiter in parameterbyte";
         break;
     case 0x3b:
-        m_current_token.addParameter(m_parameter_string.toInt());
-        m_parameter_string = QString();
+        m_parameters.append(m_parameter_string.toUShort());
+        m_parameter_string.clear();
         break;
     case 0x3c:
     case 0x3d:
@@ -261,7 +244,7 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesSingleIntermediate::SCP:
                     default:
                         qDebug() << "unhandled CSI sequence";
-                        m_current_token.setControllSequence(Token::UnknownControllSequence);
+                        tokenFinished();
                         break;
                     }
                 } else {
@@ -277,13 +260,16 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::CUP:
                     case FinalBytesNoIntermediate::CHT:
                     case FinalBytesNoIntermediate::ED:
-                        m_current_token.setControllSequence(Token::UnknownControllSequence);
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::EL:
                         if (!m_parameter_string.isEmpty())
-                            m_current_token.addParameter(m_parameter_string.toUShort());
-                        m_current_token.setControllSequence(Token::EraseOnLine);
+                            m_parameters.append(m_parameter_string.toUShort());
+                        if (!m_parameters.size() || m_parameters.at(0) == 0) {
+                            m_screen->eraseFromPresentationPositionToEndOfLine();
+                         } else {
+                            m_screen->eraseLine();
+                         }
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::IL:
@@ -313,11 +299,9 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::VPR:
                     case FinalBytesNoIntermediate::HVP:
                     case FinalBytesNoIntermediate::TBC:
-                        m_current_token.setControllSequence(Token::UnknownControllSequence);
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::SM:
-                        m_current_token.setControllSequence(Token::UnknownControllSequence);
                         qDebug() << "SET MODE!!!!";
                         tokenFinished();
                         break;
@@ -325,20 +309,34 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::HPB:
                     case FinalBytesNoIntermediate::VPB:
                     case FinalBytesNoIntermediate::RM:
-                        m_current_token.setControllSequence(Token::UnknownControllSequence);
                         tokenFinished();
                         break;
-                    case FinalBytesNoIntermediate::SGR:
-                        m_current_token.setControllSequence(Token::SetAttributeMode);
+                    case FinalBytesNoIntermediate::SGR: {
                         if (!m_parameter_string.isEmpty())
-                            m_current_token.addParameter(m_parameter_string.toUShort());
+                            m_parameters.append(m_parameter_string.toUShort());
+                        if (m_parameters.size()) {
+                            switch(m_parameters.at(0)) {
+                            case 0:
+                                m_screen->resetStyle();
+                                break;
+                            case 1:
+                                if (m_parameters.size() > 1)
+                                    m_screen->setColor(true, m_parameters.at(1));
+                                break;
+                            case 2:
+                                if (m_parameters.size() > 1)
+                                    m_screen->setColor(false, m_parameters.at(1));
+                            }
+                        } else {
+                            m_screen->resetStyle();
+                        }
                         tokenFinished();
+                    }
                         break;
                     case FinalBytesNoIntermediate::DSR:
                     case FinalBytesNoIntermediate::DAQ:
                     default:
                         qDebug() << "Unhandeled CSI squence\n";
-                        m_current_token.setControllSequence(Token::UnknownControllSequence);
                         tokenFinished();
                         break;
                     }
@@ -349,36 +347,35 @@ void Parser::decodeCSI(uchar character)
 
 void Parser::decodeOSC(uchar character)
 {
-        if (!m_current_token.parameters().size() &&
+        if (!m_parameters.size() &&
                 character >= 0x30 && character <= 0x3f) {
             decodeParameters(character);
         } else {
-            if (m_current_token.controllSequence() ==  Token::NoControllSequence) {
+            if (m_decode_osc_state ==  None) {
                 if (m_parameter_string.size()) {
-                    m_current_token.addParameter(m_parameter_string.toUShort());
-                    m_parameter_string = QString();
+                    m_parameters.append(m_parameter_string.toUShort());
+                    m_parameter_string.clear();
                 }
-                Q_ASSERT(m_current_token.parameters().size() == 1);
-                Token::ControllSequence windowAttribute;
-                switch (m_current_token.parameters().at(0)) {
+                Q_ASSERT(m_parameters.size() == 1);
+                switch (m_parameters.at(0)) {
                 case 0:
-                    windowAttribute = Token::ChangeWindowAndIconName;
+                    m_decode_osc_state = ChangeWindowAndIconName;
                     break;
                 case 1:
-                    windowAttribute = Token::ChangeIconTitle;
+                    m_decode_osc_state = ChangeIconTitle;
                     break;
                 case 2:
-                    windowAttribute = Token::ChangeWindowTitle;
-                    break;
-                default:
-                    windowAttribute = Token::UnknownControllSequence;
+                    m_decode_osc_state = ChangeWindowTitle;
                     break;
                 }
-                m_current_token.setControllSequence(windowAttribute);
             } else {
                 if (character == 0x07) {
-                    m_current_token.appendText(m_current_data.mid(m_current_token_start+4,
-                                                                  m_currrent_position - m_current_token_start -1));
+                    if (m_decode_osc_state == ChangeWindowAndIconName ||
+                        m_decode_osc_state == ChangeWindowTitle) {
+                        QString title = QString::fromUtf8(m_current_data.mid(m_current_token_start+4,
+                                                                             m_currrent_position - m_current_token_start -1));
+                        m_screen->setTitle(title);
+                    }
                     tokenFinished();
                 }
             }
@@ -387,14 +384,13 @@ void Parser::decodeOSC(uchar character)
 
 void Parser::tokenFinished()
 {
-    if (!m_current_token.isEmpty()) {
-        m_tokens << m_current_token;
-        m_current_token = Token();
-    }
+    m_decode_state = PlainText;
+    m_decode_osc_state = None;
+
+    m_parameters.clear();
+    m_parameter_string.clear();
+
     m_current_token_start = m_currrent_position + 1;
     m_intermediate_char = 0;
-    if (m_parameter_string.size())
-        m_parameter_string = QString();
-    m_decode_state = PlainText;
 }
 

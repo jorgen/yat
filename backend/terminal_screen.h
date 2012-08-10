@@ -40,6 +40,7 @@ class TerminalScreen : public QObject
     Q_OBJECT
 
     Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
+    Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY screenTitleChanged)
 
 public:
     explicit TerminalScreen(QObject *parent = 0);
@@ -76,6 +77,9 @@ public:
 
     void newLine();
 
+    void setTitle(const QString &title);
+    QString title() const;
+
     Q_INVOKABLE TextSegmentLine *at(int i) const;
 
     Q_INVOKABLE void printScreen() const;
@@ -94,6 +98,8 @@ signals:
 
     void dispatchLineChanges();
     void dispatchTextSegmentChanges();
+
+    void screenTitleChanged();
 private:
 
     class UpdateAction
@@ -139,6 +145,7 @@ private:
 
     QFont m_font;
     TextStyle m_current_text_style;
+    QString m_title;
 
     QList<UpdateAction> m_update_actions;
 };

@@ -22,8 +22,6 @@ Item{
         id: lineModel
     }
 
-    onTextLineChanged: ;
-
     function resetModel() {
         lineModel.clear();
         for (var i = 0; i < textLine.size(); i++) {
