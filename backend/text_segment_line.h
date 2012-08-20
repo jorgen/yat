@@ -43,10 +43,12 @@ public:
     void insertAtPos(int i, const QString &text, const TextStyle &style);
 
     void removeCharAtPos(int pos);
-    void removeCharFromPos(int pos);
+    void removeChars(int char_index);
+
+    void removeChars(int from_index, int n_chars);
 
 signals:
-    void newTextSegment(int index);
+    void newTextSegment(int index, int data_index);
     void textSegmentRemoved(int index);
 
     void reset();
@@ -63,19 +65,26 @@ private:
         UpdateAction()
             : action(InvalidAction)
             , index(0)
+            , data_index(0)
         {}
         UpdateAction(Action action, int index)
             : action(action)
             , index(index)
+            , data_index(index)
         { }
         Action action;
         int index;
+        int data_index;
     };
 
     void append(const QString &text, const TextStyle &style);
     void prepend(const QString &text, const TextStyle &style);
     void dispatchEvents();
     int findSegmentIndexForChar(int pos, int *index, int *chars_before_index);
+
+    void addNewTextAction(int index);
+    void addRemoveTextAction(int index);
+    void addResetAction();
 
     QList<TextSegment *> m_segments;
     QList<UpdateAction> m_update_actions;

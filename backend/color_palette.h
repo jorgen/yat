@@ -20,6 +20,8 @@ public:
         magenta,
         cyan,
         white,
+        defaultForground,
+        defaultBackground,
         numberOfColors
     };
 

@@ -22,6 +22,8 @@
 
 #include "text_segment_line.h"
 
+#include "controll_chars.h"
+
 #include <QtCore/QElapsedTimer>
 
 #include <QtCore/QDebug>
@@ -56,7 +58,7 @@ QColor TerminalScreen::screenBackground()
 
 QColor TerminalScreen::defaultForgroundColor()
 {
-    return QColor(Qt::white);
+    return m_palette.normalColor(ColorPalette::defaultForground);
 }
 
 QColor TerminalScreen::defaultBackgroundColor()
@@ -90,6 +92,11 @@ void TerminalScreen::setHeight(int height)
 void TerminalScreen::setWidth(int width)
 {
     m_pty.setWidth(width);
+}
+
+int TerminalScreen::width() const
+{
+    return m_pty.size().width();
 }
 
 int TerminalScreen::height() const
@@ -147,30 +154,65 @@ void TerminalScreen::moveCursorDown()
 
 void TerminalScreen::moveCursorLeft()
 {
-    m_cursor_pos.rx() += 1;
+    m_cursor_pos.rx() -= 1;
 }
 
-void TerminalScreen::moveCursorRight()
+void TerminalScreen::moveCursorRight(int n_positions)
 {
-    m_cursor_pos.rx() -= 1;
+    m_cursor_pos.rx() += n_positions;
 }
 
 void TerminalScreen::moveCursor(int x, int y)
 {
+    if (x != 0)
+        x--;
+    if (y != 0)
+        y--;
     m_cursor_pos.setX(x);
-    m_cursor_pos.setY(y);
+    if (y >= m_screen_lines.size()) {
+        qDebug() << "This is wrong";
+        m_cursor_pos.setY(m_screen_lines.size()-1);
+    } else {
+        m_cursor_pos.setY(y);
+    }
+}
+
+void TerminalScreen::setCursorVisible(bool visible)
+{
+    int emitChange = visible != m_cursor_visible;
+    m_cursor_visible = visible;
+    if (emitChange)
+        cursorVisibleChanged();
+}
+
+bool TerminalScreen::cursorVisible()
+{
+    return m_cursor_visible;
+}
+
+void TerminalScreen::setBlinkingCursor(bool blinking)
+{
+    int emitChange = blinking != m_cursor_blinking;
+    m_cursor_blinking = blinking;
+    if (emitChange)
+        emit cursorBlinkingChanged();
+}
+
+bool TerminalScreen::cursorBlinking()
+{
+    return m_cursor_blinking;
 }
 
 void TerminalScreen::insertAtCursor(const QString &text)
 {
     TextSegmentLine *line = line_at_cursor();
-    m_cursor_pos.setX(m_cursor_pos.x() + text.size());
     line->insertAtPos(m_cursor_pos.x(), text, m_current_text_style);
+
+    m_cursor_pos.rx() += text.size();
 }
 
 void TerminalScreen::backspace()
 {
-    if (m_cursor_pos.x() > 0)
         m_cursor_pos.rx()--;
 }
 
@@ -184,7 +226,7 @@ void TerminalScreen::eraseFromCursorPositionToEndOfLine()
 {
     int active_presentation_pos = m_cursor_pos.x();
     TextSegmentLine *line = line_at_cursor();
-    line->removeCharFromPos(active_presentation_pos);
+    line->removeChars(active_presentation_pos);
 }
 
 void TerminalScreen::eraseFromCurrentLineToEndOfScreen()
@@ -201,6 +243,11 @@ void TerminalScreen::eraseFromCurrentLineToBeginningOfScreen()
         TextSegmentLine *line = m_screen_lines.at(i);
         line->clear();
     }
+}
+
+void TerminalScreen::eraseToCursorPosition()
+{
+    qDebug() << "eraseToCursorPosition NOT IMPLEMENTED!";
 }
 
 void TerminalScreen::eraseScreen()
@@ -243,7 +290,7 @@ void TerminalScreen::setColor(bool bold, ushort color)
 
 }
 
-void TerminalScreen::newLine()
+void TerminalScreen::lineFeed()
 {
     if(m_cursor_pos.y() == m_screen_lines.size() -1) {
         TextSegmentLine *firstLine = m_screen_lines.at(0);
@@ -254,8 +301,8 @@ void TerminalScreen::newLine()
         m_screen_lines.replace(m_cursor_pos.y(),firstLine);
         doScrollOneLineUpAt(m_cursor_pos.y());
     } else {
-        moveCursorDown();
-        moveCursorHome();
+        moveCursor(0,m_cursor_pos.y()+2);
+//        line_at_cursor()->removeCharFromPos(0);
     }
 }
 
@@ -325,10 +372,30 @@ void TerminalScreen::dispatchChanges()
     emit dispatchTextSegmentChanges();
 }
 
+void TerminalScreen::sendPrimaryDA()
+{
+    m_pty.write("\033[?6c");
+
+}
+
+void TerminalScreen::sendSecondaryDA()
+{
+    QByteArray write("\033[>1;95;0c");
+    m_pty.write(write);
+}
+
+void TerminalScreen::setCharacterMap(const QString &string)
+{
+    m_character_map = string;
+}
+
+QString TerminalScreen::characterMap() const
+{
+    return m_character_map;
+}
+
 void TerminalScreen::readData()
 {
-    QElapsedTimer timer;
-    timer.start();
     for (int i = 0; i < 20; i++) {
         QByteArray data = m_pty.read();
 
@@ -338,12 +405,7 @@ void TerminalScreen::readData()
             break;
     }
 
-    qDebug() << "parsing took" << timer.elapsed();
-
-    timer.restart();
     dispatchChanges();
-
-    qDebug() << "dispatching events took" << timer.elapsed();
 }
 
 void TerminalScreen::doScrollOneLineUpAt(int line)

@@ -41,14 +41,18 @@ class TerminalScreen : public QObject
 
     Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
     Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY screenTitleChanged)
+    Q_PROPERTY(bool cursorVisible READ cursorVisible NOTIFY cursorVisibleChanged)
+    Q_PROPERTY(bool cursorBlinking READ cursorBlinking NOTIFY cursorBlinkingChanged)
 
 public:
     explicit TerminalScreen(QObject *parent = 0);
     ~TerminalScreen();
     
     Q_INVOKABLE void setHeight(int height);
-    Q_INVOKABLE void setWidth(int width);
     Q_INVOKABLE int height() const;
+    Q_INVOKABLE void setWidth(int width);
+    Q_INVOKABLE int width() const;
+
 
     QFont font() const;
     void setFont(const QFont &font);
@@ -66,8 +70,12 @@ public:
     void moveCursorUp();
     void moveCursorDown();
     void moveCursorLeft();
-    void moveCursorRight();
+    void moveCursorRight(int n_positions);
     void moveCursor(int x, int y);
+    void setCursorVisible(bool visible);
+    bool cursorVisible();
+    void setBlinkingCursor(bool blinking);
+    bool cursorBlinking();
 
     void insertAtCursor(const QString &text);
 
@@ -77,11 +85,12 @@ public:
     void eraseFromCursorPositionToEndOfLine();
     void eraseFromCurrentLineToEndOfScreen();
     void eraseFromCurrentLineToBeginningOfScreen();
+    void eraseToCursorPosition();
     void eraseScreen();
 
     void setColor(bool bold, ushort color);
 
-    void newLine();
+    void lineFeed();
 
     void setTitle(const QString &title);
     QString title() const;
@@ -93,6 +102,12 @@ public:
     Q_INVOKABLE void write(const QString &data);
 
     void dispatchChanges();
+
+    void sendPrimaryDA();
+    void sendSecondaryDA();
+
+    void setCharacterMap(const QString &string);
+    QString characterMap() const;
 signals:
     void scrollUp(int from_line, int count);
     void scrollDown(int from_line, int count);
@@ -106,6 +121,9 @@ signals:
     void dispatchTextSegmentChanges();
 
     void screenTitleChanged();
+
+    void cursorVisibleChanged();
+    void cursorBlinkingChanged();
 private:
 
     class UpdateAction
@@ -148,10 +166,14 @@ private:
 
     QVector<TextSegmentLine *> m_screen_lines;
     QPoint m_cursor_pos;
+    bool m_cursor_visible;
+    bool m_cursor_blinking;
 
     QFont m_font;
     TextStyle m_current_text_style;
     QString m_title;
+
+    QString m_character_map;
 
     QList<UpdateAction> m_update_actions;
 };

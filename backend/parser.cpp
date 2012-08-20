@@ -30,6 +30,7 @@ Parser::Parser(TerminalScreen *screen)
     , m_current_token_start(0)
     , m_currrent_position(0)
     , m_intermediate_char(QChar())
+    , m_parameters(10)
     , m_screen(screen)
 {
 }
@@ -67,11 +68,18 @@ void Parser::addData(const QByteArray &data)
         case DecodeOSC:
             decodeOSC(character);
             break;
+        case DecodeOtherEscape:
+            decodeOtherEscape(character);
+            break;
        }
+
     }
     if (m_decode_state == PlainText) {
-        m_screen->insertAtCursor(QString::fromUtf8(data.mid(m_current_token_start)));
-        tokenFinished();
+        QByteArray text = data.mid(m_current_token_start);
+        if (text.size()) {
+            m_screen->insertAtCursor(QString::fromUtf8(text));
+            tokenFinished();
+        }
     }
     m_current_data = QByteArray();
 }
@@ -103,12 +111,13 @@ void Parser::decodeC0(uchar character)
         tokenFinished();
         break;
     case C0::LF:
-        m_screen->newLine();
+        m_screen->lineFeed();
         tokenFinished();
         break;
     case C0::VT:
     case C0::FF:
         qDebug() << "Unhandled Controll character" << character;
+        tokenFinished();
         break;
     case C0::CR:
         m_screen->moveCursorHome();
@@ -129,6 +138,7 @@ void Parser::decodeC0(uchar character)
     case C0::EM:
     case C0::SUB:
         qDebug() << "Unhandled Controll character" << character;
+        tokenFinished();
         break;
     case C0::ESC:
         m_decode_state = DecodeC1_7bit;
@@ -139,6 +149,8 @@ void Parser::decodeC0(uchar character)
     case C0::IS1:
     default:
         qDebug() << "Unhandled Controll character" << character;
+        tokenFinished();
+        break;
     }
 }
 
@@ -151,8 +163,23 @@ void Parser::decodeC1_7bit(uchar character)
     case C1_7bit::OSC:
         m_decode_state = DecodeOSC;
         break;
+    case '%':
+    case '#':
+    case '(':
+        m_parameters.append(-character);
+        m_decode_state = DecodeOtherEscape;
+        break;
+    case '=':
+        qDebug() << "Application keypad";
+        tokenFinished();
+        break;
+    case '>':
+        qDebug() << "Normal keypad mode";
+        tokenFinished();
+        break;
     default:
         qDebug() << "Unhandled C1_7bit character" << character;
+        tokenFinished();
     }
 }
 
@@ -175,13 +202,15 @@ void Parser::decodeParameters(uchar character)
         qDebug() << "Encountered special delimiter in parameterbyte";
         break;
     case 0x3b:
-        m_parameters.append(m_parameter_string.toUShort());
-        m_parameter_string.clear();
+        appendParameter();
         break;
     case 0x3c:
     case 0x3d:
     case 0x3e:
     case 0x3f:
+        appendParameter();
+        m_parameters.append(-character);
+        break;
     default:
         //this is undefined for now
         qDebug() << "Encountered undefined parameter byte";
@@ -243,7 +272,7 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesSingleIntermediate::SLS:
                     case FinalBytesSingleIntermediate::SCP:
                     default:
-                        qDebug() << "unhandled CSI sequence";
+                        qDebug() << "unhandled CSI FinalBytesSingleIntermediate sequence" << character;
                         tokenFinished();
                         break;
                     }
@@ -252,31 +281,42 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::ICH:
                     case FinalBytesNoIntermediate::CUU:
                     case FinalBytesNoIntermediate::CUD:
-                    case FinalBytesNoIntermediate::CUF:
+                        tokenFinished();
+                        qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
+                        break;
+                    case FinalBytesNoIntermediate::CUF:{
+                        appendParameter();
+                        Q_ASSERT(m_parameters.size() < 2);
+                        int move_right = m_parameters.size() ? m_parameters.at(0) : 1;
+                        m_screen->moveCursorRight(move_right);
+                        tokenFinished();
+                    }
+                        break;
                     case FinalBytesNoIntermediate::CUB:
                     case FinalBytesNoIntermediate::CNL:
                     case FinalBytesNoIntermediate::CPL:
                     case FinalBytesNoIntermediate::CHA:
                         tokenFinished();
+                        qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
                         break;
                     case FinalBytesNoIntermediate::CUP:
-                        if (!m_parameter_string.isEmpty())
-                            m_parameters.append(m_parameter_string.toUShort());
-                        qDebug() << "Setting cursor position";
+                        appendParameter();
                         if (!m_parameters.size()) {
-                            m_screen->moveCursorHome();
                             m_screen->moveCursorTop();
+                            m_screen->moveCursorHome();
                         } else if (m_parameters.size() == 2){
-                            m_screen->moveCursor(m_parameters.at(0), m_parameters.at(1));
+                                m_screen->moveCursor(m_parameters.at(1), m_parameters.at(0));
+                        } else {
+                            qDebug() << "OHOHOHOH";
                         }
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::CHT:
                         tokenFinished();
+                        qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
                         break;
                     case FinalBytesNoIntermediate::ED:
-                        if (!m_parameter_string.isEmpty())
-                            m_parameters.append(m_parameter_string.toUShort());
+                        appendParameter();
                         if (!m_parameters.size()) {
                             m_screen->eraseFromCurrentLineToEndOfScreen();
                         } else {
@@ -295,13 +335,16 @@ void Parser::decodeCSI(uchar character)
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::EL:
-                        if (!m_parameter_string.isEmpty())
-                            m_parameters.append(m_parameter_string.toUShort());
+                        appendParameter();
                         if (!m_parameters.size() || m_parameters.at(0) == 0) {
                             m_screen->eraseFromCursorPositionToEndOfLine();
-                         } else {
+                        } else if (m_parameters.at(0) == 1) {
+                            m_screen->eraseToCursorPosition();
+                        } else if (m_parameters.at(0) == 2) {
                             m_screen->eraseLine();
-                         }
+                        } else{
+                            qDebug() << "Fault when processing FinalBytesNoIntermediate::EL";
+                        }
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::IL:
@@ -326,34 +369,97 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::HPA:
                     case FinalBytesNoIntermediate::HPR:
                     case FinalBytesNoIntermediate::REP:
+                        qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
+                        tokenFinished();
+                        break;
                     case FinalBytesNoIntermediate::DA:
+                        appendParameter();
+                        if (m_parameters.size()) {
+                            switch (m_parameters.at(0)) {
+                            case -'>':
+                                m_screen->sendSecondaryDA();
+                                break;
+                            case -'?':
+                                break; //ignore
+                            case 0:
+                            default:
+                                m_screen->sendPrimaryDA();
+                            }
+                        } else {
+                            m_screen->sendPrimaryDA();
+                        }
+                        tokenFinished();
+                        break;
                     case FinalBytesNoIntermediate::VPA:
                     case FinalBytesNoIntermediate::VPR:
                     case FinalBytesNoIntermediate::HVP:
                     case FinalBytesNoIntermediate::TBC:
+                        qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::SM:
-                        if (!m_parameter_string.isEmpty())
-                            m_parameters.append(m_parameter_string.toUShort());
-                        qDebug() << "SET MODE!!!!";
+                        appendParameter();
+                        if (m_parameters.size() && m_parameters.at(0) == -'?') {
+                            if (m_parameters.size() > 1) {
+                                switch (m_parameters.at(1)) {
+                                case 1:
+                                    qDebug() << "Application Cursor Keys";
+                                    break;
+                                case 25:
+                                    m_screen->setCursorVisible(true);
+                                    break;
+                                case 1034:
+                                    //I don't know what this sequence is
+                                    break;
+                                default:
+                                    qDebug() << "unhandled CSI FinalBytesNoIntermediate::SM ? with parameter:" << m_parameters.at(1);
+                                }
+                            } else {
+                                qDebug() << "unhandled CSI FinalBytesNoIntermediate::SM ?";
+                            }
+                        } else {
+                            qDebug() << "unhandled CSI FinalBytesNoIntermediate::SM";
+                        }
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::MC:
                     case FinalBytesNoIntermediate::HPB:
                     case FinalBytesNoIntermediate::VPB:
+                        qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::RM:
-                        if (!m_parameter_string.isEmpty())
-                            m_parameters.append(m_parameter_string.toUShort());
-
-                        qDebug() << "Resetting mode";
+                        appendParameter();
+                        if (m_parameters.size()) {
+                            switch(m_parameters.at(0)) {
+                            case -'?':
+                                if (m_parameters.size() > 1) {
+                                    switch(m_parameters.at(1)) {
+                                    case 12:
+                                        m_screen->setBlinkingCursor(false);
+                                        break;
+                                    case 25:
+                                        m_screen->setCursorVisible(false);
+                                        break;
+                                    default:
+                                        qDebug() << "unhandled CSI FinalBytesNoIntermediate::RM with "
+                                                    "parameter " << m_parameters.at(1);
+                                    }
+                                } else {
+                                    qDebug() << "unhandled CSI FinalBytesNoIntermediate::RM";
+                                }
+                                break;
+                            case 4:
+                                qDebug() << "REPLACE MODE!";
+                            default:
+                                qDebug() << "unhandled CSI FinalBytesNoIntermediate::RM";
+                                break;
+                            }
+                        }
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::SGR: {
-                        if (!m_parameter_string.isEmpty())
-                            m_parameters.append(m_parameter_string.toUShort());
+                        appendParameter();
                         if (m_parameters.size()) {
                             switch(m_parameters.at(0)) {
                             case 0:
@@ -362,6 +468,8 @@ void Parser::decodeCSI(uchar character)
                             case 1:
                                 if (m_parameters.size() > 1)
                                     m_screen->setColor(true, m_parameters.at(1));
+                                else
+                                    m_screen->setColor(true, 37);
                                 break;
                             case 2:
                                 if (m_parameters.size() > 1)
@@ -375,8 +483,30 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::DSR:
                     case FinalBytesNoIntermediate::DAQ:
+                    case FinalBytesNoIntermediate::Reserved0:
+                    case FinalBytesNoIntermediate::Reserved1:
+                        qDebug() << "Unhandeled CSI FinalBytesNoIntermediate squence" << character;
+                        tokenFinished();
+                        break;
+                    case FinalBytesNoIntermediate::Reserved2:
+                        qDebug() << "Reserved2!";
+                        tokenFinished();
+                        break;
+                    case FinalBytesNoIntermediate::Reserved3:
+                    case FinalBytesNoIntermediate::Reserved4:
+                    case FinalBytesNoIntermediate::Reserved5:
+                    case FinalBytesNoIntermediate::Reserved6:
+                    case FinalBytesNoIntermediate::Reserved7:
+                    case FinalBytesNoIntermediate::Reserved8:
+                    case FinalBytesNoIntermediate::Reserved9:
+                    case FinalBytesNoIntermediate::Reserveda:
+                    case FinalBytesNoIntermediate::Reservedb:
+                    case FinalBytesNoIntermediate::Reservedc:
+                    case FinalBytesNoIntermediate::Reservedd:
+                    case FinalBytesNoIntermediate::Reservede:
+                    case FinalBytesNoIntermediate::Reservedf:
                     default:
-                        qDebug() << "Unhandeled CSI squence\n";
+                        qDebug() << "Unhandeled CSI FinalBytesNoIntermediate squence" << character;
                         tokenFinished();
                         break;
                     }
@@ -392,11 +522,12 @@ void Parser::decodeOSC(uchar character)
             decodeParameters(character);
         } else {
             if (m_decode_osc_state ==  None) {
-                if (m_parameter_string.size()) {
-                    m_parameters.append(m_parameter_string.toUShort());
-                    m_parameter_string.clear();
+                appendParameter();
+                if (m_parameters.size() != 1) {
+                    tokenFinished();
+                    return;
                 }
-                Q_ASSERT(m_parameters.size() == 1);
+
                 switch (m_parameters.at(0)) {
                 case 0:
                     m_decode_osc_state = ChangeWindowAndIconName;
@@ -422,6 +553,64 @@ void Parser::decodeOSC(uchar character)
         }
 }
 
+void Parser::decodeOtherEscape(uchar character)
+{
+    Q_ASSERT(m_parameters.size());
+    switch(m_parameters.at(0)) {
+    case -'(':
+        switch(character) {
+        case 0:
+            m_screen->setCharacterMap("DEC Special Character and Line Drawing Set");
+            break;
+        case 'A':
+            m_screen->setCharacterMap("UK");
+            break;
+        case 'B':
+            m_screen->setCharacterMap("USASCII");
+            break;
+        case '4':
+            m_screen->setCharacterMap("Dutch");
+            break;
+        case 'C':
+        case '5':
+            m_screen->setCharacterMap("Finnish");
+            break;
+        case 'R':
+            m_screen->setCharacterMap("French");
+            break;
+        case 'Q':
+            m_screen->setCharacterMap("FrenchCanadian");
+            break;
+        case 'K':
+            m_screen->setCharacterMap("German");
+            break;
+        case 'Y':
+            m_screen->setCharacterMap("Italian");
+            break;
+        case 'E':
+        case '6':
+            m_screen->setCharacterMap("NorDan");
+            break;
+        case 'Z':
+            m_screen->setCharacterMap("Spanish");
+            break;
+        case 'H':
+        case '7':
+            m_screen->setCharacterMap("Sweedish");
+            break;
+        case '=':
+            m_screen->setCharacterMap("Swiss");
+            break;
+        default:
+            qDebug() << "Not supported Character set!";
+        }
+        break;
+    default:
+        qDebug() << "Other Escape sequence not recognized";
+    }
+    tokenFinished();
+}
+
 void Parser::tokenFinished()
 {
     m_decode_state = PlainText;
@@ -432,5 +621,13 @@ void Parser::tokenFinished()
 
     m_current_token_start = m_currrent_position + 1;
     m_intermediate_char = 0;
+}
+
+void Parser::appendParameter()
+{
+    if (m_parameter_string.size()) {
+        m_parameters.append(m_parameter_string.toUShort());
+        m_parameter_string.clear();
+    }
 }
 

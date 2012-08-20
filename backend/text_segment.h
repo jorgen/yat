@@ -49,11 +49,12 @@ public:
 
     TextSegment *split(int i);
     bool isCompatible(const TextStyle &style);
-    void prependText(const QString &text);
-    void insertText(int index, const QString &text);
+    int prependText(const QString &text);
+    int insertText(int index, const QString &text);
     void appendText(const QString &text);
 
     void removeCharAtPos(int index);
+    void removeTextFromBeginning(int n_elements);
     void truncate(int index);
 
 signals:

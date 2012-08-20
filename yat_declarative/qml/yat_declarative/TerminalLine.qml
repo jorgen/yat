@@ -15,7 +15,7 @@ Item{
                 id: text
                 height: paintedHeight
                 width: paintedWidth
-                text: textSegment.text
+                text: textSegment === undefined? "" : textSegment.text
                 font.family: "courier"
                 font.pointSize: 10
                 color: textSegment.forgroundColor

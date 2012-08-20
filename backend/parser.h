@@ -41,7 +41,8 @@ private:
         DecodeC0,
         DecodeC1_7bit,
         DecodeCSI,
-        DecodeOSC
+        DecodeOSC,
+        DecodeOtherEscape
     };
 
     enum DecodeOSCState {
@@ -56,7 +57,11 @@ private:
     void decodeParameters(uchar character);
     void decodeCSI(uchar character);
     void decodeOSC(uchar character);
+    void decodeOtherEscape(uchar character);
+
     void tokenFinished();
+
+    void appendParameter();
 
     DecodeState m_decode_state;
     DecodeOSCState m_decode_osc_state;
@@ -69,7 +74,7 @@ private:
     QChar m_intermediate_char;
 
     QByteArray m_parameter_string;
-    QVector<ushort> m_parameters;
+    QVector<int> m_parameters;
 
     TerminalScreen *m_screen;
 };

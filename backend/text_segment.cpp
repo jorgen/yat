@@ -63,11 +63,14 @@ QColor TextSegment::backgroundColor() const
 
 TextSegment *TextSegment::split(int i)
 {
-    QString str = m_text.right(i);
-    TextSegment *right = new TextSegment(str,m_style,m_screen);
-    right->setParent(parent());
-    m_text.truncate(i);
-    m_dirty = true;
+    TextSegment *right = 0;
+    QString str = m_text.mid(i);
+    if (str.size()) {
+        right = new TextSegment(str,m_style,m_screen);
+        right->setParent(parent());
+        m_text.truncate(i);
+        m_dirty = true;
+    }
 
     return right;
 }
@@ -78,16 +81,45 @@ bool TextSegment::isCompatible(const TextStyle &style)
             m_style.background == style.background;
 }
 
-void TextSegment::prependText(const QString &text)
+int TextSegment::prependText(const QString &text)
 {
-    m_text.prepend(text);
+    int growth = 0;
+    if (text.size() > m_text.size()) {
+        growth = text.size() - m_text.size();
+    }
+
+    if (growth) {
+        m_text = text;
+    } else {
+        m_text = text + m_text.mid(text.size());
+    }
+
     m_dirty = true;
+    return growth;
 }
 
-void TextSegment::insertText(int index, const QString &text)
+int TextSegment::insertText(int index, const QString &text)
 {
-    m_text.insert(index, text);
-    m_dirty = true;
+    int growth = 0;
+
+    if (index == 0) {
+        growth = prependText(text);
+    } else {
+        if (index + text.size() > m_text.size()) {
+            growth = text.size() - m_text.size();
+        }
+        QString left = m_text.left(index);
+        QString right = m_text.mid(index);
+        if (right.size() <= text.size()) {
+            right = text;
+        } else {
+            right = text + right.mid(text.size());
+        }
+        m_text = left + right;
+
+        m_dirty = true;
+    }
+    return growth;
 }
 
 void TextSegment::appendText(const QString &text)
@@ -100,6 +132,11 @@ void TextSegment::removeCharAtPos(int index)
 {
     m_text.remove(index,1);
     m_dirty = true;
+}
+
+void TextSegment::removeTextFromBeginning(int n_elements)
+{
+    m_text = m_text.mid(n_elements);
 }
 
 void TextSegment::truncate(int index)
