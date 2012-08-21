@@ -26,6 +26,8 @@ public:
     Style style;
     QColor forground;
     QColor background;
+
+    bool isCompatible(const TextStyle &other) const;
 };
 
 #endif // TEXT_STYLE_H

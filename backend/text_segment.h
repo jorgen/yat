@@ -37,7 +37,7 @@ class TextSegment : public QObject
     Q_PROPERTY(QColor forgroundColor READ forgroundColor NOTIFY forgroundColorChanged)
     Q_PROPERTY(QColor backgroundColor READ backgroundColor NOTIFY backgroundColorChanged)
 public:
-    TextSegment(const QString &text, const TextStyle &style, TerminalScreen *terminalScreen);
+    TextSegment(const QStringRef &text_ref, const TextStyle &style, TerminalScreen *terminalScreen);
     TextSegment(TerminalScreen *terminalScreen);
     ~TextSegment();
 
@@ -47,16 +47,8 @@ public:
 
     QColor backgroundColor() const;
 
-    TextSegment *split(int i);
-    bool isCompatible(const TextStyle &style);
-    int prependText(const QString &text);
-    int insertText(int index, const QString &text);
-    void appendText(const QString &text);
-
-    void removeCharAtPos(int index);
-    void removeTextFromBeginning(int n_elements);
-    void truncate(int index);
-
+    void setStringRef(const QStringRef &textRef);
+    void setTextStyle(const TextStyle &style);
 signals:
     void textChanged();
     void forgroundColorChanged();
@@ -66,6 +58,7 @@ private:
     void dispatchEvents();
 
     QString m_text;
+    QStringRef m_text_ref;
     TextStyle m_style;
 
     bool m_dirty;

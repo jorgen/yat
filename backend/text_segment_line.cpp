@@ -28,7 +28,13 @@
 TextSegmentLine::TextSegmentLine(TerminalScreen *terminalScreen)
     : QObject(terminalScreen)
     , m_screen(terminalScreen)
+    , m_changed(true)
+    , m_reset(true)
 {
+    m_text_line.resize(terminalScreen->width());
+
+    clear();
+
     connect(terminalScreen,&TerminalScreen::dispatchLineChanges,
             this, &TextSegmentLine::dispatchEvents);
 }
@@ -39,243 +45,199 @@ TextSegmentLine::~TextSegmentLine()
 
 void TextSegmentLine::clear()
 {
-    for (int i = 0; i < m_segments.size(); i++) {
-        delete m_segments.at(i);
+    m_text_line.fill(QChar(' '));
+
+    for (int i = 0; i < m_style_list.size(); i++) {
+        if (m_style_list.at(i).text_segment)
+            m_unused_segments.append(m_style_list.at(i).text_segment);
     }
-    m_segments.clear();
-    m_update_actions.clear();
-    UpdateAction action(UpdateAction::Reset,0);
-    m_update_actions.append(action);
+    m_style_list.clear();
+    m_style_list << TextStyleLine(m_screen->defaultTextStyle(),0,m_text_line.size() -1);
+
+    m_reset = true;
+    m_changed = true;
+}
+
+void TextSegmentLine::clearToEndOfLine(int index)
+{
+    m_changed = true;
+
+    QString empty(m_text_line.size() - index, QChar(' '));
+    m_text_line.replace(index, m_text_line.size()-index,empty);
+    bool found = false;
+    for (int i = 0; i < m_style_list.size(); i++) {
+        const TextStyleLine current_style = m_style_list.at(i);
+        if (found) {
+            if (current_style.old_index >= 0)
+                m_indexes_to_remove.append(current_style.old_index);
+            m_style_list.removeAt(i);
+            i--;
+        } else {
+            if (index <= current_style.end_index) {
+                found = true;
+                if (current_style.start_index == index) {
+                    if (current_style.old_index >= 0)
+                        m_indexes_to_remove.append(current_style.old_index);
+                    m_style_list.removeAt(i);
+                    i--;
+                } else {
+                    m_style_list[i].changed = true;
+                }
+            }
+        }
+    }
+
+    if (m_style_list.size() && m_style_list.last().isCompatible(m_screen->defaultTextStyle())) {
+        m_style_list.last().end_index = m_text_line.size() -1;
+    } else {
+        m_style_list.append(TextStyleLine(m_screen->defaultTextStyle(),index, m_text_line.size() -1));
+    }
+}
+
+void TextSegmentLine::setWidth(int width)
+{
+    if (m_text_line.size() > width) {
+        m_text_line.chop(m_text_line.size() - width);
+    } else if (m_text_line.size() < width) {
+        m_text_line.append(QString(width - m_text_line.size(), QChar(' ')));
+    }
+
+    clear();
 }
 
 int TextSegmentLine::size() const
 {
-    return m_segments.size();
+    return m_style_list.size();
 }
 
-TextSegment *TextSegmentLine::at(int i) const
+TextSegment *TextSegmentLine::at(int i)
 {
-    if (i < m_segments.size())
-        return m_segments.at(i);
-    return 0;
-}
-
-QList<TextSegment *> TextSegmentLine::segments() const
-{
-    return m_segments;
-}
-
-void TextSegmentLine::append(const QString &text, const TextStyle &style)
-{
-    if (m_segments.size() && m_segments.last()->isCompatible(style)) {
-        m_segments.last()->appendText(text);
-    } else {
-        TextSegment *textSegment = new TextSegment(text,style,m_screen);
-        textSegment->setParent(this);
-        m_segments.append(textSegment);
-        addNewTextAction(m_segments.size()-1);
+    if (!m_style_list.at(i).text_segment) {
+        m_style_list[i].text_segment = createTextSegment(m_style_list.at(i));
     }
-}
 
-void TextSegmentLine::prepend(const QString &text, const TextStyle &style)
-{
-    if (m_segments.size() && m_segments.first()->isCompatible(style)) {
-        int chars_to_remove = m_segments.first()->prependText(text);
-        if (m_segments.size() > 1)
-            removeChars(1, chars_to_remove);
-    } else {
-        TextSegment *textSegment = new TextSegment(text,style,m_screen);
-        textSegment->setParent(this);
-        m_segments.prepend(textSegment);
-        addNewTextAction(0);
-        if (m_segments.size() > 1)
-            removeChars(1, text.size());
-    }
+    m_style_list[i].old_index = i;
+
+    return m_style_list.at(i).text_segment;
 }
 
 void TextSegmentLine::insertAtPos(int pos, const QString &text, const TextStyle &style)
 {
-    if (pos == 0) {
-        prepend(text, style);
-        return;
-    }
+    Q_ASSERT(pos + text.size() <= m_text_line.size());
 
-    if (m_segments.size() == 0) {
-        QByteArray spaces(pos -1, ' ');
-        QString text_to_prepend = text;
-        text_to_prepend.prepend(spaces);
-        prepend(text_to_prepend,style);
-        return;
-    }
+    m_changed = true;
 
-    int char_count;
-    int index_for_segment;
-    if (findSegmentIndexForChar(pos, &index_for_segment,&char_count) < 0) {
-        QString text_to_append = text;
-        if (char_count < pos) {
-            Q_ASSERT(pos - char_count > 0);
-            QByteArray spaces(pos - char_count, ' ');
-            text_to_append.prepend(spaces);
-        }
-        append(text_to_append,style);
-        return;
-    }
+    m_text_line.replace(pos,text.size(),text);
 
-    TextSegment *left = m_segments.at(index_for_segment);
-    if (pos < char_count + left->text().size()) {
-        int split_position = pos - char_count;
-        if (left->isCompatible(style)) {
-            int additional = left->insertText(split_position, text);
-            removeChars(index_for_segment+1,additional);
-        } else {
-            TextSegment *right = left->split(split_position);
-            TextSegment *segment = new TextSegment(text,style,m_screen);
-            int insert_segment_index = index_for_segment +1;
-            m_segments.insert(insert_segment_index,segment);
-            addNewTextAction(insert_segment_index);
-            insert_segment_index++;
-            if (right) {
-                m_segments.insert(insert_segment_index,right);
-                addNewTextAction(insert_segment_index);
+    bool found = false;
+    for (int i = 0;i < m_style_list.size(); i++) {
+        const TextStyleLine current_style = m_style_list.at(i);
+        if (found) {
+            if (current_style.end_index <= pos + text.size()) {
+                if (current_style.text_segment)
+                    m_unused_segments.append(current_style.text_segment);
+                if (current_style.old_index >= 0)
+                    m_indexes_to_remove.append(current_style.old_index);
+                m_style_list.removeAt(i);
+                i--;
+            } else if (current_style.start_index <= pos + text.size()) {
+                m_style_list[i].start_index = pos + text.size();
+                m_style_list[i].changed = true;
+            } else {
+                break;
             }
-
-            removeChars(insert_segment_index, text.size());
-
-
-            addNewTextAction(index_for_segment);
-        }
-    }
-//    int total = 0;
-//    for (int i = 0; i < m_segments.size(); i++) {
-//        qDebug() << "segmentsize:" << m_segments.at(i)->text().size();
-//        total+= m_segments.at(i)->text().size();
-//    }
-//    qDebug() << "total" << total << ":" << m_screen->width();
-//    if (total > m_screen->width())
-//        qDebug() << "screenwidth to big";
-
-}
-
-void TextSegmentLine::removeCharAtPos(int pos)
-{
-    int char_count;
-    int index_for_segment;
-    if (findSegmentIndexForChar(pos, &index_for_segment,&char_count) < 0)
-        return;
-
-    TextSegment *text_segment = m_segments.at(index_for_segment);
-    if (pos < char_count + text_segment->text().size()) {
-        if (text_segment->text().size() == 1) {
-            delete m_segments.takeAt(index_for_segment);
-            addRemoveTextAction(index_for_segment);
-        } else {
-            int char_index_in_segment = pos - char_count;
-            text_segment->removeCharAtPos(char_index_in_segment);
-        }
-    }
-}
-
-void TextSegmentLine::removeChars(int char_index)
-{
-    int char_count;
-    int index_for_segment;
-    if (findSegmentIndexForChar(char_index, &index_for_segment,&char_count) < 0)
-        return;
-    int index_in_segment = char_index - char_count;
-    TextSegment *toTruncate = m_segments.at(index_for_segment);
-    toTruncate->truncate(index_in_segment);
-    if (m_segments.size() -1 > index_for_segment) {
-        int segments_to_remove = m_segments.size() - (index_for_segment + 1);
-        for (int i = 0; i < segments_to_remove; i++) {
-            delete m_segments.takeLast();
-            addRemoveTextAction(m_segments.size()-1);
-        }
-    }
-}
-
-void TextSegmentLine::removeChars(int from_index, int n_chars)
-{
-    while (n_chars > 0 && from_index < m_segments.size()) {
-        TextSegment *segment = m_segments.at(from_index);
-        if (segment->text().size() <= n_chars) {
-            n_chars -= segment->text().size();
-            m_segments.removeAt(from_index);
-            delete segment;
-            addRemoveTextAction(from_index);
-        } else {
-            segment->removeTextFromBeginning(n_chars);
-            n_chars = 0;
+        } else if (pos <= current_style.end_index) {
+            found = true;
+            if (pos + text.size() <= current_style.end_index) {
+                if (current_style.isCompatible(style)) {
+                    m_style_list[i].changed = true;
+                } else {
+                    if (current_style.start_index == pos && current_style.end_index == pos + text.size()) {
+                        m_style_list[i].setStyle(style);
+                    } else if (current_style.start_index == pos) {
+                        m_style_list[i].start_index = pos + text.size();
+                        m_style_list.insert(i, TextStyleLine(style,pos, pos+text.size()-1));
+                    } else if (current_style.end_index == pos + text.size()) {
+                        m_style_list[i].end_index = pos -1;
+                        m_style_list.insert(i+1, TextStyleLine(style,pos, pos+text.size() - 1));
+                    } else {
+                        m_style_list[i].end_index = pos -1;
+                        m_style_list.insert(i+1, TextStyleLine(style,pos, pos+text.size() -1 ));
+                        m_style_list.insert(i+2, TextStyleLine(current_style,pos + text.size(), current_style.end_index));
+                    }
+                }
+                break;
+            } else {
+                if (current_style.isCompatible(style)) {
+                    m_style_list[i].end_index = pos + text.size() - 1;
+                    m_style_list[i].changed = true;
+                } else {
+                    if (current_style.start_index == pos) {
+                        m_style_list[i].end_index = pos + text.size() - 1;
+                        m_style_list[i].changed = true;
+                    } else {
+                        m_style_list[i].end_index = pos - 1;
+                        m_style_list[i].changed = true;
+                        m_style_list.insert(i+1, TextStyleLine(style, pos, pos + text.size() -1));
+                        i++;
+                    }
+                }
+            }
         }
     }
 }
 
 void TextSegmentLine::dispatchEvents()
 {
-    for(int i = 0; i < m_update_actions.size(); i++) {
-        const UpdateAction action = m_update_actions.at(i);
-        switch(action.action) {
-        case UpdateAction::Reset:
-            emit reset();
-            break;
-        case UpdateAction::NewText:
-            emit newTextSegment(action.index, action.data_index);
-            break;
-        case UpdateAction::RemovedText:
-            emit textSegmentRemoved(action.index);
-            break;
-        default:
-            break;
+    if (!m_changed) {
+        return;
+    }
+
+    if (m_reset) {
+        m_reset = false;
+        m_changed = false;
+        emit reset();
+        return;
+    }
+
+    for (int i = 0; i < m_indexes_to_remove.size(); i++) {
+        emit textSegmentRemoved(m_indexes_to_remove.at(i));
+    }
+    m_indexes_to_remove.clear();
+
+    for (int i = 0; i < m_style_list.size(); i++) {
+        const TextStyleLine current_style = m_style_list.at(i);
+        if (!current_style.changed)
+            continue;
+
+        if (current_style.old_index == -1) {
+            emit newTextSegment(i,i);
+        } else if (current_style.changed) {
+            QStringRef ref(&m_text_line, current_style.start_index, current_style.end_index +1  - current_style.start_index);
+            m_style_list[i].text_segment->setStringRef(ref);
+            m_style_list[i].text_segment->setTextStyle(current_style);
         }
     }
-    m_update_actions.clear();
-}
 
-int TextSegmentLine::findSegmentIndexForChar(int pos, int *index, int *chars_before_index)
-{
-    int char_count = 0;
+    m_changed = false;
 
-    for (int i = 0; i < m_segments.size(); i++) {
-        if (pos < char_count + m_segments.at(i)->text().size()) {
-            *index = i;
-            *chars_before_index = char_count;
-            return 0;
-        }
-
-        char_count += m_segments.at(i)->text().size();
+    for (int i = 0; i < m_unused_segments.size(); i++) {
+        delete m_unused_segments.at(i);
     }
-    *chars_before_index = char_count;
-    return -1;
+    m_unused_segments.clear();
 }
 
-void TextSegmentLine::addNewTextAction(int index)
+TextSegment *TextSegmentLine::createTextSegment(const TextStyleLine &style_line)
 {
-    if (m_update_actions.size() == 0 ||
-            m_update_actions.last().action != UpdateAction::Reset) {
-        for (int i = 0; i < m_update_actions.size(); i++) {
-            if (m_update_actions.at(i).data_index >= index) {
-                m_update_actions[i].data_index++;
-            }
-        }
-
-        m_update_actions.append(UpdateAction(UpdateAction::NewText, index));
+    TextSegment *to_return = 0;
+    QStringRef str_ref(&m_text_line,style_line.start_index, style_line.end_index + 1 - style_line.start_index);
+    if (m_unused_segments.size()) {
+        to_return = m_unused_segments.takeLast();
+        to_return->setStringRef(str_ref);
+        to_return->setTextStyle(style_line);
+    } else {
+        to_return = new TextSegment(str_ref,style_line,m_screen);
     }
+    return to_return;
 }
 
-void TextSegmentLine::addRemoveTextAction(int index)
-{
-    if (m_update_actions.size() == 0 ||
-            m_update_actions.last().action != UpdateAction::Reset) {
-        for (int i = 0; i < m_update_actions.size(); i++) {
-            if (m_update_actions.at(i).data_index > index) {
-                m_update_actions[i].data_index--;
-            }
-        }
-        m_update_actions.append(UpdateAction(UpdateAction::RemovedText, index));
-    }
-}
-
-void TextSegmentLine::addResetAction()
-{
-    m_update_actions.clear();
-    m_update_actions << UpdateAction(UpdateAction::Reset,0);
-}

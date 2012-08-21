@@ -29,17 +29,17 @@ ColorPalette::ColorPalette()
 
 }
 
-QColor ColorPalette::normalColor(ColorPalette::Color color)
+QColor ColorPalette::normalColor(ColorPalette::Color color) const
 {
     return m_normalColors.at(color);
 }
 
-QColor ColorPalette::lightColor(ColorPalette::Color color)
+QColor ColorPalette::lightColor(ColorPalette::Color color) const
 {
     return m_lightColors.at(color);
 }
 
-QColor ColorPalette::intenseColor(ColorPalette::Color color)
+QColor ColorPalette::intenseColor(ColorPalette::Color color) const
 {
     Q_UNUSED(color);
     Q_ASSERT(false);

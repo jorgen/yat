@@ -23,9 +23,9 @@
 #include "terminal_screen.h"
 #include <QtCore/QDebug>
 
-TextSegment::TextSegment(const QString &text, const TextStyle &style, TerminalScreen *terminalScreen)
+TextSegment::TextSegment(const QStringRef &text_ref, const TextStyle &style, TerminalScreen *terminalScreen)
     : QObject(terminalScreen)
-    , m_text(text)
+    , m_text_ref(text_ref)
     , m_style(style)
     , m_screen(terminalScreen)
 {
@@ -48,6 +48,8 @@ TextSegment::~TextSegment()
 
 QString TextSegment::text() const
 {
+    if (!m_text.size())
+        const_cast<TextSegment *>(this)->m_text = m_text_ref.toString();
     return m_text;
 }
 
@@ -61,87 +63,20 @@ QColor TextSegment::backgroundColor() const
     return m_style.background;
 }
 
-TextSegment *TextSegment::split(int i)
+void TextSegment::setStringRef(const QStringRef &textRef)
 {
-    TextSegment *right = 0;
-    QString str = m_text.mid(i);
-    if (str.size()) {
-        right = new TextSegment(str,m_style,m_screen);
-        right->setParent(parent());
-        m_text.truncate(i);
-        m_dirty = true;
-    }
-
-    return right;
-}
-
-bool TextSegment::isCompatible(const TextStyle &style)
-{
-    return m_style.forground == style.forground &&
-            m_style.background == style.background;
-}
-
-int TextSegment::prependText(const QString &text)
-{
-    int growth = 0;
-    if (text.size() > m_text.size()) {
-        growth = text.size() - m_text.size();
-    }
-
-    if (growth) {
-        m_text = text;
-    } else {
-        m_text = text + m_text.mid(text.size());
-    }
+    if (m_text.size())
+        m_text = QString();
 
     m_dirty = true;
-    return growth;
+
+    m_text_ref = textRef;
 }
 
-int TextSegment::insertText(int index, const QString &text)
+void TextSegment::setTextStyle(const TextStyle &style)
 {
-    int growth = 0;
+    m_style = style;
 
-    if (index == 0) {
-        growth = prependText(text);
-    } else {
-        if (index + text.size() > m_text.size()) {
-            growth = text.size() - m_text.size();
-        }
-        QString left = m_text.left(index);
-        QString right = m_text.mid(index);
-        if (right.size() <= text.size()) {
-            right = text;
-        } else {
-            right = text + right.mid(text.size());
-        }
-        m_text = left + right;
-
-        m_dirty = true;
-    }
-    return growth;
-}
-
-void TextSegment::appendText(const QString &text)
-{
-    m_text.append(text);
-    m_dirty = true;
-}
-
-void TextSegment::removeCharAtPos(int index)
-{
-    m_text.remove(index,1);
-    m_dirty = true;
-}
-
-void TextSegment::removeTextFromBeginning(int n_elements)
-{
-    m_text = m_text.mid(n_elements);
-}
-
-void TextSegment::truncate(int index)
-{
-    m_text.truncate(index);
     m_dirty = true;
 }
 

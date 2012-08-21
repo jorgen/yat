@@ -59,10 +59,11 @@ public:
 
     void resetStyle();
     TextStyle currentTextStyle() const;
+    TextStyle defaultTextStyle() const;
 
     Q_INVOKABLE QColor screenBackground();
-    QColor defaultForgroundColor();
-    QColor defaultBackgroundColor();
+    QColor defaultForgroundColor() const;
+    QColor defaultBackgroundColor() const;
 
     QPoint cursorPosition() const;
     void moveCursorHome();

@@ -25,9 +25,9 @@ public:
         numberOfColors
     };
 
-    QColor normalColor(Color color);
-    QColor lightColor(Color color);
-    QColor intenseColor(Color color);
+    QColor normalColor(Color color) const;
+    QColor lightColor(Color color) const;
+    QColor intenseColor(Color color) const;
 
 private:
     QVector<QColor> m_normalColors;

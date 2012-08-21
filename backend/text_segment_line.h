@@ -27,6 +27,33 @@
 
 class TerminalScreen;
 
+class TextStyleLine : public TextStyle {
+public:
+    TextStyleLine(const TextStyle &style, int start_index, int end_index)
+        : TextStyle(style.style,style.forground)
+        , start_index(start_index)
+        , end_index(end_index)
+        , old_index(-1)
+        , text_segment(0)
+        , changed(true)
+    {
+        background = style.background;
+    }
+
+    int start_index;
+    int end_index;
+
+    int old_index;
+    TextSegment *text_segment;
+    bool changed;
+
+    void setStyle(const TextStyle &style) {
+        forground = style.forground;
+        background = style.background;
+        this->style = style.style;
+    }
+};
+
 class TextSegmentLine : public QObject
 {
     Q_OBJECT
@@ -35,17 +62,13 @@ public:
     ~TextSegmentLine();
 
     void clear();
+    void clearToEndOfLine(int index);
+    void setWidth(int width);
 
     Q_INVOKABLE int size() const;
-    Q_INVOKABLE TextSegment *at(int i) const;
-    Q_INVOKABLE QList<TextSegment *> segments() const;
+    Q_INVOKABLE TextSegment *at(int i);
 
     void insertAtPos(int i, const QString &text, const TextStyle &style);
-
-    void removeCharAtPos(int pos);
-    void removeChars(int char_index);
-
-    void removeChars(int from_index, int n_chars);
 
 signals:
     void newTextSegment(int index, int data_index);
@@ -54,41 +77,18 @@ signals:
     void reset();
 
 private:
-    class UpdateAction {
-    public:
-        enum Action {
-            InvalidAction,
-            NewText,
-            RemovedText,
-            Reset
-        };
-        UpdateAction()
-            : action(InvalidAction)
-            , index(0)
-            , data_index(0)
-        {}
-        UpdateAction(Action action, int index)
-            : action(action)
-            , index(index)
-            , data_index(index)
-        { }
-        Action action;
-        int index;
-        int data_index;
-    };
-
-    void append(const QString &text, const TextStyle &style);
-    void prepend(const QString &text, const TextStyle &style);
     void dispatchEvents();
-    int findSegmentIndexForChar(int pos, int *index, int *chars_before_index);
 
-    void addNewTextAction(int index);
-    void addRemoveTextAction(int index);
-    void addResetAction();
+    TextSegment *createTextSegment(const TextStyleLine &style_line);
 
-    QList<TextSegment *> m_segments;
-    QList<UpdateAction> m_update_actions;
     TerminalScreen *m_screen;
+    QString m_text_line;
+    QList<TextStyleLine> m_style_list;
+    QList<int> m_indexes_to_remove;
+
+    QList<TextSegment *> m_unused_segments;
+    bool m_changed;
+    bool m_reset;
 };
 
 #endif // TEXT_SEGMENT_LINE_H

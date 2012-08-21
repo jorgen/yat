@@ -56,12 +56,12 @@ QColor TerminalScreen::screenBackground()
     return QColor(Qt::black);
 }
 
-QColor TerminalScreen::defaultForgroundColor()
+QColor TerminalScreen::defaultForgroundColor() const
 {
     return m_palette.normalColor(ColorPalette::defaultForground);
 }
 
-QColor TerminalScreen::defaultBackgroundColor()
+QColor TerminalScreen::defaultBackgroundColor() const
 {
     return QColor(Qt::transparent);
 }
@@ -92,6 +92,9 @@ void TerminalScreen::setHeight(int height)
 void TerminalScreen::setWidth(int width)
 {
     m_pty.setWidth(width);
+    for (int i = 0; i < m_screen_lines.size(); i++) {
+        m_screen_lines.at(i)->setWidth(width);
+    }
 }
 
 int TerminalScreen::width() const
@@ -125,6 +128,11 @@ void TerminalScreen::resetStyle()
 TextStyle TerminalScreen::currentTextStyle() const
 {
     return m_current_text_style;
+}
+
+TextStyle TerminalScreen::defaultTextStyle() const
+{
+    return TextStyle(TextStyle::Normal,defaultForgroundColor());
 }
 
 QPoint TerminalScreen::cursorPosition() const
@@ -226,7 +234,7 @@ void TerminalScreen::eraseFromCursorPositionToEndOfLine()
 {
     int active_presentation_pos = m_cursor_pos.x();
     TextSegmentLine *line = line_at_cursor();
-    line->removeChars(active_presentation_pos);
+    line->clearToEndOfLine(active_presentation_pos);
 }
 
 void TerminalScreen::eraseFromCurrentLineToEndOfScreen()
