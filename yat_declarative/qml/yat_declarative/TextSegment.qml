@@ -6,7 +6,7 @@ Rectangle {
     height: text.paintedHeight
     width: text.paintedWidth
     anchors.top: parent.top
-//    x: textSegment === null ? 0 : textSegment.index *  textSegment.screen.
+    x: textSegment === null ? 0 : textSegment.index *  textSegment.screen.charWidth
 
     color: textSegment === null ? "white" : textSegment.backgroundColor
     Text {

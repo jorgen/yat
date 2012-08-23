@@ -237,7 +237,7 @@ void TerminalScreen::insertAtCursor(const QString &text)
 {
     int screen_width = width();
     TextSegmentLine *line;
-    if (m_cursor_pos.x() + text.size() -1 <= screen_width) {
+    if (m_cursor_pos.x() + text.size() < screen_width) {
         line = line_at_cursor();
         line->insertAtPos(m_cursor_pos.x(), text, m_current_text_style);
     } else {
@@ -246,6 +246,7 @@ void TerminalScreen::insertAtCursor(const QString &text)
             line = line_at_cursor();
             line->insertAtPos(m_cursor_pos.x(),toLine,m_current_text_style);
             i+= toLine.size();
+            m_cursor_pos.rx() = 0;
             lineFeed();
         }
     }

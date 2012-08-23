@@ -4,13 +4,12 @@ Item{
     id: text_line
     property QtObject textLine: null
 
-    ListView {
+    Repeater {
         anchors.fill: parent
         model: lineModel
-        delegate: TextSegment {
-            textSegment: segment
+        TextSegment {
+            textSegment: textLine.at(index)
         }
-        orientation: ListView.Horizontal
     }
 
     ListModel {
@@ -21,9 +20,8 @@ Item{
     function resetModel() {
         lineModel.clear();
         for (var i = 0; i < textLine.size(); i++) {
-            lineModel.append({
-                                 "segment": textLine.at(i)
-                             })
+            var textSegment = { "segment" : textLine.at(i)};
+            lineModel.append(textSegment);
         }
     }
 
@@ -31,9 +29,8 @@ Item{
         target: textLine
 
         onNewTextSegment: {
-            lineModel.insert(index, {
-                                 "segment": textLine.at(index)
-                             });
+            var textSegment = { "segment" : textLine.at(index)};
+            lineModel.insert(index,textSegment);
         }
 
         onTextSegmentRemoved: {

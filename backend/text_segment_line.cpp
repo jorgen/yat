@@ -117,6 +117,8 @@ int TextSegmentLine::size() const
 
 TextSegment *TextSegmentLine::at(int i)
 {
+    if (i < 0)
+        return 0;
     if (!m_style_list.at(i).text_segment) {
         m_style_list[i].text_segment = createTextSegment(m_style_list.at(i));
     }
