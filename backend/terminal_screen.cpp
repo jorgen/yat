@@ -31,13 +31,18 @@
 TerminalScreen::TerminalScreen(QObject *parent)
     : QObject(parent)
     , m_parser(this)
+    , m_font_metrics(m_font)
     , m_current_text_style(TextStyle(TextStyle::Normal,Qt::white))
 {
     connect(&m_pty, &YatPty::readyRead,
             this, &TerminalScreen::readData);
 
-    m_font.setPixelSize(14);
-    m_font.setFamily(QStringLiteral("Courier"));
+    QFont font;
+    font.setFamily(QStringLiteral("Courier"));
+    font.setPointSize(10);
+    font.setBold(true);
+    font.setHintingPreference(QFont::PreferNoHinting);
+    setFont(font);
 
     setWidth(80);
     setHeight(25);
@@ -81,6 +86,7 @@ void TerminalScreen::setHeight(int height)
             TextSegmentLine *newLine = new TextSegmentLine(this);
             m_screen_lines.append(newLine);
         }
+        qDebug() << "emitting linesInsertedRows" << this;
         emit linesInserted(rowsToAdd);
     }
     if(m_cursor_pos.y() >= m_screen_lines.size())
@@ -115,7 +121,21 @@ QFont TerminalScreen::font() const
 void TerminalScreen::setFont(const QFont &font)
 {
     m_font = font;
+    m_font_metrics = QFontMetricsF(font);
     emit fontChanged();
+}
+
+qreal TerminalScreen::characterWidth() const
+{
+    qreal max_width = m_font_metrics.averageCharWidth();
+    qDebug() << "Max width" << max_width;
+    return max_width;
+
+}
+
+qreal TerminalScreen::lineHeight() const
+{
+    return m_font_metrics.lineSpacing();
 }
 
 void TerminalScreen::resetStyle()
@@ -213,8 +233,21 @@ bool TerminalScreen::cursorBlinking()
 
 void TerminalScreen::insertAtCursor(const QString &text)
 {
-    TextSegmentLine *line = line_at_cursor();
-    line->insertAtPos(m_cursor_pos.x(), text, m_current_text_style);
+    int screen_width = width();
+    TextSegmentLine *line;
+    if (m_cursor_pos.x() + text.size() -1 <= screen_width) {
+        line = line_at_cursor();
+        line->insertAtPos(m_cursor_pos.x(), text, m_current_text_style);
+    } else {
+        for (int i = 0; i < text.size();) {
+            QString toLine = text.mid(i,screen_width - m_cursor_pos.x());
+            qDebug() << "toLine is " << toLine.size();
+            line = line_at_cursor();
+            line->insertAtPos(m_cursor_pos.x(),toLine,m_current_text_style);
+            i+= toLine.size();
+            lineFeed();
+        }
+    }
 
     m_cursor_pos.rx() += text.size();
 }
@@ -310,7 +343,6 @@ void TerminalScreen::lineFeed()
         doScrollOneLineUpAt(m_cursor_pos.y());
     } else {
         moveCursor(0,m_cursor_pos.y()+2);
-//        line_at_cursor()->removeCharFromPos(0);
     }
 }
 
@@ -327,7 +359,7 @@ QString TerminalScreen::title() const
 
 TextSegmentLine *TerminalScreen::at(int i) const
 {
-    return m_screen_lines.at(i);
+        return m_screen_lines.at(i);
 }
 
 void TerminalScreen::printScreen() const

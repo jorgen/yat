@@ -61,6 +61,8 @@ public:
     TextSegmentLine(TerminalScreen *terminalScreen);
     ~TextSegmentLine();
 
+    Q_INVOKABLE TerminalScreen *screen() const;
+
     void clear();
     void clearToEndOfLine(int index);
     void setWidth(int width);

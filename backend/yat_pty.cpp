@@ -26,6 +26,7 @@
 #include <fcntl.h>
 
 #include <QtCore/QSize>
+#include <QtCore/QString>
 #include <QtCore/QDebug>
 
 YatPty::YatPty(QObject *parent)
@@ -34,7 +35,8 @@ YatPty::YatPty(QObject *parent)
     , m_buffer_current_size(0)
     , m_winsize(0)
 {
-    ::putenv("TERM=xterm");
+    char env_variable[] = "TERM=xterm";
+    ::putenv(env_variable);
     m_terminal_pid = forkpty(&m_master_fd,
                              NULL,
                              NULL,

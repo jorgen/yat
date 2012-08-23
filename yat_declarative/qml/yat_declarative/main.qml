@@ -6,19 +6,14 @@ Rectangle {
     id:terminal
     width: 800
     height: 600
-    color: terminalItem.screen().screenBackground();
-    property int fontWidth: dummyText.paintedWidth
-    property int fontHeight: dummyText.paintedHeight
+    color: terminalItem.screen.screenBackground();
+    property font font: terminalItem.screen.font;
+
+    property real fontWidth: 0;
+    property real fontHeight: 0;
 
     TerminalItem {
         id: terminalItem
-    }
-
-    Text {
-        id: dummyText
-        text: "A"
-        font: terminalItem.screen().font
-        visible: false
     }
 
     onWidthChanged: {
@@ -37,18 +32,28 @@ Rectangle {
 
     function setTerminalWidth() {
         if (fontWidth > 0) {
-            terminalItem.screen().setWidth(width / fontWidth);
+            var pty_width = width / fontWidth;
+            terminalItem.screen.setWidth(pty_width);
+        } else {
+            terminalItem.screen.setWidth(10);
         }
     }
 
     function setTerminalHeight() {
         if (fontHeight > 0) {
-            terminalItem.screen().setHeight(height / fontHeight);
+            var pty_height = height / fontHeight;
+            terminalItem.screen.setHeight(pty_height);
         }
     }
 
     TerminalScreen {
         anchors.fill: parent
-        terminalScreen: terminalItem.screen()
+        terminalScreen: terminalItem.screen
     }
+
+    onFontChanged: {
+        fontWidth = terminalItem.screen.characterWidth();
+        fontHeight = terminalItem.screen.lineHeight();
+    }
+
 }

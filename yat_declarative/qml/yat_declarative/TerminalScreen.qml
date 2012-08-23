@@ -1,7 +1,7 @@
 import QtQuick 2.0
 
 Item {
-    property QtObject terminalScreen
+    property QtObject terminalScreen: null
 
     anchors.fill: parent
 
@@ -17,16 +17,10 @@ Item {
         snapMode: ListView.SnapOneItem
     }
 
-    ListModel {
-        id: screenModel
-
-        property QtObject terminalScreen
-
-        onTerminalScreenChanged: resetModel();
-
-    }
     Connections {
-        target: terminalScreen
+        id: connections
+
+        target: terminalItem.screen
 
         onScrollUp: {
             screenModel.move(0,from_line - (count -1), count);
@@ -37,6 +31,7 @@ Item {
         }
 
         onLinesInserted: {
+            console.log("lines inserted");
             resetModel();
         }
 
@@ -45,11 +40,18 @@ Item {
         }
     }
 
+
+    ListModel {
+        id: screenModel
+        Component.onCompleted:  resetModel();
+    }
+
+
     function resetModel() {
         screenModel.clear();
-        for (var i = 0; i < terminalScreen.height(); i++) {
+        for (var i = 0; i < terminalItem.screen.height(); i++) {
             screenModel.append({
-                                   "line": terminalScreen.at(i)
+                                   "line": terminalItem.screen.at(i)
                                });
         }
     }
@@ -58,15 +60,10 @@ Item {
         id: keyHandler
         focus: true
         Keys.onPressed: {
-            terminalItem.screen().write(event.text)
+            terminalItem.screen.write(event.text)
             if (event.text === "?") {
-                terminalItem.screen().printScreen()
+                terminalItem.screen.printScreen()
             }
         }
     }
-
-    onTerminalScreenChanged: {
-        screenModel.terminalScreen = terminalScreen
-    }
-
 }

@@ -27,11 +27,13 @@
 #include "color_palette.h"
 #include "parser.h"
 #include "yat_pty.h"
+#include "update_action.h"
 
 #include <QtCore/QPoint>
 #include <QtCore/QSize>
 #include <QtCore/QVector>
 #include <QtGui/QFont>
+#include <QtGui/QFontMetrics>
 
 class TextSegmentLine;
 
@@ -43,6 +45,8 @@ class TerminalScreen : public QObject
     Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY screenTitleChanged)
     Q_PROPERTY(bool cursorVisible READ cursorVisible NOTIFY cursorVisibleChanged)
     Q_PROPERTY(bool cursorBlinking READ cursorBlinking NOTIFY cursorBlinkingChanged)
+//    Q_PROPERTY(int height READ height WRITE setHeight)
+//    Q_PROPERTY(int width READ width WRITE setWidth)
 
 public:
     explicit TerminalScreen(QObject *parent = 0);
@@ -56,6 +60,8 @@ public:
 
     QFont font() const;
     void setFont(const QFont &font);
+    Q_INVOKABLE qreal characterWidth() const;
+    Q_INVOKABLE qreal lineHeight() const;
 
     void resetStyle();
     TextStyle currentTextStyle() const;
@@ -109,7 +115,10 @@ public:
 
     void setCharacterMap(const QString &string);
     QString characterMap() const;
+
 signals:
+    void testSignal();
+
     void scrollUp(int from_line, int count);
     void scrollDown(int from_line, int count);
 
@@ -127,34 +136,6 @@ signals:
     void cursorBlinkingChanged();
 private:
 
-    class UpdateAction
-    {
-    public:
-        enum Action {
-            InvalidAction,
-            ScrollUp,
-            ScrollDown,
-            LinesInserted,
-            LinesRemoved
-        };
-
-        UpdateAction(Action action, int from_line, int count)
-            : action(action)
-            , from_line(from_line)
-            , count(count)
-        { }
-
-        UpdateAction(Action action, int count)
-            : action(action)
-            , from_line(0)
-            , count(count)
-        { }
-
-        Action action;
-        int from_line;
-        int count;
-    };
-
     void readData();
     void doScrollOneLineUpAt(int line);
     void doScrollOneLineDownAt(int line);
@@ -171,6 +152,7 @@ private:
     bool m_cursor_blinking;
 
     QFont m_font;
+    QFontMetricsF m_font_metrics;
     TextStyle m_current_text_style;
     QString m_title;
 

@@ -30,10 +30,11 @@ class TerminalItem : public QQuickItem
 {
     Q_OBJECT
 
+    Q_PROPERTY(TerminalScreen *screen READ screen CONSTANT)
 public:
     TerminalItem(QQuickItem *parent = 0);
 
-    Q_INVOKABLE TerminalScreen *screen() const;
+    TerminalScreen *screen() const;
 
 signals:
     void screenGeometryChanged();

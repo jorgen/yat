@@ -16,10 +16,8 @@ Item{
                 height: paintedHeight
                 width: paintedWidth
                 text: textSegment === undefined? "" : textSegment.text
-                font.family: "courier"
-                font.pointSize: 10
+                font: textLine.screen().font;
                 color: textSegment.forgroundColor
-                font.bold: true
                 textFormat: Text.PlainText
 //                renderType: Text.NativeRendering
             }
@@ -29,6 +27,7 @@ Item{
 
     ListModel {
         id: lineModel
+        Component.onCompleted: resetModel();
     }
 
     function resetModel() {

@@ -14,7 +14,8 @@ HEADERS += \
            $$PWD/terminal_screen.h \
            $$PWD/text_segment_line.h \
            $$PWD/color_palette.h \
-           $$PWD/text_style.h
+           $$PWD/text_style.h \
+    ../backend/update_action.h
 
 SOURCES += \
            $$PWD/yat_pty.cpp \
@@ -23,4 +24,5 @@ SOURCES += \
            $$PWD/terminal_screen.cpp \
            $$PWD/text_segment_line.cpp \
            $$PWD/color_palette.cpp \
-           $$PWD/text_style.cpp
+           $$PWD/text_style.cpp \
+    ../backend/update_action.cpp

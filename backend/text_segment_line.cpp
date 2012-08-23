@@ -43,6 +43,11 @@ TextSegmentLine::~TextSegmentLine()
 {
 }
 
+TerminalScreen *TextSegmentLine::screen() const
+{
+    return m_screen;
+}
+
 void TextSegmentLine::clear()
 {
     m_text_line.fill(QChar(' '));
