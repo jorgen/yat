@@ -194,6 +194,10 @@ void TextSegmentLine::insertAtPos(int pos, const QString &text, const TextStyle 
     }
 }
 
+bool lessThanInverse(int x1, int x2) {
+    return x2 < x1;
+}
+
 void TextSegmentLine::dispatchEvents()
 {
     if (!m_changed) {
@@ -207,6 +211,7 @@ void TextSegmentLine::dispatchEvents()
         return;
     }
 
+    qSort(m_indexes_to_remove.begin(), m_indexes_to_remove.end(), lessThanInverse);
     for (int i = 0; i < m_indexes_to_remove.size(); i++) {
         emit textSegmentRemoved(m_indexes_to_remove.at(i));
     }
