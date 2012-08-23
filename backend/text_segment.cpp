@@ -23,19 +23,14 @@
 #include "terminal_screen.h"
 #include <QtCore/QDebug>
 
-TextSegment::TextSegment(const QStringRef &text_ref, const TextStyle &style, TerminalScreen *terminalScreen)
+TextSegment::TextSegment(QString *text_line, TerminalScreen *terminalScreen)
     : QObject(terminalScreen)
-    , m_text_ref(text_ref)
-    , m_style(style)
-    , m_screen(terminalScreen)
-{
-    connect(terminalScreen, &TerminalScreen::dispatchTextSegmentChanges,
-            this, &TextSegment::dispatchEvents);
-}
-
-TextSegment::TextSegment(TerminalScreen *terminalScreen)
-    : QObject(terminalScreen)
-    , m_style(terminalScreen->currentTextStyle())
+    , m_text_line(text_line)
+    , m_start_index(0)
+    , m_old_start_index(0)
+    , m_end_index(0)
+    , m_style(terminalScreen->defaultTextStyle())
+    , m_dirty(true)
     , m_screen(terminalScreen)
 {
     connect(terminalScreen, &TerminalScreen::dispatchTextSegmentChanges,
@@ -46,10 +41,13 @@ TextSegment::~TextSegment()
 {
 }
 
+int TextSegment::index() const
+{
+    return m_start_index;
+}
+
 QString TextSegment::text() const
 {
-    if (!m_text.size())
-        const_cast<TextSegment *>(this)->m_text = m_text_ref.toString();
     return m_text;
 }
 
@@ -63,27 +61,34 @@ QColor TextSegment::backgroundColor() const
     return m_style.background;
 }
 
-void TextSegment::setStringRef(const QStringRef &textRef)
+void TextSegment::setStringSegment(int start_index, int end_index)
 {
-    if (m_text.size())
-        m_text = QString();
+    m_start_index = start_index;
+    m_end_index = end_index;
 
     m_dirty = true;
-
-    m_text_ref = textRef;
 }
 
 void TextSegment::setTextStyle(const TextStyle &style)
 {
     m_style = style;
-
     m_dirty = true;
+}
+
+TerminalScreen *TextSegment::screen() const
+{
+    return m_screen;
 }
 
 void TextSegment::dispatchEvents()
 {
     if (m_dirty) {
         m_dirty = false;
+        m_text = m_text_line->mid(m_start_index, m_end_index + 1 - m_start_index);
+        if (m_old_start_index != m_start_index) {
+            m_old_start_index = m_start_index;
+            emit indexChanged();
+        }
         emit textChanged();
     }
 }

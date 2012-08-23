@@ -33,13 +33,16 @@ class TerminalScreen;
 class TextSegment : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(int index READ index NOTIFY indexChanged)
     Q_PROPERTY(QString text READ text NOTIFY textChanged)
     Q_PROPERTY(QColor forgroundColor READ forgroundColor NOTIFY forgroundColorChanged)
     Q_PROPERTY(QColor backgroundColor READ backgroundColor NOTIFY backgroundColorChanged)
+    Q_PROPERTY(TerminalScreen *screen READ screen CONSTANT)
 public:
-    TextSegment(const QStringRef &text_ref, const TextStyle &style, TerminalScreen *terminalScreen);
-    TextSegment(TerminalScreen *terminalScreen);
+    TextSegment(QString *text_line, TerminalScreen *terminalScreen);
     ~TextSegment();
+
+    int index() const;
 
     QString text() const;
 
@@ -47,21 +50,31 @@ public:
 
     QColor backgroundColor() const;
 
-    void setStringRef(const QStringRef &textRef);
+    void setStringSegment(int start_index, int end_index);
     void setTextStyle(const TextStyle &style);
+
+    TerminalScreen *screen() const;
+
+public slots:
+    void dispatchEvents();
+
 signals:
     void textChanged();
+    void indexChanged();
     void forgroundColorChanged();
     void backgroundColorChanged();
 
 private:
-    void dispatchEvents();
 
     QString m_text;
-    QStringRef m_text_ref;
+    QString *m_text_line;
+    int m_start_index;
+    int m_old_start_index;
+    int m_end_index;
     TextStyle m_style;
 
     bool m_dirty;
+    bool m_initial;
     TerminalScreen *m_screen;
 
 };

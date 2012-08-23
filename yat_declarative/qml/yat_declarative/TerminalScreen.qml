@@ -20,7 +20,7 @@ Item {
     Connections {
         id: connections
 
-        target: terminalItem.screen
+        target: terminal.screen
 
         onScrollUp: {
             screenModel.move(0,from_line - (count -1), count);
@@ -35,7 +35,7 @@ Item {
             var model_size = screenModel.count;
             for (var i = 0; i < count; i++) {
                 screenModel.append({
-                                       "line": terminalItem.screen.at(model_size + i)
+                                       "line": terminal.screen.at(model_size + i)
                                    });
             }
 
@@ -58,9 +58,9 @@ Item {
 
     function resetModel() {
         screenModel.clear();
-        for (var i = 0; i < terminalItem.screen.height(); i++) {
+        for (var i = 0; i < terminal.screen.height(); i++) {
             screenModel.append({
-                                   "line": terminalItem.screen.at(i)
+                                   "line": terminal.screen.at(i)
                                });
         }
     }
@@ -69,9 +69,9 @@ Item {
         id: keyHandler
         focus: true
         Keys.onPressed: {
-            terminalItem.screen.write(event.text)
+            terminal.screen.write(event.text)
             if (event.text === "?") {
-                terminalItem.screen.printScreen()
+                terminal.screen.printScreen()
             }
         }
     }

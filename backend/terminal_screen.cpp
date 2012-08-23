@@ -86,7 +86,6 @@ void TerminalScreen::setHeight(int height)
             TextSegmentLine *newLine = new TextSegmentLine(this);
             m_screen_lines.append(newLine);
         }
-        qDebug() << "emitting linesInsertedRows" << this;
         emit linesInserted(rowsToAdd);
     }
     if(m_cursor_pos.y() >= m_screen_lines.size())
@@ -120,17 +119,20 @@ QFont TerminalScreen::font() const
 
 void TerminalScreen::setFont(const QFont &font)
 {
+    qreal old_width = m_font_metrics.averageCharWidth();
+    qreal old_height = m_font_metrics.lineSpacing();
     m_font = font;
     m_font_metrics = QFontMetricsF(font);
     emit fontChanged();
+    if (m_font_metrics.averageCharWidth() != old_width)
+        emit charWidthChanged();
+    if (m_font_metrics.lineSpacing() != old_height)
+        emit lineHeightChanged();
 }
 
-qreal TerminalScreen::characterWidth() const
+qreal TerminalScreen::charWidth() const
 {
-    qreal max_width = m_font_metrics.averageCharWidth();
-    qDebug() << "Max width" << max_width;
-    return max_width;
-
+    return m_font_metrics.averageCharWidth();
 }
 
 qreal TerminalScreen::lineHeight() const
@@ -241,7 +243,6 @@ void TerminalScreen::insertAtCursor(const QString &text)
     } else {
         for (int i = 0; i < text.size();) {
             QString toLine = text.mid(i,screen_width - m_cursor_pos.x());
-            qDebug() << "toLine is " << toLine.size();
             line = line_at_cursor();
             line->insertAtPos(m_cursor_pos.x(),toLine,m_current_text_style);
             i+= toLine.size();

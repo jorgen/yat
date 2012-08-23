@@ -42,11 +42,11 @@ class TerminalScreen : public QObject
     Q_OBJECT
 
     Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
+    Q_PROPERTY(qreal charWidth READ charWidth NOTIFY charWidthChanged)
+    Q_PROPERTY(qreal lineHeight READ lineHeight NOTIFY lineHeightChanged)
     Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY screenTitleChanged)
     Q_PROPERTY(bool cursorVisible READ cursorVisible NOTIFY cursorVisibleChanged)
     Q_PROPERTY(bool cursorBlinking READ cursorBlinking NOTIFY cursorBlinkingChanged)
-//    Q_PROPERTY(int height READ height WRITE setHeight)
-//    Q_PROPERTY(int width READ width WRITE setWidth)
 
 public:
     explicit TerminalScreen(QObject *parent = 0);
@@ -60,8 +60,8 @@ public:
 
     QFont font() const;
     void setFont(const QFont &font);
-    Q_INVOKABLE qreal characterWidth() const;
-    Q_INVOKABLE qreal lineHeight() const;
+    qreal charWidth() const;
+    qreal lineHeight() const;
 
     void resetStyle();
     TextStyle currentTextStyle() const;
@@ -126,6 +126,8 @@ signals:
     void linesRemoved(int count);
 
     void fontChanged();
+    void charWidthChanged();
+    void lineHeightChanged();
 
     void dispatchLineChanges();
     void dispatchTextSegmentChanges();

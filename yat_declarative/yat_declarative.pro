@@ -11,7 +11,8 @@ QML_IMPORT_PATH =
 OTHER_FILES += \
         qml/yat_declarative/main.qml \
     qml/yat_declarative/TerminalLine.qml \
-    qml/yat_declarative/TerminalScreen.qml
+    qml/yat_declarative/TerminalScreen.qml \
+    qml/yat_declarative/TextSegment.qml
 
 RESOURCES += \
         qml_sources.qrc

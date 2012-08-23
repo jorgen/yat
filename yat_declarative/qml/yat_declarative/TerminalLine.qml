@@ -7,20 +7,8 @@ Item{
     ListView {
         anchors.fill: parent
         model: lineModel
-        delegate: Rectangle {
-            height: text.paintedHeight
-            width: text.paintedWidth
-            color: textSegment.backgroundColor
-            Text {
-                id: text
-                height: paintedHeight
-                width: paintedWidth
-                text: textSegment === undefined? "" : textSegment.text
-                font: textLine.screen().font;
-                color: textSegment.forgroundColor
-                textFormat: Text.PlainText
-//                renderType: Text.NativeRendering
-            }
+        delegate: TextSegment {
+            textSegment: segment
         }
         orientation: ListView.Horizontal
     }
@@ -34,7 +22,7 @@ Item{
         lineModel.clear();
         for (var i = 0; i < textLine.size(); i++) {
             lineModel.append({
-                                 "textSegment": textLine.at(i)
+                                 "segment": textLine.at(i)
                              })
         }
     }
@@ -44,7 +32,7 @@ Item{
 
         onNewTextSegment: {
             lineModel.insert(index, {
-                                 "textSegment": textLine.at(index)
+                                 "segment": textLine.at(index)
                              });
         }
 

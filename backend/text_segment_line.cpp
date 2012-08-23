@@ -218,8 +218,7 @@ void TextSegmentLine::dispatchEvents()
         if (current_style.old_index == -1) {
             emit newTextSegment(i,i);
         } else if (current_style.changed) {
-            QStringRef ref(&m_text_line, current_style.start_index, current_style.end_index +1  - current_style.start_index);
-            m_style_list[i].text_segment->setStringRef(ref);
+            m_style_list[i].text_segment->setStringSegment(current_style.start_index, current_style.end_index);
             m_style_list[i].text_segment->setTextStyle(current_style);
         }
     }
@@ -235,14 +234,15 @@ void TextSegmentLine::dispatchEvents()
 TextSegment *TextSegmentLine::createTextSegment(const TextStyleLine &style_line)
 {
     TextSegment *to_return = 0;
-    QStringRef str_ref(&m_text_line,style_line.start_index, style_line.end_index + 1 - style_line.start_index);
     if (m_unused_segments.size()) {
         to_return = m_unused_segments.takeLast();
-        to_return->setStringRef(str_ref);
-        to_return->setTextStyle(style_line);
     } else {
-        to_return = new TextSegment(str_ref,style_line,m_screen);
+        to_return = new TextSegment(&m_text_line, m_screen);
     }
+
+    to_return->setStringSegment(style_line.start_index, style_line.end_index);
+    to_return->setTextStyle(style_line);
+
     return to_return;
 }
 
