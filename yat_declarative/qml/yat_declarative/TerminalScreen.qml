@@ -32,11 +32,20 @@ Item {
 
         onLinesInserted: {
             console.log("lines inserted");
+            var model_size = screenModel.count;
+            for (var i = 0; i < count; i++) {
+                screenModel.append({
+                                       "line": terminalItem.screen.at(model_size + i)
+                                   });
+            }
+
             resetModel();
         }
 
         onLinesRemoved: {
-            resetModel();
+            for (var i = 0; i < count; i++) {
+                screenModel.remove(0)
+            }
         }
     }
 
