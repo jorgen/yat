@@ -35,7 +35,7 @@ class TextSegment : public QObject
     Q_OBJECT
     Q_PROPERTY(int index READ index NOTIFY indexChanged)
     Q_PROPERTY(QString text READ text NOTIFY textChanged)
-    Q_PROPERTY(QColor forgroundColor READ forgroundColor NOTIFY forgroundColorChanged)
+    Q_PROPERTY(QColor foregroundColor READ foregroundColor NOTIFY forgroundColorChanged)
     Q_PROPERTY(QColor backgroundColor READ backgroundColor NOTIFY backgroundColorChanged)
     Q_PROPERTY(TerminalScreen *screen READ screen CONSTANT)
 public:
@@ -46,7 +46,7 @@ public:
 
     QString text() const;
 
-    QColor forgroundColor() const;
+    QColor foregroundColor() const;
 
     QColor backgroundColor() const;
 

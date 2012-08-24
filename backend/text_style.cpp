@@ -1,16 +1,16 @@
 #include "text_style.h"
 
 #include <QtCore/QDebug>
-TextStyle::TextStyle(TextStyle::Style style, const QColor forground)
+TextStyle::TextStyle(TextStyle::Styles style, ColorPalette::Color forground)
     : style(style)
-    , forground(forground)
-    , background(Qt::transparent)
+    , foreground(forground)
+    , background(ColorPalette::DefaultBackground)
 {
 }
 
 bool TextStyle::isCompatible(const TextStyle &other) const
 {
-    return forground == other.forground
+    return foreground == other.foreground
             && background == other.background
             && style == other.style;
 }

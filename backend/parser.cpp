@@ -380,6 +380,7 @@ void Parser::decodeCSI(uchar character)
                                 m_screen->sendSecondaryDA();
                                 break;
                             case -'?':
+                                qDebug() << "WHAT!!!";
                                 break; //ignore
                             case 0:
                             default:
@@ -460,28 +461,79 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::SGR: {
                         appendParameter();
-                        if (m_parameters.size()) {
-                            switch(m_parameters.at(0)) {
+
+                        if (!m_parameters.size())
+                            m_parameters << 0;
+
+                        for (int i = 0; i < m_parameters.size();i++) {
+                            switch(m_parameters.at(i)) {
                             case 0:
+                                //                                    m_screen->setTextStyle(TextStyle::Normal);
                                 m_screen->resetStyle();
                                 break;
                             case 1:
-                                if (m_parameters.size() > 1)
-                                    m_screen->setColor(true, m_parameters.at(1));
-                                else
-                                    m_screen->setColor(true, 37);
+                                m_screen->setTextStyle(TextStyle::Bold);
                                 break;
-                            case 2:
-                                if (m_parameters.size() > 1)
-                                    m_screen->setColor(false, m_parameters.at(1));
+                            case 5:
+                                m_screen->setTextStyle(TextStyle::Blinking);
+                                break;
+                            case 7:
+                                m_screen->setTextStyle(TextStyle::Inverse);
+                                break;
+                            case 8:
+                                qDebug() << "SGR: Hidden text not supported";
+                                break;
+                            case 22:
+                                m_screen->setTextStyle(TextStyle::Normal);
+                                break;
+                            case 24:
+                                m_screen->setTextStyle(TextStyle::Underlined, false);
+                                break;
+                            case 25:
+                                m_screen->setTextStyle(TextStyle::Blinking, false);
+                                break;
+                            case 27:
+                                qDebug() << "Positive SGR unknown";
+                                break;
+                            case 28:
+                                qDebug() << "SGR: Visible text is allways on";
+                                break;
+                            case 30:
+                            case 31:
+                            case 32:
+                            case 33:
+                            case 34:
+                            case 35:
+                            case 36:
+                            case 37:
+                                //                                case 38:
+                            case 39:
+                            case 40:
+                            case 41:
+                            case 42:
+                            case 43:
+                            case 44:
+                            case 45:
+                            case 46:
+                            case 47:
+                                //                                case 38:
+                            case 49:
+                                m_screen->setTextStyleColor(m_parameters.at(i));
+                                break;
+
+
+
+
+                            default:
+                                qDebug() << "Unknown SGR" << m_parameters.at(i);
                             }
-                        } else {
-                            m_screen->resetStyle();
                         }
+
                         tokenFinished();
                     }
                         break;
                     case FinalBytesNoIntermediate::DSR:
+                        qDebug() << "REEEEEEEEEEEEEEEPORT";
                     case FinalBytesNoIntermediate::DAQ:
                     case FinalBytesNoIntermediate::Reserved0:
                     case FinalBytesNoIntermediate::Reserved1:
@@ -490,6 +542,7 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::Reserved2:
                         qDebug() << "Reserved2!";
+                        appendParameter();
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::Reserved3:

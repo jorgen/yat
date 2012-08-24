@@ -29,25 +29,42 @@
 #include <QtCore/QString>
 #include <QtCore/QDebug>
 
+static char env_variables[][255] = {
+    "TERM=xterm",
+    "COLORTERM=xterm",
+    "COLORFGBG=15;0",
+    "LINES",
+    "COLUMNS",
+    "TERMCAP"
+};
+static int env_variables_size = sizeof(env_variables) / sizeof(env_variables[0]);
+
 YatPty::YatPty(QObject *parent)
     : QObject(parent)
     , m_buffer_max_size(4096)
     , m_buffer_current_size(0)
     , m_winsize(0)
 {
-    char env_variable[] = "TERM=xterm";
-    ::putenv(env_variable);
     m_terminal_pid = forkpty(&m_master_fd,
                              NULL,
                              NULL,
                              NULL);
+
     if (m_terminal_pid == 0) {
+        for (int i = 0; i < env_variables_size; i++) {
+            ::putenv(env_variables[i]);
+        }
         ::execl("/bin/bash", "/bin/bash", (const char *) 0);
     }
     m_master_fd_read_notify = new QSocketNotifier(m_master_fd, QSocketNotifier::Read);
     connect(m_master_fd_read_notify, &QSocketNotifier::activated,
             this, &YatPty::readyRead);
+    m_master_fd_exception_notify = new QSocketNotifier(m_master_fd, QSocketNotifier::Exception);
+    connect(m_master_fd_exception_notify, &QSocketNotifier::activated,
+            this, &YatPty::socketQuit);
+
     m_buffer.resize(m_buffer_max_size);
+
 }
 
 YatPty::~YatPty()
@@ -65,31 +82,33 @@ QByteArray YatPty::read()
 
 void YatPty::write(const QByteArray &data)
 {
-    ::write(m_master_fd, data.constData(), data.size());
+    if (::write(m_master_fd, data.constData(), data.size()) < 0) {
+        qDebug() << "Something whent wrong when writing to m_master_fd";
+    }
 }
 
-void YatPty::setWidth(int width)
+void YatPty::setWidth(int width, int pixelWidth)
 {
     if (!m_winsize) {
         m_winsize = new struct winsize;
         m_winsize->ws_row = 25;
-        m_winsize->ws_xpixel = 0;
         m_winsize->ws_ypixel = 0;
     }
 
     m_winsize->ws_col = width;
+    m_winsize->ws_xpixel = pixelWidth;
     ioctl(m_master_fd, TIOCSWINSZ, m_winsize);
 }
 
-void YatPty::setHeight(int height)
+void YatPty::setHeight(int height, int pixelHeight)
 {
     if (!m_winsize) {
         m_winsize = new struct winsize;
         m_winsize->ws_col = 80;
         m_winsize->ws_xpixel = 0;
-        m_winsize->ws_ypixel = 0;
     }
     m_winsize->ws_row = height;
+    m_winsize->ws_ypixel = pixelHeight;
     ioctl(m_master_fd, TIOCSWINSZ, m_winsize);
 
 }
@@ -109,4 +128,10 @@ bool YatPty::moreInput()
     int data_in_buffer;
     ::ioctl(m_master_fd,FIONREAD, &data_in_buffer);
     return data_in_buffer;
+}
+
+
+void YatPty::socketQuit()
+{
+    qDebug() << "QUIT";
 }

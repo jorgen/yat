@@ -30,7 +30,7 @@ class TerminalScreen;
 class TextStyleLine : public TextStyle {
 public:
     TextStyleLine(const TextStyle &style, int start_index, int end_index)
-        : TextStyle(style.style,style.forground)
+        : TextStyle(style.style,style.foreground)
         , start_index(start_index)
         , end_index(end_index)
         , old_index(-1)
@@ -48,7 +48,7 @@ public:
     bool changed;
 
     void setStyle(const TextStyle &style) {
-        forground = style.forground;
+        foreground = style.foreground;
         background = style.background;
         this->style = style.style;
     }

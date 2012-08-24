@@ -12,22 +12,22 @@ public:
 
 
     enum Color {
-        black,
-        red,
-        green,
-        yellow,
-        blue,
-        magenta,
-        cyan,
-        white,
-        defaultForground,
-        defaultBackground,
+        Black,
+        Red,
+        Green,
+        Yellow,
+        Blue,
+        Magenta,
+        Cyan,
+        White,
+        DefaultForground,
+        DefaultBackground,
         numberOfColors
     };
 
+    QColor color(Color color, bool bold) const;
     QColor normalColor(Color color) const;
     QColor lightColor(Color color) const;
-    QColor intenseColor(Color color) const;
 
 private:
     QVector<QColor> m_normalColors;

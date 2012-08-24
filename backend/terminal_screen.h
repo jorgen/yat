@@ -63,6 +63,7 @@ public:
     qreal charWidth() const;
     qreal lineHeight() const;
 
+    void setTextStyle(TextStyle::Style style, bool add = true);
     void resetStyle();
     TextStyle currentTextStyle() const;
     TextStyle defaultTextStyle() const;
@@ -70,6 +71,9 @@ public:
     Q_INVOKABLE QColor screenBackground();
     QColor defaultForgroundColor() const;
     QColor defaultBackgroundColor() const;
+
+    void setTextStyleColor(ushort color);
+    const ColorPalette *colorPalette() const;
 
     QPoint cursorPosition() const;
     void moveCursorHome();
@@ -94,8 +98,6 @@ public:
     void eraseFromCurrentLineToBeginningOfScreen();
     void eraseToCursorPosition();
     void eraseScreen();
-
-    void setColor(bool bold, ushort color);
 
     void lineFeed();
 

@@ -14,7 +14,7 @@ ColorPalette::ColorPalette()
     m_normalColors[6].setRgb(51,187,199);
     m_normalColors[7].setRgb(229,229,229);
     m_normalColors[8].setRgb(178,178,178);
-    m_normalColors[9].setRgb(0,0,0);
+    m_normalColors[9].setAlpha(0);
 
     m_lightColors[0].setRgb(129,131,131);
     m_lightColors[1].setRgb(252,57,31);
@@ -24,9 +24,17 @@ ColorPalette::ColorPalette()
     m_lightColors[5].setRgb(249,53,248);
     m_lightColors[6].setRgb(20,240,240);
     m_lightColors[7].setRgb(233,233,233);
-    m_lightColors[8].setRgb(200,200,200);
+    m_lightColors[8].setRgb(220,220,220);
     m_lightColors[9].setRgb(50,50,50);
 
+}
+
+QColor ColorPalette::color(ColorPalette::Color color, bool bold) const
+{
+    if (bold)
+        return m_lightColors.at(color);
+
+    return m_normalColors.at(color);
 }
 
 QColor ColorPalette::normalColor(ColorPalette::Color color) const
@@ -39,8 +47,3 @@ QColor ColorPalette::lightColor(ColorPalette::Color color) const
     return m_lightColors.at(color);
 }
 
-QColor ColorPalette::intenseColor(ColorPalette::Color color) const
-{
-    Q_UNUSED(color);
-    Q_ASSERT(false);
-}

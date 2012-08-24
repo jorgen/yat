@@ -3,6 +3,7 @@
 
 #include <QtGui/QColor>
 
+#include "color_palette.h"
 class TerminalScreen;
 
 class TextStyle
@@ -11,21 +12,24 @@ public:
     enum Style {
         Normal            = 0x0000,
         Italic            = 0x0001,
-        Underlined        = 0x0002,
-        Blinking          = 0x0004,
-        FastBlinking      = 0x0008,
-        Gothic            = 0x0010,
-        DoubleUnderlined  = 0x0020,
-        Framed            = 0x0040,
-        Overlined         = 0x0080,
-        Encircled         = 0x0100
+        Bold              = 0x0002,
+        Underlined        = 0x0004,
+        Blinking          = 0x0008,
+        FastBlinking      = 0x0010,
+        Gothic            = 0x0020,
+        DoubleUnderlined  = 0x0040,
+        Framed            = 0x0080,
+        Overlined         = 0x0100,
+        Encircled         = 0x0200,
+        Inverse           = 0x0400
     };
+    Q_DECLARE_FLAGS(Styles, Style)
 
-    TextStyle(Style style, const QColor forground);
+    TextStyle(Styles style, ColorPalette::Color foreground);
 
-    Style style;
-    QColor forground;
-    QColor background;
+    Styles style;
+    ColorPalette::Color foreground;
+    ColorPalette::Color background;
 
     bool isCompatible(const TextStyle &other) const;
 };

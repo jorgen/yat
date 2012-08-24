@@ -38,18 +38,21 @@ public:
     QByteArray read();
     void write(const QByteArray &data);
 
-    void setWidth(int width);
-    void setHeight(int height);
+    void setWidth(int width, int pixelWidth = 0);
+    void setHeight(int height, int pixelHeight = 0);
     QSize size() const;
 
     bool moreInput();
+
 signals:
     void readyRead();
 
 private:
+    void socketQuit();
     pid_t m_terminal_pid;
     int m_master_fd;
     QSocketNotifier *m_master_fd_read_notify;
+    QSocketNotifier *m_master_fd_exception_notify;
     QByteArray m_buffer;
     int m_buffer_max_size;
     size_t m_buffer_current_size;

@@ -117,7 +117,7 @@ int TextSegmentLine::size() const
 
 TextSegment *TextSegmentLine::at(int i)
 {
-    if (i < 0)
+    if (i < 0 || i >= m_style_list.size())
         return 0;
     if (!m_style_list.at(i).text_segment) {
         m_style_list[i].text_segment = createTextSegment(m_style_list.at(i));
@@ -182,6 +182,9 @@ void TextSegmentLine::insertAtPos(int pos, const QString &text, const TextStyle 
                     if (current_style.start_index == pos) {
                         m_style_list[i].end_index = pos + text.size() - 1;
                         m_style_list[i].changed = true;
+                        m_style_list[i].style = style.style;
+                        m_style_list[i].foreground = style.foreground;
+                        m_style_list[i].background = style.background;
                     } else {
                         m_style_list[i].end_index = pos - 1;
                         m_style_list[i].changed = true;

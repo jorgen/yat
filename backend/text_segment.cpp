@@ -51,14 +51,24 @@ QString TextSegment::text() const
     return m_text;
 }
 
-QColor TextSegment::forgroundColor() const
+QColor TextSegment::foregroundColor() const
 {
-    return m_style.forground;
+    if (m_style.style & TextStyle::Inverse) {
+        if (m_style.background == ColorPalette::DefaultBackground)
+            return m_screen->screenBackground();
+        return m_screen->colorPalette()->color(m_style.background, m_style.style & TextStyle::Bold);
+    }
+
+    return m_screen->colorPalette()->color(m_style.foreground, m_style.style & TextStyle::Bold);
 }
+
 
 QColor TextSegment::backgroundColor() const
 {
-    return m_style.background;
+    if (m_style.style & TextStyle::Inverse)
+        return m_screen->colorPalette()->color(m_style.foreground, false);
+
+    return m_screen->colorPalette()->color(m_style.background, false);
 }
 
 void TextSegment::setStringSegment(int start_index, int end_index)

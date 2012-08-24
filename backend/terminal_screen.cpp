@@ -32,7 +32,7 @@ TerminalScreen::TerminalScreen(QObject *parent)
     : QObject(parent)
     , m_parser(this)
     , m_font_metrics(m_font)
-    , m_current_text_style(TextStyle(TextStyle::Normal,Qt::white))
+    , m_current_text_style(TextStyle(TextStyle::Normal,ColorPalette::DefaultForground))
 {
     connect(&m_pty, &YatPty::readyRead,
             this, &TerminalScreen::readData);
@@ -47,8 +47,9 @@ TerminalScreen::TerminalScreen(QObject *parent)
     setWidth(80);
     setHeight(25);
 
-    m_current_text_style.forground = defaultForgroundColor();
-    m_current_text_style.background = defaultBackgroundColor();
+    m_current_text_style.foreground = ColorPalette::DefaultForground;
+    m_current_text_style.background = ColorPalette::DefaultBackground;
+
 }
 
 TerminalScreen::~TerminalScreen()
@@ -63,7 +64,7 @@ QColor TerminalScreen::screenBackground()
 
 QColor TerminalScreen::defaultForgroundColor() const
 {
-    return m_palette.normalColor(ColorPalette::defaultForground);
+    return m_palette.normalColor(ColorPalette::DefaultForground);
 }
 
 QColor TerminalScreen::defaultBackgroundColor() const
@@ -91,12 +92,12 @@ void TerminalScreen::setHeight(int height)
     if(m_cursor_pos.y() >= m_screen_lines.size())
         m_cursor_pos.setY(m_screen_lines.size()-1);
 
-    m_pty.setHeight(height);
+    m_pty.setHeight(height, height * lineHeight());
 }
 
 void TerminalScreen::setWidth(int width)
 {
-    m_pty.setWidth(width);
+    m_pty.setWidth(width, width * charWidth());
     for (int i = 0; i < m_screen_lines.size(); i++) {
         m_screen_lines.at(i)->setWidth(width);
     }
@@ -140,10 +141,19 @@ qreal TerminalScreen::lineHeight() const
     return m_font_metrics.lineSpacing();
 }
 
+void TerminalScreen::setTextStyle(TextStyle::Style style, bool add)
+{
+    if (add) {
+        m_current_text_style.style |= style;
+    } else {
+        m_current_text_style.style &= !style;
+    }
+}
+
 void TerminalScreen::resetStyle()
 {
-    m_current_text_style.background = defaultBackgroundColor();
-    m_current_text_style.forground = defaultForgroundColor();
+    m_current_text_style.background = ColorPalette::DefaultBackground;
+    m_current_text_style.foreground = ColorPalette::DefaultForground;
     m_current_text_style.style = TextStyle::Normal;
 }
 
@@ -154,7 +164,7 @@ TextStyle TerminalScreen::currentTextStyle() const
 
 TextStyle TerminalScreen::defaultTextStyle() const
 {
-    return TextStyle(TextStyle::Normal,defaultForgroundColor());
+    return TextStyle(TextStyle::Normal,ColorPalette::DefaultForground);
 }
 
 QPoint TerminalScreen::cursorPosition() const
@@ -242,12 +252,15 @@ void TerminalScreen::insertAtCursor(const QString &text)
         line->insertAtPos(m_cursor_pos.x(), text, m_current_text_style);
     } else {
         for (int i = 0; i < text.size();) {
+            if (m_cursor_pos.x() == screen_width) {
+                m_cursor_pos.rx() = 0;
+                lineFeed();
+            }
             QString toLine = text.mid(i,screen_width - m_cursor_pos.x());
             line = line_at_cursor();
             line->insertAtPos(m_cursor_pos.x(),toLine,m_current_text_style);
             i+= toLine.size();
-            m_cursor_pos.rx() = 0;
-            lineFeed();
+            m_cursor_pos.rx() += toLine.size();
         }
     }
 
@@ -301,36 +314,25 @@ void TerminalScreen::eraseScreen()
     }
 }
 
-void TerminalScreen::setColor(bool bold, ushort color)
+void TerminalScreen::setTextStyleColor(ushort color)
 {
     Q_ASSERT(color >= 30 && color < 50);
-
     if (color < 38) {
-        if (bold) {
-            m_current_text_style.forground = m_palette.normalColor(ColorPalette::Color(color - 30));
-        } else {
-            m_current_text_style.forground = m_palette.lightColor(ColorPalette::Color(color - 30));
-        }
-        return;
+        m_current_text_style.foreground = ColorPalette::Color(color - 30);
+    } else if (color == 39) {
+        m_current_text_style.foreground = ColorPalette::DefaultForground;
+    } else if (color >= 40 && color < 48) {
+        m_current_text_style.background = ColorPalette::Color(color - 40);
+    } else if (color == 49) {
+        m_current_text_style.background = ColorPalette::DefaultBackground;
+    } else {
+        qDebug() << "Failed to set color";
     }
+}
 
-    if (color == 39) {
-        m_current_text_style.forground = defaultForgroundColor();
-        return;
-    }
-
-    if (color >= 40 && color < 48) {
-        if (bold) {
-            m_current_text_style.background = m_palette.normalColor(ColorPalette::Color(color - 40));
-        } else {
-            m_current_text_style.background = m_palette.lightColor(ColorPalette::Color(color - 40));
-        }
-    }
-
-    if (color == 49) {
-        m_current_text_style.background = defaultBackgroundColor();
-    }
-
+const ColorPalette *TerminalScreen::colorPalette() const
+{
+    return &m_palette;
 }
 
 void TerminalScreen::lineFeed()
@@ -416,14 +418,13 @@ void TerminalScreen::dispatchChanges()
 
 void TerminalScreen::sendPrimaryDA()
 {
-    m_pty.write("\033[?6c");
+    m_pty.write(QByteArrayLiteral("\033[?6c"));
 
 }
 
 void TerminalScreen::sendSecondaryDA()
 {
-    QByteArray write("\033[>1;95;0c");
-    m_pty.write(write);
+    m_pty.write(QByteArrayLiteral("\033[>1;95;0c"));
 }
 
 void TerminalScreen::setCharacterMap(const QString &string)
