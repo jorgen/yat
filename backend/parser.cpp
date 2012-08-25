@@ -94,11 +94,13 @@ void Parser::decodeC0(uchar character)
     case C0::EOT:
     case C0::ENQ:
     case C0::ACK:
-    case C0::BEL:
         qDebug() << "Unhandled Controll character" << character;
         tokenFinished();
         break;
-
+    case C0::BEL:
+        m_screen->scheduleFlash();
+        tokenFinished();
+        break;
     case C0::BS:
         m_screen->backspace();
         tokenFinished();

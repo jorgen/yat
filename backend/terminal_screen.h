@@ -104,6 +104,8 @@ public:
     void setTitle(const QString &title);
     QString title() const;
 
+    void scheduleFlash();
+
     Q_INVOKABLE TextSegmentLine *at(int i) const;
 
     Q_INVOKABLE void printScreen() const;
@@ -119,13 +121,13 @@ public:
     QString characterMap() const;
 
 signals:
-    void testSignal();
-
     void scrollUp(int from_line, int count);
     void scrollDown(int from_line, int count);
 
     void linesInserted(int count);
     void linesRemoved(int count);
+
+    void flash();
 
     void fontChanged();
     void charWidthChanged();
@@ -136,6 +138,7 @@ signals:
 
     void screenTitleChanged();
 
+    void cursorPositionChanged(int x, int y);
     void cursorVisibleChanged();
     void cursorBlinkingChanged();
 private:
@@ -163,6 +166,8 @@ private:
     QString m_character_map;
 
     QList<UpdateAction> m_update_actions;
+    bool m_flash;
+    bool m_cursor_changed;
 };
 
 #endif // TERMINALSCREEN_H

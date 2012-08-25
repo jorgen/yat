@@ -1,9 +1,12 @@
 import QtQuick 2.0
 
-Item {
+Rectangle {
     property QtObject terminalScreen: null
 
     anchors.fill: parent
+
+    color: "black"
+
 
     ListView {
         anchors.fill: parent
@@ -47,6 +50,14 @@ Item {
                 screenModel.remove(0)
             }
         }
+
+        onFlash: {
+            flashAnimation.start()
+        }
+        onCursorPositionChanged: {
+            cursor.x = x * cursor.width;
+            cursor.y = y * cursor.height
+        }
     }
 
 
@@ -72,6 +83,38 @@ Item {
             terminal.screen.write(event.text)
             if (event.text === "?") {
                 terminal.screen.printScreen()
+            }
+        }
+    }
+
+    Rectangle {
+        id: cursor
+        width: terminalScreen.charWidth
+        height: terminalScreen.lineHeight
+        x: 0
+        y: 0
+        color: "grey"
+    }
+
+    Rectangle {
+        id: flash
+        anchors.fill: parent
+        color: "grey"
+        opacity: 0
+        SequentialAnimation {
+            id: flashAnimation
+            property int  duration: 1
+            NumberAnimation {
+                target: flash
+                property: "opacity"
+                to: 1
+                duration: duration/2
+            }
+            NumberAnimation {
+                target: flash
+                property: "opacity"
+                to: 0
+                duration: duration/2
             }
         }
     }

@@ -33,6 +33,8 @@ TerminalScreen::TerminalScreen(QObject *parent)
     , m_parser(this)
     , m_font_metrics(m_font)
     , m_current_text_style(TextStyle(TextStyle::Normal,ColorPalette::DefaultForground))
+    , m_flash(false)
+    , m_cursor_changed(false)
 {
     connect(&m_pty, &YatPty::readyRead,
             this, &TerminalScreen::readData);
@@ -175,31 +177,37 @@ QPoint TerminalScreen::cursorPosition() const
 void TerminalScreen::moveCursorHome()
 {
     m_cursor_pos.setX(0);
+    m_cursor_changed = true;
 }
 
 void TerminalScreen::moveCursorTop()
 {
     m_cursor_pos.ry() = 0;
+    m_cursor_changed = true;
 }
 
 void TerminalScreen::moveCursorUp()
 {
     m_cursor_pos.ry() -= 1;
+    m_cursor_changed = true;
 }
 
 void TerminalScreen::moveCursorDown()
 {
     m_cursor_pos.ry() += 1;
+    m_cursor_changed = true;
 }
 
 void TerminalScreen::moveCursorLeft()
 {
     m_cursor_pos.rx() -= 1;
+    m_cursor_changed = true;
 }
 
 void TerminalScreen::moveCursorRight(int n_positions)
 {
     m_cursor_pos.rx() += n_positions;
+    m_cursor_changed = true;
 }
 
 void TerminalScreen::moveCursor(int x, int y)
@@ -215,6 +223,7 @@ void TerminalScreen::moveCursor(int x, int y)
     } else {
         m_cursor_pos.setY(y);
     }
+    m_cursor_changed = true;
 }
 
 void TerminalScreen::setCursorVisible(bool visible)
@@ -250,6 +259,7 @@ void TerminalScreen::insertAtCursor(const QString &text)
     if (m_cursor_pos.x() + text.size() <= screen_width) {
         line = line_at_cursor();
         line->insertAtPos(m_cursor_pos.x(), text, m_current_text_style);
+        m_cursor_pos.rx() += text.size();
     } else {
         for (int i = 0; i < text.size();) {
             if (m_cursor_pos.x() == screen_width) {
@@ -263,13 +273,13 @@ void TerminalScreen::insertAtCursor(const QString &text)
             m_cursor_pos.rx() += toLine.size();
         }
     }
-
-    m_cursor_pos.rx() += text.size();
+    m_cursor_changed = true;
 }
 
 void TerminalScreen::backspace()
 {
-        m_cursor_pos.rx()--;
+    m_cursor_pos.rx()--;
+    m_cursor_changed = true;
 }
 
 void TerminalScreen::eraseLine()
@@ -347,6 +357,7 @@ void TerminalScreen::lineFeed()
         doScrollOneLineUpAt(m_cursor_pos.y());
     } else {
         moveCursor(0,m_cursor_pos.y()+2);
+        m_cursor_changed = true;
     }
 }
 
@@ -359,6 +370,11 @@ void TerminalScreen::setTitle(const QString &title)
 QString TerminalScreen::title() const
 {
     return m_title;
+}
+
+void TerminalScreen::scheduleFlash()
+{
+    m_flash = true;
 }
 
 TextSegmentLine *TerminalScreen::at(int i) const
@@ -408,6 +424,16 @@ void TerminalScreen::dispatchChanges()
             qDebug() << "unhandeled UpdatAction in TerminalScreen";
             break;
         }
+    }
+
+    if (m_flash) {
+        m_flash = false;
+        emit flash();
+    }
+
+    if (m_cursor_changed) {
+        m_cursor_changed = false;
+        emit cursorPositionChanged(m_cursor_pos.x(), m_cursor_pos.y());
     }
 
     m_update_actions.clear();

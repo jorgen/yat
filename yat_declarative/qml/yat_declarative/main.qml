@@ -40,14 +40,10 @@ TerminalItem {
             terminal.screen.setHeight(pty_height);
         }
     }
-    Rectangle {
-        anchors.fill: parent
-        color: "black"
 
-        TerminalScreen {
-            anchors.fill: parent
-            terminalScreen: terminal.screen
-        }
+    TerminalScreen {
+        anchors.fill: parent
+        terminalScreen: terminal.screen
     }
 
 }
