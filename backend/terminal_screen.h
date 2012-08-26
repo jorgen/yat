@@ -28,12 +28,14 @@
 #include "parser.h"
 #include "yat_pty.h"
 #include "update_action.h"
+#include "screen_data.h"
 
 #include <QtCore/QPoint>
 #include <QtCore/QSize>
-#include <QtCore/QVector>
+#include <QtCore/QStack>
 #include <QtGui/QFont>
 #include <QtGui/QFontMetrics>
+#include <QtCore/QVarLengthArray>
 
 class TextSegmentLine;
 
@@ -127,11 +129,14 @@ signals:
     void linesInserted(int count);
     void linesRemoved(int count);
 
+    void reset();
+
     void flash();
 
     void fontChanged();
     void charWidthChanged();
     void lineHeightChanged();
+
 
     void dispatchLineChanges();
     void dispatchTextSegmentChanges();
@@ -148,13 +153,18 @@ private:
     void doScrollOneLineDownAt(int line);
 
     TextSegmentLine *line_at_cursor();
+    ScreenData *current_screen_data() const { return m_screen_stack[m_screen_stack.size()-1]; }
+    QPoint &current_cursor_pos() { return m_cursor_stack[m_cursor_stack.size()-1]; }
+    int current_cursor_x() const { return m_cursor_stack.at(m_cursor_stack.size()-1).x(); }
+    int current_cursor_y() const { return m_cursor_stack.at(m_cursor_stack.size()-1).y(); }
 
     ColorPalette m_palette;
     YatPty m_pty;
     Parser m_parser;
 
-    QVector<TextSegmentLine *> m_screen_lines;
-    QPoint m_cursor_pos;
+    QVector<ScreenData *> m_screen_stack;
+    QVector<QPoint> m_cursor_stack;
+
     bool m_cursor_visible;
     bool m_cursor_blinking;
 

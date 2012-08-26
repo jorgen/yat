@@ -42,7 +42,6 @@ Rectangle {
                                    });
             }
 
-            resetModel();
         }
 
         onLinesRemoved: {
