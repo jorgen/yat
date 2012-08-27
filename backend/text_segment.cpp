@@ -20,20 +20,20 @@
 
 #include "text_segment.h"
 
-#include "terminal_screen.h"
+#include "screen.h"
 #include <QtCore/QDebug>
 
-TextSegment::TextSegment(QString *text_line, TerminalScreen *terminalScreen)
-    : QObject(terminalScreen)
+TextSegment::TextSegment(QString *text_line, Screen *screen)
+    : QObject(screen)
     , m_text_line(text_line)
     , m_start_index(0)
     , m_old_start_index(0)
     , m_end_index(0)
-    , m_style(terminalScreen->defaultTextStyle())
+    , m_style(screen->defaultTextStyle())
     , m_dirty(true)
-    , m_screen(terminalScreen)
+    , m_screen(screen)
 {
-    connect(terminalScreen, &TerminalScreen::dispatchTextSegmentChanges,
+    connect(screen, &Screen::dispatchTextSegmentChanges,
             this, &TextSegment::dispatchEvents);
 }
 
@@ -85,7 +85,7 @@ void TextSegment::setTextStyle(const TextStyle &style)
     m_dirty = true;
 }
 
-TerminalScreen *TextSegment::screen() const
+Screen *TextSegment::screen() const
 {
     return m_screen;
 }

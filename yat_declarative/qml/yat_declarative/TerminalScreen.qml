@@ -1,7 +1,7 @@
 import QtQuick 2.0
 
 Rectangle {
-    property QtObject terminalScreen: null
+    property QtObject screen: null
 
     anchors.fill: parent
 
@@ -53,10 +53,13 @@ Rectangle {
         onFlash: {
             flashAnimation.start()
         }
+
         onCursorPositionChanged: {
             cursor.x = x * cursor.width;
             cursor.y = y * cursor.height
         }
+
+        onReset: resetModel();
     }
 
 
@@ -88,8 +91,8 @@ Rectangle {
 
     Rectangle {
         id: cursor
-        width: terminalScreen.charWidth
-        height: terminalScreen.lineHeight
+        width: screen.charWidth
+        height: screen.lineHeight
         x: 0
         y: 0
         color: "grey"

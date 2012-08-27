@@ -24,23 +24,23 @@
 #include <QtCore/QObject>
 #include <QtQuick/QQuickItem>
 
-#include "terminal_screen.h"
+#include "screen.h"
 
 class TerminalItem : public QQuickItem
 {
     Q_OBJECT
 
-    Q_PROPERTY(TerminalScreen *screen READ screen CONSTANT)
+    Q_PROPERTY(Screen *screen READ screen CONSTANT)
 public:
     TerminalItem(QQuickItem *parent = 0);
 
-    TerminalScreen *screen() const;
+    Screen *screen() const;
 
 signals:
     void screenGeometryChanged();
 
 private:
-    TerminalScreen *m_screen;
+    Screen *m_screen;
 };
 
 #endif // TERMINALITEM_H

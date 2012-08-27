@@ -21,11 +21,11 @@
 #include "parser.h"
 
 #include "controll_chars.h"
-#include "terminal_screen.h"
+#include "screen.h"
 
 #include <QtCore/QDebug>
 
-Parser::Parser(TerminalScreen *screen)
+Parser::Parser(Screen *screen)
     : m_decode_state(PlainText)
     , m_current_token_start(0)
     , m_currrent_position(0)
@@ -414,6 +414,9 @@ void Parser::decodeCSI(uchar character)
                                 case 1034:
                                     //I don't know what this sequence is
                                     break;
+                                case 1049:
+                                    m_screen->saveCursor();
+                                    m_screen->saveScreenData();
                                 default:
                                     qDebug() << "unhandled CSI FinalBytesNoIntermediate::SM ? with parameter:" << m_parameters.at(1);
                                 }
@@ -444,6 +447,9 @@ void Parser::decodeCSI(uchar character)
                                     case 25:
                                         m_screen->setCursorVisible(false);
                                         break;
+                                    case 1049:
+                                        m_screen->restoreCursor();
+                                        m_screen->restoreScreenData();
                                     default:
                                         qDebug() << "unhandled CSI FinalBytesNoIntermediate::RM with "
                                                     "parameter " << m_parameters.at(1);

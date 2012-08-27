@@ -22,11 +22,11 @@
 
 TerminalItem::TerminalItem(QQuickItem *parent)
     : QQuickItem(parent)
-    , m_screen(new TerminalScreen(this))
+    , m_screen(new Screen(this))
 {
 }
 
-TerminalScreen *TerminalItem::screen() const
+Screen *TerminalItem::screen() const
 {
     return m_screen;
 }

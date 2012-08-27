@@ -21,11 +21,11 @@
 #include "screen_data.h"
 
 #include "text_segment_line.h"
-#include "terminal_screen.h"
+#include "screen.h"
 
 #include <stdio.h>
 
-ScreenData::ScreenData(TerminalScreen *screen)
+ScreenData::ScreenData(Screen *screen)
     :m_screen(screen)
 {
 }

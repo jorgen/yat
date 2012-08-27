@@ -28,7 +28,7 @@
 
 #include "text_style.h"
 
-class TerminalScreen;
+class Screen;
 
 class TextSegment : public QObject
 {
@@ -37,9 +37,9 @@ class TextSegment : public QObject
     Q_PROPERTY(QString text READ text NOTIFY textChanged)
     Q_PROPERTY(QColor foregroundColor READ foregroundColor NOTIFY forgroundColorChanged)
     Q_PROPERTY(QColor backgroundColor READ backgroundColor NOTIFY backgroundColorChanged)
-    Q_PROPERTY(TerminalScreen *screen READ screen CONSTANT)
+    Q_PROPERTY(Screen *screen READ screen CONSTANT)
 public:
-    TextSegment(QString *text_line, TerminalScreen *terminalScreen);
+    TextSegment(QString *text_line, Screen *screen);
     ~TextSegment();
 
     int index() const;
@@ -53,7 +53,7 @@ public:
     void setStringSegment(int start_index, int end_index);
     void setTextStyle(const TextStyle &style);
 
-    TerminalScreen *screen() const;
+    Screen *screen() const;
 
 public slots:
     void dispatchEvents();
@@ -75,7 +75,7 @@ private:
 
     bool m_dirty;
     bool m_initial;
-    TerminalScreen *m_screen;
+    Screen *m_screen;
 
 };
 

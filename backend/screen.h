@@ -39,7 +39,7 @@
 
 class TextSegmentLine;
 
-class TerminalScreen : public QObject
+class Screen : public QObject
 {
     Q_OBJECT
 
@@ -51,14 +51,16 @@ class TerminalScreen : public QObject
     Q_PROPERTY(bool cursorBlinking READ cursorBlinking NOTIFY cursorBlinkingChanged)
 
 public:
-    explicit TerminalScreen(QObject *parent = 0);
-    ~TerminalScreen();
+    explicit Screen(QObject *parent = 0);
+    ~Screen();
     
     Q_INVOKABLE void setHeight(int height);
     Q_INVOKABLE int height() const;
     Q_INVOKABLE void setWidth(int width);
     Q_INVOKABLE int width() const;
 
+    void saveScreenData();
+    void restoreScreenData();
 
     QFont font() const;
     void setFont(const QFont &font);
@@ -89,6 +91,8 @@ public:
     bool cursorVisible();
     void setBlinkingCursor(bool blinking);
     bool cursorBlinking();
+    void saveCursor();
+    void restoreCursor();
 
     void insertAtCursor(const QString &text);
 
@@ -178,6 +182,7 @@ private:
     QList<UpdateAction> m_update_actions;
     bool m_flash;
     bool m_cursor_changed;
+    bool m_reset;
 };
 
 #endif // TERMINALSCREEN_H

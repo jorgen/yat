@@ -25,7 +25,7 @@
 
 #include "text_segment.h"
 
-class TerminalScreen;
+class Screen;
 
 class TextStyleLine : public TextStyle {
 public:
@@ -58,10 +58,10 @@ class TextSegmentLine : public QObject
 {
     Q_OBJECT
 public:
-    TextSegmentLine(TerminalScreen *terminalScreen);
+    TextSegmentLine(Screen *screen);
     ~TextSegmentLine();
 
-    Q_INVOKABLE TerminalScreen *screen() const;
+    Q_INVOKABLE Screen *screen() const;
 
     void clear();
     void clearToEndOfLine(int index);
@@ -83,7 +83,7 @@ private:
 
     TextSegment *createTextSegment(const TextStyleLine &style_line);
 
-    TerminalScreen *m_screen;
+    Screen *m_screen;
     QString m_text_line;
     QList<TextStyleLine> m_style_list;
     QList<int> m_indexes_to_remove;

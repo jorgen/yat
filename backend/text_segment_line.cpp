@@ -21,21 +21,21 @@
 #include "text_segment_line.h"
 
 #include "text_segment.h"
-#include "terminal_screen.h"
+#include "screen.h"
 
 #include <QtCore/QDebug>
 
-TextSegmentLine::TextSegmentLine(TerminalScreen *terminalScreen)
-    : QObject(terminalScreen)
-    , m_screen(terminalScreen)
+TextSegmentLine::TextSegmentLine(Screen *screen)
+    : QObject(screen)
+    , m_screen(screen)
     , m_changed(true)
     , m_reset(true)
 {
-    m_text_line.resize(terminalScreen->width());
+    m_text_line.resize(screen->width());
 
     clear();
 
-    connect(terminalScreen,&TerminalScreen::dispatchLineChanges,
+    connect(screen,&Screen::dispatchLineChanges,
             this, &TextSegmentLine::dispatchEvents);
 }
 
@@ -43,7 +43,7 @@ TextSegmentLine::~TextSegmentLine()
 {
 }
 
-TerminalScreen *TextSegmentLine::screen() const
+Screen *TextSegmentLine::screen() const
 {
     return m_screen;
 }

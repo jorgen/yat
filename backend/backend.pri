@@ -11,20 +11,20 @@ HEADERS += \
            $$PWD/text_segment.h \
            $$PWD/controll_chars.h \
            $$PWD/parser.h \
-           $$PWD/terminal_screen.h \
+           $$PWD/screen.h \
            $$PWD/text_segment_line.h \
            $$PWD/color_palette.h \
            $$PWD/text_style.h \
-    ../backend/update_action.h \
-    ../backend/screen_data.h
+           $$PWD/update_action.h \
+           $$PWD/screen_data.h
 
 SOURCES += \
            $$PWD/yat_pty.cpp \
            $$PWD/text_segment.cpp \
            $$PWD/parser.cpp \
-           $$PWD/terminal_screen.cpp \
+           $$PWD/screen.cpp \
            $$PWD/text_segment_line.cpp \
            $$PWD/color_palette.cpp \
            $$PWD/text_style.cpp \
-    ../backend/update_action.cpp \
-    ../backend/screen_data.cpp
+           $$PWD/update_action.cpp \
+           $$PWD/screen_data.cpp

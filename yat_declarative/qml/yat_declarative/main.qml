@@ -43,7 +43,7 @@ TerminalItem {
 
     TerminalScreen {
         anchors.fill: parent
-        terminalScreen: terminal.screen
+        screen: terminal.screen
     }
 
 }

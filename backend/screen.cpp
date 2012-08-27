@@ -18,7 +18,7 @@
 *
 ***************************************************************************************************/
 
-#include "terminal_screen.h"
+#include "screen.h"
 
 #include "text_segment_line.h"
 
@@ -28,7 +28,7 @@
 
 #include <QtCore/QDebug>
 
-TerminalScreen::TerminalScreen(QObject *parent)
+Screen::Screen(QObject *parent)
     : QObject(parent)
     , m_parser(this)
     , m_cursor_visible(true)
@@ -37,9 +37,10 @@ TerminalScreen::TerminalScreen(QObject *parent)
     , m_current_text_style(TextStyle(TextStyle::Normal,ColorPalette::DefaultForground))
     , m_flash(false)
     , m_cursor_changed(false)
+    , m_reset(false)
 {
     connect(&m_pty, &YatPty::readyRead,
-            this, &TerminalScreen::readData);
+            this, &Screen::readData);
 
     QFont font;
     font.setFamily(QStringLiteral("Courier"));
@@ -61,27 +62,27 @@ TerminalScreen::TerminalScreen(QObject *parent)
 
 }
 
-TerminalScreen::~TerminalScreen()
+Screen::~Screen()
 {
 }
 
 
-QColor TerminalScreen::screenBackground()
+QColor Screen::screenBackground()
 {
     return QColor(Qt::black);
 }
 
-QColor TerminalScreen::defaultForgroundColor() const
+QColor Screen::defaultForgroundColor() const
 {
     return m_palette.normalColor(ColorPalette::DefaultForground);
 }
 
-QColor TerminalScreen::defaultBackgroundColor() const
+QColor Screen::defaultBackgroundColor() const
 {
     return QColor(Qt::transparent);
 }
 
-void TerminalScreen::setHeight(int height)
+void Screen::setHeight(int height)
 {
 
     ScreenData *data = current_screen_data();
@@ -101,29 +102,50 @@ void TerminalScreen::setHeight(int height)
     m_pty.setHeight(height, height * lineHeight());
 }
 
-void TerminalScreen::setWidth(int width)
+void Screen::setWidth(int width)
 {
     current_screen_data()->setWidth(width);
     m_pty.setWidth(width, width * charWidth());
 
 }
 
-int TerminalScreen::width() const
+int Screen::width() const
 {
     return m_pty.size().width();
 }
 
-int TerminalScreen::height() const
+void Screen::saveScreenData()
+{
+    m_screen_stack << new ScreenData(this);
+    QSize pty_size = m_pty.size();
+    current_screen_data()->setHeight(pty_size.height());
+    current_screen_data()->setWidth(pty_size.width());
+    m_reset = true;
+
+}
+
+void Screen::restoreScreenData()
+{
+    ScreenData *data = current_screen_data();
+    m_screen_stack.remove(m_screen_stack.size()-1);
+    delete data;
+    QSize pty_size = m_pty.size();
+    current_screen_data()->setHeight(pty_size.height());
+    current_screen_data()->setWidth(pty_size.width());
+    m_reset = true;
+}
+
+int Screen::height() const
 {
     return m_screen_stack.last()->height();
 }
 
-QFont TerminalScreen::font() const
+QFont Screen::font() const
 {
     return m_font;
 }
 
-void TerminalScreen::setFont(const QFont &font)
+void Screen::setFont(const QFont &font)
 {
     qreal old_width = m_font_metrics.averageCharWidth();
     qreal old_height = m_font_metrics.lineSpacing();
@@ -136,17 +158,17 @@ void TerminalScreen::setFont(const QFont &font)
         emit lineHeightChanged();
 }
 
-qreal TerminalScreen::charWidth() const
+qreal Screen::charWidth() const
 {
     return m_font_metrics.averageCharWidth();
 }
 
-qreal TerminalScreen::lineHeight() const
+qreal Screen::lineHeight() const
 {
     return m_font_metrics.lineSpacing();
 }
 
-void TerminalScreen::setTextStyle(TextStyle::Style style, bool add)
+void Screen::setTextStyle(TextStyle::Style style, bool add)
 {
     if (add) {
         m_current_text_style.style |= style;
@@ -155,65 +177,65 @@ void TerminalScreen::setTextStyle(TextStyle::Style style, bool add)
     }
 }
 
-void TerminalScreen::resetStyle()
+void Screen::resetStyle()
 {
     m_current_text_style.background = ColorPalette::DefaultBackground;
     m_current_text_style.foreground = ColorPalette::DefaultForground;
     m_current_text_style.style = TextStyle::Normal;
 }
 
-TextStyle TerminalScreen::currentTextStyle() const
+TextStyle Screen::currentTextStyle() const
 {
     return m_current_text_style;
 }
 
-TextStyle TerminalScreen::defaultTextStyle() const
+TextStyle Screen::defaultTextStyle() const
 {
     return TextStyle(TextStyle::Normal,ColorPalette::DefaultForground);
 }
 
-QPoint TerminalScreen::cursorPosition() const
+QPoint Screen::cursorPosition() const
 {
     return m_screen_stack.last()->cursorPosition();
 }
 
-void TerminalScreen::moveCursorHome()
+void Screen::moveCursorHome()
 {
     current_cursor_pos().setX(0);
     m_cursor_changed = true;
 }
 
-void TerminalScreen::moveCursorTop()
+void Screen::moveCursorTop()
 {
     current_cursor_pos().setY(0);
     m_cursor_changed = true;
 }
 
-void TerminalScreen::moveCursorUp()
+void Screen::moveCursorUp()
 {
     current_cursor_pos().ry() -= 1;
     m_cursor_changed = true;
 }
 
-void TerminalScreen::moveCursorDown()
+void Screen::moveCursorDown()
 {
     current_cursor_pos().ry() += 1;
     m_cursor_changed = true;
 }
 
-void TerminalScreen::moveCursorLeft()
+void Screen::moveCursorLeft()
 {
     current_cursor_pos().rx() -= 1;
     m_cursor_changed = true;
 }
 
-void TerminalScreen::moveCursorRight(int n_positions)
+void Screen::moveCursorRight(int n_positions)
 {
     current_cursor_pos().rx() += n_positions;
     m_cursor_changed = true;
 }
 
-void TerminalScreen::moveCursor(int x, int y)
+void Screen::moveCursor(int x, int y)
 {
     if (x != 0)
         x--;
@@ -230,7 +252,7 @@ void TerminalScreen::moveCursor(int x, int y)
     m_cursor_changed = true;
 }
 
-void TerminalScreen::setCursorVisible(bool visible)
+void Screen::setCursorVisible(bool visible)
 {
     int emitChange = visible != m_cursor_visible;
     m_cursor_visible = visible;
@@ -238,12 +260,12 @@ void TerminalScreen::setCursorVisible(bool visible)
         cursorVisibleChanged();
 }
 
-bool TerminalScreen::cursorVisible()
+bool Screen::cursorVisible()
 {
     return m_cursor_visible;
 }
 
-void TerminalScreen::setBlinkingCursor(bool blinking)
+void Screen::setBlinkingCursor(bool blinking)
 {
     int emitChange = blinking != m_cursor_blinking;
     m_cursor_blinking = blinking;
@@ -251,57 +273,71 @@ void TerminalScreen::setBlinkingCursor(bool blinking)
         emit cursorBlinkingChanged();
 }
 
-bool TerminalScreen::cursorBlinking()
+bool Screen::cursorBlinking()
 {
     return m_cursor_blinking;
 }
 
-void TerminalScreen::insertAtCursor(const QString &text)
+void Screen::saveCursor()
+{
+    QPoint point = current_cursor_pos();
+    m_cursor_stack << point;
+}
+
+void Screen::restoreCursor()
+{
+    if (m_cursor_stack.size() <= 1)
+        return;
+
+    m_cursor_stack.remove(m_screen_stack.size()-1);
+}
+
+void Screen::insertAtCursor(const QString &text)
 {
     QPoint new_cursor_pos = current_screen_data()->insertText(current_cursor_pos(),text);
     current_cursor_pos() = new_cursor_pos;
     m_cursor_changed = true;
 }
 
-void TerminalScreen::backspace()
+void Screen::backspace()
 {
     current_cursor_pos().rx()--;
     m_cursor_changed = true;
 }
 
-void TerminalScreen::eraseLine()
+void Screen::eraseLine()
 {
     current_screen_data()->clearLine(current_cursor_y());
 }
 
-void TerminalScreen::eraseFromCursorPositionToEndOfLine()
+void Screen::eraseFromCursorPositionToEndOfLine()
 {
     current_screen_data()->clearToEndOfLine(current_cursor_y(), current_cursor_x());
 }
 
-void TerminalScreen::eraseFromCurrentLineToEndOfScreen()
+void Screen::eraseFromCurrentLineToEndOfScreen()
 {
     current_screen_data()->clearToEndOfScreen(current_cursor_y());
 
 }
 
-void TerminalScreen::eraseFromCurrentLineToBeginningOfScreen()
+void Screen::eraseFromCurrentLineToBeginningOfScreen()
 {
     current_screen_data()->clearToBeginningOfScreen(current_cursor_y());
 
 }
 
-void TerminalScreen::eraseToCursorPosition()
+void Screen::eraseToCursorPosition()
 {
     qDebug() << "eraseToCursorPosition NOT IMPLEMENTED!";
 }
 
-void TerminalScreen::eraseScreen()
+void Screen::eraseScreen()
 {
     current_screen_data()->clear();
 }
 
-void TerminalScreen::setTextStyleColor(ushort color)
+void Screen::setTextStyleColor(ushort color)
 {
     Q_ASSERT(color >= 30 && color < 50);
     if (color < 38) {
@@ -317,12 +353,12 @@ void TerminalScreen::setTextStyleColor(ushort color)
     }
 }
 
-const ColorPalette *TerminalScreen::colorPalette() const
+const ColorPalette *Screen::colorPalette() const
 {
     return &m_palette;
 }
 
-void TerminalScreen::lineFeed()
+void Screen::lineFeed()
 {
     int cursor_y = current_cursor_y();
     if(cursor_y == current_screen_data()->height() -1) {
@@ -334,57 +370,63 @@ void TerminalScreen::lineFeed()
     }
 }
 
-void TerminalScreen::setTitle(const QString &title)
+void Screen::setTitle(const QString &title)
 {
     m_title = title;
     emit screenTitleChanged();
 }
 
-QString TerminalScreen::title() const
+QString Screen::title() const
 {
     return m_title;
 }
 
-void TerminalScreen::scheduleFlash()
+void Screen::scheduleFlash()
 {
     m_flash = true;
 }
 
-TextSegmentLine *TerminalScreen::at(int i) const
+TextSegmentLine *Screen::at(int i) const
 {
     return current_screen_data()->at(i);
 }
 
-void TerminalScreen::printScreen() const
+void Screen::printScreen() const
 {
     current_screen_data()->printScreen();
 }
 
-void TerminalScreen::write(const QString &data)
+void Screen::write(const QString &data)
 {
     m_pty.write(data.toUtf8());
 }
 
-void TerminalScreen::dispatchChanges()
+void Screen::dispatchChanges()
 {
-    for (int i = 0; i < m_update_actions.size(); i++) {
-        UpdateAction action = m_update_actions.at(i);
-        switch(action.action) {
-        case UpdateAction::ScrollUp: {
-            int lines_to_move = action.count % (action.from_line + 1);
-            if (lines_to_move)
-                emit scrollUp(action.from_line, lines_to_move);
-        }
-            break;
-        case UpdateAction::ScrollDown: {
-            int lines_to_move = action.count % (height() - action.from_line);
-            if (lines_to_move)
-                emit scrollDown(action.from_line, lines_to_move);
-        }
-            break;
-        default:
-            qDebug() << "unhandeled UpdatAction in TerminalScreen";
-            break;
+    if (m_reset) {
+        emit reset();
+        m_update_actions.clear();
+        m_reset = false;
+    } else {
+        for (int i = 0; i < m_update_actions.size(); i++) {
+            UpdateAction action = m_update_actions.at(i);
+            switch(action.action) {
+            case UpdateAction::ScrollUp: {
+                int lines_to_move = action.count % (action.from_line + 1);
+                if (lines_to_move)
+                    emit scrollUp(action.from_line, lines_to_move);
+            }
+                break;
+            case UpdateAction::ScrollDown: {
+                int lines_to_move = action.count % (height() - action.from_line);
+                if (lines_to_move)
+                    emit scrollDown(action.from_line, lines_to_move);
+            }
+                break;
+            default:
+                qDebug() << "unhandeled UpdatAction in TerminalScreen";
+                break;
+            }
         }
     }
 
@@ -404,28 +446,28 @@ void TerminalScreen::dispatchChanges()
     emit dispatchTextSegmentChanges();
 }
 
-void TerminalScreen::sendPrimaryDA()
+void Screen::sendPrimaryDA()
 {
     m_pty.write(QByteArrayLiteral("\033[?6c"));
 
 }
 
-void TerminalScreen::sendSecondaryDA()
+void Screen::sendSecondaryDA()
 {
     m_pty.write(QByteArrayLiteral("\033[>1;95;0c"));
 }
 
-void TerminalScreen::setCharacterMap(const QString &string)
+void Screen::setCharacterMap(const QString &string)
 {
     m_character_map = string;
 }
 
-QString TerminalScreen::characterMap() const
+QString Screen::characterMap() const
 {
     return m_character_map;
 }
 
-void TerminalScreen::readData()
+void Screen::readData()
 {
     for (int i = 0; i < 20; i++) {
         QByteArray data = m_pty.read();
@@ -439,7 +481,7 @@ void TerminalScreen::readData()
     dispatchChanges();
 }
 
-void TerminalScreen::doScrollOneLineUpAt(int line)
+void Screen::doScrollOneLineUpAt(int line)
 {
     if (m_update_actions.size() &&
             m_update_actions.last().action == UpdateAction::ScrollUp &&
@@ -450,7 +492,7 @@ void TerminalScreen::doScrollOneLineUpAt(int line)
     }
 }
 
-void TerminalScreen::doScrollOneLineDownAt(int line)
+void Screen::doScrollOneLineDownAt(int line)
 {
     if (m_update_actions.size() &&
             m_update_actions.last().action == UpdateAction::ScrollDown &&

@@ -30,7 +30,7 @@
 class Parser
 {
 public:
-    Parser(TerminalScreen *screen);
+    Parser(Screen *screen);
 
     void addData(const QByteArray &data);
 
@@ -76,7 +76,7 @@ private:
     QByteArray m_parameter_string;
     QVector<int> m_parameters;
 
-    TerminalScreen *m_screen;
+    Screen *m_screen;
 };
 
 #endif // PARSER_H

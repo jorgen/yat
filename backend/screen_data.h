@@ -25,12 +25,12 @@
 #include <QtCore/QPoint>
 
 class TextSegmentLine;
-class TerminalScreen;
+class Screen;
 
 class ScreenData
 {
 public:
-    ScreenData(TerminalScreen *screen);
+    ScreenData(Screen *screen);
 
     int width() const;
     void setWidth(int width);
@@ -52,7 +52,7 @@ public:
 
     void printScreen() const;
 private:
-    TerminalScreen *m_screen;
+    Screen *m_screen;
     int m_width;
     QVector<TextSegmentLine *> m_screen_lines;
     QPoint m_cursor_pos;

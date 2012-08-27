@@ -4,7 +4,7 @@
 #include <QtGui/QColor>
 
 #include "color_palette.h"
-class TerminalScreen;
+class Screen;
 
 class TextStyle
 {
