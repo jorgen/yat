@@ -417,6 +417,7 @@ void Parser::decodeCSI(uchar character)
                                 case 1049:
                                     m_screen->saveCursor();
                                     m_screen->saveScreenData();
+                                    break;
                                 default:
                                     qDebug() << "unhandled CSI FinalBytesNoIntermediate::SM ? with parameter:" << m_parameters.at(1);
                                 }
@@ -450,6 +451,7 @@ void Parser::decodeCSI(uchar character)
                                     case 1049:
                                         m_screen->restoreCursor();
                                         m_screen->restoreScreenData();
+                                        break;
                                     default:
                                         qDebug() << "unhandled CSI FinalBytesNoIntermediate::RM with "
                                                     "parameter " << m_parameters.at(1);

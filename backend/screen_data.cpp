@@ -37,6 +37,9 @@ int ScreenData::width() const
 
 void ScreenData::setWidth(int width)
 {
+    if (width == m_width)
+        return;
+
     m_width = width;
 
     for (int i = 0; i < m_screen_lines.size(); i++) {

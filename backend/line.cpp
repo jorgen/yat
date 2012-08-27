@@ -106,8 +106,6 @@ void Line::setWidth(int width)
     } else if (m_text_line.size() < width) {
         m_text_line.append(QString(width - m_text_line.size(), QChar(' ')));
     }
-
-    clear();
 }
 
 int Line::size() const
