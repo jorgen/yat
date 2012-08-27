@@ -18,12 +18,12 @@
 *
 ***************************************************************************************************/
 
-#include "text_segment.h"
+#include "text.h"
 
 #include "screen.h"
 #include <QtCore/QDebug>
 
-TextSegment::TextSegment(QString *text_line, Screen *screen)
+Text::Text(QString *text_line, Screen *screen)
     : QObject(screen)
     , m_text_line(text_line)
     , m_start_index(0)
@@ -34,24 +34,24 @@ TextSegment::TextSegment(QString *text_line, Screen *screen)
     , m_screen(screen)
 {
     connect(screen, &Screen::dispatchTextSegmentChanges,
-            this, &TextSegment::dispatchEvents);
+            this, &Text::dispatchEvents);
 }
 
-TextSegment::~TextSegment()
+Text::~Text()
 {
 }
 
-int TextSegment::index() const
+int Text::index() const
 {
     return m_start_index;
 }
 
-QString TextSegment::text() const
+QString Text::text() const
 {
     return m_text;
 }
 
-QColor TextSegment::foregroundColor() const
+QColor Text::foregroundColor() const
 {
     if (m_style.style & TextStyle::Inverse) {
         if (m_style.background == ColorPalette::DefaultBackground)
@@ -63,7 +63,7 @@ QColor TextSegment::foregroundColor() const
 }
 
 
-QColor TextSegment::backgroundColor() const
+QColor Text::backgroundColor() const
 {
     if (m_style.style & TextStyle::Inverse)
         return m_screen->colorPalette()->color(m_style.foreground, false);
@@ -71,7 +71,7 @@ QColor TextSegment::backgroundColor() const
     return m_screen->colorPalette()->color(m_style.background, false);
 }
 
-void TextSegment::setStringSegment(int start_index, int end_index)
+void Text::setStringSegment(int start_index, int end_index)
 {
     m_start_index = start_index;
     m_end_index = end_index;
@@ -79,18 +79,18 @@ void TextSegment::setStringSegment(int start_index, int end_index)
     m_dirty = true;
 }
 
-void TextSegment::setTextStyle(const TextStyle &style)
+void Text::setTextStyle(const TextStyle &style)
 {
     m_style = style;
     m_dirty = true;
 }
 
-Screen *TextSegment::screen() const
+Screen *Text::screen() const
 {
     return m_screen;
 }
 
-void TextSegment::dispatchEvents()
+void Text::dispatchEvents()
 {
     if (m_dirty) {
         m_dirty = false;

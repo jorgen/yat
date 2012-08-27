@@ -8,11 +8,11 @@ OBJECTS_DIR = .obj
 
 HEADERS += \
            $$PWD/yat_pty.h \
-           $$PWD/text_segment.h \
+           $$PWD/text.h \
            $$PWD/controll_chars.h \
            $$PWD/parser.h \
            $$PWD/screen.h \
-           $$PWD/text_segment_line.h \
+           $$PWD/line.h \
            $$PWD/color_palette.h \
            $$PWD/text_style.h \
            $$PWD/update_action.h \
@@ -20,10 +20,10 @@ HEADERS += \
 
 SOURCES += \
            $$PWD/yat_pty.cpp \
-           $$PWD/text_segment.cpp \
+           $$PWD/text.cpp \
            $$PWD/parser.cpp \
            $$PWD/screen.cpp \
-           $$PWD/text_segment_line.cpp \
+           $$PWD/line.cpp \
            $$PWD/color_palette.cpp \
            $$PWD/text_style.cpp \
            $$PWD/update_action.cpp \

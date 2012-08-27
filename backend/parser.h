@@ -25,7 +25,7 @@
 #include <QtCore/QVector>
 #include <QtCore/QLinkedList>
 
-#include "text_segment.h"
+#include "text.h"
 
 class Parser
 {

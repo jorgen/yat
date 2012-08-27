@@ -30,7 +30,7 @@
 
 class Screen;
 
-class TextSegment : public QObject
+class Text : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(int index READ index NOTIFY indexChanged)
@@ -39,8 +39,8 @@ class TextSegment : public QObject
     Q_PROPERTY(QColor backgroundColor READ backgroundColor NOTIFY backgroundColorChanged)
     Q_PROPERTY(Screen *screen READ screen CONSTANT)
 public:
-    TextSegment(QString *text_line, Screen *screen);
-    ~TextSegment();
+    Text(QString *text_line, Screen *screen);
+    ~Text();
 
     int index() const;
 

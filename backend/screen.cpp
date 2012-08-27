@@ -20,7 +20,7 @@
 
 #include "screen.h"
 
-#include "text_segment_line.h"
+#include "line.h"
 
 #include "controll_chars.h"
 
@@ -294,8 +294,26 @@ void Screen::restoreCursor()
 
 void Screen::insertAtCursor(const QString &text)
 {
-    QPoint new_cursor_pos = current_screen_data()->insertText(current_cursor_pos(),text);
-    current_cursor_pos() = new_cursor_pos;
+    Line *line;
+
+    if (current_cursor_x() + text.size() <= width()) {
+        line = current_screen_data()->at(current_cursor_y());
+        line->insertAtPos(current_cursor_x(), text, m_current_text_style);
+        current_cursor_pos().rx() += text.size();
+    } else {
+        for (int i = 0; i < text.size();) {
+            if (current_cursor_x() == width()) {
+                current_cursor_pos().setX(0);
+                lineFeed();
+            }
+            QString toLine = text.mid(i,current_screen_data()->width() - current_cursor_x());
+            line = current_screen_data()->at(current_cursor_y());
+            line->insertAtPos(current_cursor_x(),toLine,m_current_text_style);
+            i+= toLine.size();
+            current_cursor_pos().rx() += toLine.size();
+        }
+    }
+
     m_cursor_changed = true;
 }
 
@@ -386,7 +404,7 @@ void Screen::scheduleFlash()
     m_flash = true;
 }
 
-TextSegmentLine *Screen::at(int i) const
+Line *Screen::at(int i) const
 {
     return current_screen_data()->at(i);
 }

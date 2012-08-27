@@ -23,7 +23,7 @@
 
 #include <QObject>
 
-#include "text_segment.h"
+#include "text.h"
 #include "color_palette.h"
 #include "parser.h"
 #include "yat_pty.h"
@@ -37,7 +37,7 @@
 #include <QtGui/QFontMetrics>
 #include <QtCore/QVarLengthArray>
 
-class TextSegmentLine;
+class Line;
 
 class Screen : public QObject
 {
@@ -112,7 +112,7 @@ public:
 
     void scheduleFlash();
 
-    Q_INVOKABLE TextSegmentLine *at(int i) const;
+    Q_INVOKABLE Line *at(int i) const;
 
     Q_INVOKABLE void printScreen() const;
 
@@ -156,7 +156,7 @@ private:
     void doScrollOneLineUpAt(int line);
     void doScrollOneLineDownAt(int line);
 
-    TextSegmentLine *line_at_cursor();
+    Line *line_at_cursor();
     ScreenData *current_screen_data() const { return m_screen_stack[m_screen_stack.size()-1]; }
     QPoint &current_cursor_pos() { return m_cursor_stack[m_cursor_stack.size()-1]; }
     int current_cursor_x() const { return m_cursor_stack.at(m_cursor_stack.size()-1).x(); }

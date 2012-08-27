@@ -105,18 +105,17 @@ Rectangle {
         opacity: 0
         SequentialAnimation {
             id: flashAnimation
-            property int  duration: 1
             NumberAnimation {
                 target: flash
                 property: "opacity"
                 to: 1
-                duration: duration/2
+                duration: 75
             }
             NumberAnimation {
                 target: flash
                 property: "opacity"
                 to: 0
-                duration: duration/2
+                duration: 75
             }
         }
     }

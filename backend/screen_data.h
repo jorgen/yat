@@ -24,7 +24,7 @@
 #include <QtCore/QVector>
 #include <QtCore/QPoint>
 
-class TextSegmentLine;
+class Line;
 class Screen;
 
 class ScreenData
@@ -37,7 +37,7 @@ public:
     int height() const;
     void setHeight(int height);
 
-    TextSegmentLine *at(int index) const;
+    Line *at(int index) const;
     QPoint cursorPosition() const;
 
     void clearToEndOfLine(int row, int from_char);
@@ -46,15 +46,13 @@ public:
     void clearLine(int index);
     void clear();
 
-    QPoint insertText(const QPoint &cursor, const QString &text);
-
     void scrollOneLineUp(int from_row);
 
     void printScreen() const;
 private:
     Screen *m_screen;
     int m_width;
-    QVector<TextSegmentLine *> m_screen_lines;
+    QVector<Line *> m_screen_lines;
     QPoint m_cursor_pos;
 };
 

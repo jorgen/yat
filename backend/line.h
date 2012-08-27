@@ -23,7 +23,7 @@
 
 #include <QtCore/QObject>
 
-#include "text_segment.h"
+#include "text.h"
 
 class Screen;
 
@@ -44,7 +44,7 @@ public:
     int end_index;
 
     int old_index;
-    TextSegment *text_segment;
+    Text *text_segment;
     bool changed;
 
     void setStyle(const TextStyle &style) {
@@ -54,12 +54,12 @@ public:
     }
 };
 
-class TextSegmentLine : public QObject
+class Line : public QObject
 {
     Q_OBJECT
 public:
-    TextSegmentLine(Screen *screen);
-    ~TextSegmentLine();
+    Line(Screen *screen);
+    ~Line();
 
     Q_INVOKABLE Screen *screen() const;
 
@@ -68,7 +68,7 @@ public:
     void setWidth(int width);
 
     Q_INVOKABLE int size() const;
-    Q_INVOKABLE TextSegment *at(int i);
+    Q_INVOKABLE Text *at(int i);
 
     void insertAtPos(int i, const QString &text, const TextStyle &style);
 
@@ -81,14 +81,14 @@ signals:
 private:
     void dispatchEvents();
 
-    TextSegment *createTextSegment(const TextStyleLine &style_line);
+    Text *createTextSegment(const TextStyleLine &style_line);
 
     Screen *m_screen;
     QString m_text_line;
     QList<TextStyleLine> m_style_list;
     QList<int> m_indexes_to_remove;
 
-    QList<TextSegment *> m_unused_segments;
+    QList<Text *> m_unused_segments;
     bool m_changed;
     bool m_reset;
 };

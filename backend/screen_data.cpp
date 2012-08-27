@@ -20,7 +20,7 @@
 
 #include "screen_data.h"
 
-#include "text_segment_line.h"
+#include "line.h"
 #include "screen.h"
 
 #include <stdio.h>
@@ -63,7 +63,7 @@ void ScreenData::setHeight(int height)
     } else if (m_screen_lines.size() < height){
         int rowsToAdd = height - m_screen_lines.size();
         for (int i = 0; i < rowsToAdd; i++) {
-            TextSegmentLine *newLine = new TextSegmentLine(m_screen);
+            Line *newLine = new Line(m_screen);
             m_screen_lines.append(newLine);
         }
     }
@@ -71,7 +71,7 @@ void ScreenData::setHeight(int height)
         m_cursor_pos.setY(m_screen_lines.size()-1);
 }
 
-TextSegmentLine *ScreenData::at(int index) const
+Line *ScreenData::at(int index) const
 {
     return m_screen_lines.at(index);
 }
@@ -89,7 +89,7 @@ void ScreenData::clearToEndOfLine(int row, int from_char)
 void ScreenData::clearToEndOfScreen(int row)
 {
     for(int i = row; i < m_screen_lines.size(); i++) {
-        TextSegmentLine *line = m_screen_lines.at(i);
+        Line *line = m_screen_lines.at(i);
         line->clear();
     }
 }
@@ -97,7 +97,7 @@ void ScreenData::clearToEndOfScreen(int row)
 void ScreenData::clearToBeginningOfScreen(int row)
 {
     for (int i = row; i >= 0; i--) {
-        TextSegmentLine *line = m_screen_lines.at(i);
+        Line *line = m_screen_lines.at(i);
         line->clear();
     }
 }
@@ -110,42 +110,15 @@ void ScreenData::clearLine(int index)
 void ScreenData::clear()
 {
     for (int i = 0; i < m_screen_lines.size(); i++) {
-        TextSegmentLine *line = m_screen_lines.at(i);
+        Line *line = m_screen_lines.at(i);
         line->clear();
     }
 }
 
-QPoint ScreenData::insertText(const QPoint &cursor, const QString &text)
-{
-    TextSegmentLine *line;
-    QPoint new_cursor_pos = cursor;
-
-    if (cursor.x() + text.size() <= width()) {
-        line = m_screen_lines.at(cursor.y());
-        line->insertAtPos(cursor.x(), text, m_screen->currentTextStyle());
-        new_cursor_pos.rx() += text.size();
-    } else {
-        for (int i = 0; i < text.size();) {
-            if (new_cursor_pos.x() == width()) {
-                new_cursor_pos.setX(0);
-                //dont do linefeed but scroll instead
-                m_screen->lineFeed();
-            }
-            QString toLine = text.mid(i,width() - new_cursor_pos.x());
-            line = m_screen_lines.at(new_cursor_pos.y());
-            line->insertAtPos(new_cursor_pos.x(),toLine,m_screen->currentTextStyle());
-            i+= toLine.size();
-            new_cursor_pos.rx() += toLine.size();
-        }
-    }
-    return new_cursor_pos;
-
-}
-
 void ScreenData::scrollOneLineUp(int from_row)
 {
-    TextSegmentLine *firstLine = m_screen_lines.at(0);
-    TextSegmentLine **lines = m_screen_lines.data();
+    Line *firstLine = m_screen_lines.at(0);
+    Line **lines = m_screen_lines.data();
     memmove(lines,lines+1,sizeof(lines) * from_row);
     firstLine->clear();
     m_screen_lines.replace(from_row,firstLine);

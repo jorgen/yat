@@ -18,14 +18,14 @@
 *
 ***************************************************************************************************/
 
-#include "text_segment_line.h"
+#include "line.h"
 
-#include "text_segment.h"
+#include "text.h"
 #include "screen.h"
 
 #include <QtCore/QDebug>
 
-TextSegmentLine::TextSegmentLine(Screen *screen)
+Line::Line(Screen *screen)
     : QObject(screen)
     , m_screen(screen)
     , m_changed(true)
@@ -36,19 +36,19 @@ TextSegmentLine::TextSegmentLine(Screen *screen)
     clear();
 
     connect(screen,&Screen::dispatchLineChanges,
-            this, &TextSegmentLine::dispatchEvents);
+            this, &Line::dispatchEvents);
 }
 
-TextSegmentLine::~TextSegmentLine()
+Line::~Line()
 {
 }
 
-Screen *TextSegmentLine::screen() const
+Screen *Line::screen() const
 {
     return m_screen;
 }
 
-void TextSegmentLine::clear()
+void Line::clear()
 {
     m_text_line.fill(QChar(' '));
 
@@ -63,7 +63,7 @@ void TextSegmentLine::clear()
     m_changed = true;
 }
 
-void TextSegmentLine::clearToEndOfLine(int index)
+void Line::clearToEndOfLine(int index)
 {
     m_changed = true;
 
@@ -99,7 +99,7 @@ void TextSegmentLine::clearToEndOfLine(int index)
     }
 }
 
-void TextSegmentLine::setWidth(int width)
+void Line::setWidth(int width)
 {
     if (m_text_line.size() > width) {
         m_text_line.chop(m_text_line.size() - width);
@@ -110,12 +110,12 @@ void TextSegmentLine::setWidth(int width)
     clear();
 }
 
-int TextSegmentLine::size() const
+int Line::size() const
 {
     return m_style_list.size();
 }
 
-TextSegment *TextSegmentLine::at(int i)
+Text *Line::at(int i)
 {
     if (i < 0 || i >= m_style_list.size())
         return 0;
@@ -128,7 +128,7 @@ TextSegment *TextSegmentLine::at(int i)
     return m_style_list.at(i).text_segment;
 }
 
-void TextSegmentLine::insertAtPos(int pos, const QString &text, const TextStyle &style)
+void Line::insertAtPos(int pos, const QString &text, const TextStyle &style)
 {
     Q_ASSERT(pos + text.size() <= m_text_line.size());
 
@@ -201,7 +201,7 @@ bool lessThanInverse(int x1, int x2) {
     return x2 < x1;
 }
 
-void TextSegmentLine::dispatchEvents()
+void Line::dispatchEvents()
 {
     if (!m_changed) {
         return;
@@ -241,13 +241,13 @@ void TextSegmentLine::dispatchEvents()
     m_unused_segments.clear();
 }
 
-TextSegment *TextSegmentLine::createTextSegment(const TextStyleLine &style_line)
+Text *Line::createTextSegment(const TextStyleLine &style_line)
 {
-    TextSegment *to_return = 0;
+    Text *to_return = 0;
     if (m_unused_segments.size()) {
         to_return = m_unused_segments.takeLast();
     } else {
-        to_return = new TextSegment(&m_text_line, m_screen);
+        to_return = new Text(&m_text_line, m_screen);
     }
 
     to_return->setStringSegment(style_line.start_index, style_line.end_index);
