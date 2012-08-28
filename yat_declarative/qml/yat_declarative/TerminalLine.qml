@@ -34,6 +34,8 @@ Item{
         }
 
         onTextSegmentRemoved: {
+            if (lineModel.count == 0)
+                console.log("Remove when there is no indexes");
             lineModel.remove(index);
         }
 

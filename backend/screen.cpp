@@ -32,7 +32,9 @@ Screen::Screen(QObject *parent)
     : QObject(parent)
     , m_parser(this)
     , m_cursor_visible(true)
+    , m_cursor_visible_changed(false)
     , m_cursor_blinking(true)
+    , m_cursor_blinking_changed(false)
     , m_font_metrics(m_font)
     , m_current_text_style(TextStyle(TextStyle::Normal,ColorPalette::DefaultForground))
     , m_flash(false)
@@ -92,6 +94,10 @@ void Screen::setHeight(int height)
         return;
 
     data->setHeight(height);
+
+    if(current_cursor_y() >= height)
+        current_cursor_pos().setY(height - 1);
+
 
     if (size_difference > 0) {
         emit linesRemoved(size_difference);
@@ -196,7 +202,7 @@ TextStyle Screen::defaultTextStyle() const
 
 QPoint Screen::cursorPosition() const
 {
-    return m_screen_stack.last()->cursorPosition();
+    return QPoint(current_cursor_x(),current_cursor_y());
 }
 
 void Screen::moveCursorHome()
@@ -254,10 +260,8 @@ void Screen::moveCursor(int x, int y)
 
 void Screen::setCursorVisible(bool visible)
 {
-    int emitChange = visible != m_cursor_visible;
     m_cursor_visible = visible;
-    if (emitChange)
-        cursorVisibleChanged();
+    m_cursor_visible_changed = true;
 }
 
 bool Screen::cursorVisible()
@@ -265,12 +269,10 @@ bool Screen::cursorVisible()
     return m_cursor_visible;
 }
 
-void Screen::setBlinkingCursor(bool blinking)
+void Screen::setCursorBlinking(bool blinking)
 {
-    int emitChange = blinking != m_cursor_blinking;
     m_cursor_blinking = blinking;
-    if (emitChange)
-        emit cursorBlinkingChanged();
+    m_cursor_blinking_changed = true;
 }
 
 bool Screen::cursorBlinking()
@@ -379,13 +381,49 @@ const ColorPalette *Screen::colorPalette() const
 void Screen::lineFeed()
 {
     int cursor_y = current_cursor_y();
-    if(cursor_y == current_screen_data()->height() -1) {
-        current_screen_data()->scrollOneLineUp(cursor_y);
-        doScrollOneLineUpAt(cursor_y);
+    if(cursor_y == current_screen_data()->scrollAreaEnd()) {
+            current_screen_data()->moveLine(current_screen_data()->scrollAreaStart(),cursor_y);
+        scheduleMoveSignal(current_screen_data()->scrollAreaStart(),cursor_y);
     } else {
-        moveCursor(0,cursor_y+2);
+        current_cursor_pos().ry()++;
         m_cursor_changed = true;
     }
+}
+
+void Screen::reverseLineFeed()
+{
+    int cursor_y = current_cursor_y();
+    if (cursor_y == current_screen_data()->scrollAreaStart()) {
+        current_screen_data()->moveLine(current_screen_data()->scrollAreaEnd(), cursor_y);
+        scheduleMoveSignal(current_screen_data()->scrollAreaEnd(), cursor_y);
+    } else {
+        current_cursor_pos().ry()--;
+        m_cursor_changed = true;
+    }
+}
+
+void Screen::insertLines(int count)
+{
+    for (int i = 0; i < count; i++) {
+        current_screen_data()->moveLine(current_screen_data()->scrollAreaEnd(),current_cursor_y());
+        scheduleMoveSignal(current_screen_data()->scrollAreaEnd(),current_cursor_y());
+    }
+}
+
+void Screen::deleteLines(int count)
+{
+    for (int i = 0; i < count; i++) {
+        current_screen_data()->moveLine(current_cursor_y(),current_screen_data()->scrollAreaEnd());
+        scheduleMoveSignal(current_cursor_y(),current_screen_data()->scrollAreaEnd());
+    }
+
+}
+
+void Screen::setScrollArea(int from, int to)
+{
+    from--;
+    to--;
+    current_screen_data()->setScrollArea(from,to);
 }
 
 void Screen::setTitle(const QString &title)
@@ -429,16 +467,16 @@ void Screen::dispatchChanges()
         for (int i = 0; i < m_update_actions.size(); i++) {
             UpdateAction action = m_update_actions.at(i);
             switch(action.action) {
-            case UpdateAction::ScrollUp: {
-                int lines_to_move = action.count % (action.from_line + 1);
-                if (lines_to_move)
-                    emit scrollUp(action.from_line, lines_to_move);
-            }
-                break;
-            case UpdateAction::ScrollDown: {
-                int lines_to_move = action.count % (height() - action.from_line);
-                if (lines_to_move)
-                    emit scrollDown(action.from_line, lines_to_move);
+            case UpdateAction::MoveLine: {
+                if (action.from_line > action.to_line) {
+                    int lines_to_move = action.count % ((action.from_line - action.to_line) + 1);
+                    if (lines_to_move)
+                        emit moveLines(action.from_line - (lines_to_move -1), action.to_line, lines_to_move);
+                } else {
+                    int lines_to_move = action.count % ((action.to_line - action.from_line) + 1);
+                    if (lines_to_move)
+                        emit moveLines(action.from_line, action.to_line - (lines_to_move -1), lines_to_move);
+                }
             }
                 break;
             default:
@@ -456,6 +494,16 @@ void Screen::dispatchChanges()
     if (m_cursor_changed) {
         m_cursor_changed = false;
         emit cursorPositionChanged(current_cursor_x(), current_cursor_y());
+    }
+
+    if (m_cursor_visible_changed) {
+        m_cursor_visible_changed = false;
+        emit cursorVisibleChanged();
+    }
+
+    if (m_cursor_blinking_changed) {
+        m_cursor_blinking_changed = false;
+        emit cursorBlinkingChanged();
     }
 
     m_update_actions.clear();
@@ -487,7 +535,7 @@ QString Screen::characterMap() const
 
 void Screen::readData()
 {
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 60; i++) {
         QByteArray data = m_pty.read();
 
         m_parser.addData(data);
@@ -499,24 +547,14 @@ void Screen::readData()
     dispatchChanges();
 }
 
-void Screen::doScrollOneLineUpAt(int line)
+void Screen::scheduleMoveSignal(qint16 from, qint16 to)
 {
     if (m_update_actions.size() &&
-            m_update_actions.last().action == UpdateAction::ScrollUp &&
-            m_update_actions.last().from_line == line) {
+            m_update_actions.last().action == UpdateAction::MoveLine &&
+            m_update_actions.last().from_line == from &&
+            m_update_actions.last().to_line == to) {
         m_update_actions.last().count++;
     } else {
-        m_update_actions << UpdateAction(UpdateAction::ScrollUp, line, 1);
-    }
-}
-
-void Screen::doScrollOneLineDownAt(int line)
-{
-    if (m_update_actions.size() &&
-            m_update_actions.last().action == UpdateAction::ScrollDown &&
-            m_update_actions.last().from_line == line) {
-        m_update_actions.last().count++;
-    } else {
-        m_update_actions << UpdateAction(UpdateAction::ScrollDown,line,1);
+        m_update_actions << UpdateAction(UpdateAction::MoveLine, from, to, 1);
     }
 }

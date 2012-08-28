@@ -165,6 +165,10 @@ void Parser::decodeC1_7bit(uchar character)
     case C1_7bit::OSC:
         m_decode_state = DecodeOSC;
         break;
+    case C1_7bit::RI:
+        m_screen->reverseLineFeed();
+        tokenFinished();
+        break;
     case '%':
     case '#':
     case '(':
@@ -349,8 +353,26 @@ void Parser::decodeCSI(uchar character)
                         }
                         tokenFinished();
                         break;
-                    case FinalBytesNoIntermediate::IL:
-                    case FinalBytesNoIntermediate::DL:
+                    case FinalBytesNoIntermediate::IL: {
+                        appendParameter();
+                        int count = 1;
+                        if (m_parameters.size()) {
+                            count = m_parameters.at(0);
+                        }
+                        m_screen->insertLines(count);
+                        tokenFinished();
+                    }
+                        break;
+                    case FinalBytesNoIntermediate::DL: {
+                        appendParameter();
+                        int count = 1;
+                        if (m_parameters.size()) {
+                            count = m_parameters.at(0);
+                        }
+                        m_screen->deleteLines(count);
+                        tokenFinished();
+                    }
+                        break;
                     case FinalBytesNoIntermediate::EF:
                     case FinalBytesNoIntermediate::EA:
                     case FinalBytesNoIntermediate::DCH:
@@ -408,6 +430,9 @@ void Parser::decodeCSI(uchar character)
                                 case 1:
                                     qDebug() << "Application Cursor Keys";
                                     break;
+                                case 12:
+                                    m_screen->setCursorBlinking(true);
+                                    break;
                                 case 25:
                                     m_screen->setCursorVisible(true);
                                     break;
@@ -442,8 +467,11 @@ void Parser::decodeCSI(uchar character)
                             case -'?':
                                 if (m_parameters.size() > 1) {
                                     switch(m_parameters.at(1)) {
+                                    case 1:
+                                        qDebug() << "Normal cursor keys";
+                                        break;
                                     case 12:
-                                        m_screen->setBlinkingCursor(false);
+                                        m_screen->setCursorBlinking(false);
                                         break;
                                     case 25:
                                         m_screen->setCursorVisible(false);
@@ -453,7 +481,7 @@ void Parser::decodeCSI(uchar character)
                                         m_screen->restoreScreenData();
                                         break;
                                     default:
-                                        qDebug() << "unhandled CSI FinalBytesNoIntermediate::RM with "
+                                        qDebug() << "unhandled CSI FinalBytesNoIntermediate::RM? with "
                                                     "parameter " << m_parameters.at(1);
                                     }
                                 } else {
@@ -503,7 +531,7 @@ void Parser::decodeCSI(uchar character)
                                 m_screen->setTextStyle(TextStyle::Blinking, false);
                                 break;
                             case 27:
-                                qDebug() << "Positive SGR unknown";
+                                m_screen->setTextStyle(TextStyle::Inverse, false);
                                 break;
                             case 28:
                                 qDebug() << "SGR: Visible text is allways on";
@@ -543,7 +571,7 @@ void Parser::decodeCSI(uchar character)
                     }
                         break;
                     case FinalBytesNoIntermediate::DSR:
-                        qDebug() << "REEEEEEEEEEEEEEEPORT";
+                        qDebug() << "report";
                     case FinalBytesNoIntermediate::DAQ:
                     case FinalBytesNoIntermediate::Reserved0:
                     case FinalBytesNoIntermediate::Reserved1:
@@ -551,8 +579,16 @@ void Parser::decodeCSI(uchar character)
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::Reserved2:
-                        qDebug() << "Reserved2!";
                         appendParameter();
+                        if (m_parameters.size() == 2) {
+                            if (m_parameters.at(0) >= 0) {
+                                m_screen->setScrollArea(m_parameters.at(0),m_parameters.at(1));
+                            } else {
+                                qDebug() << "Unknown value for scrollRegion";
+                            }
+                        } else {
+                            qDebug() << "Unknown parameterset for scrollRegion";
+                        }
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::Reserved3:

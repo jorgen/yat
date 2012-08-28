@@ -25,23 +25,17 @@ Rectangle {
 
         target: terminal.screen
 
-        onScrollUp: {
-            screenModel.move(0,from_line - (count -1), count);
-        }
-
-        onScrollDown: {
-            console.log("FIXME SCROLLDOWN TerminalScreen.qml");
+        onMoveLines: {
+            screenModel.move(from_line, to_line, count);
         }
 
         onLinesInserted: {
-            console.log("lines inserted");
             var model_size = screenModel.count;
             for (var i = 0; i < count; i++) {
                 screenModel.append({
                                        "line": terminal.screen.at(model_size + i)
                                    });
             }
-
         }
 
         onLinesRemoved: {
@@ -55,8 +49,8 @@ Rectangle {
         }
 
         onCursorPositionChanged: {
-            cursor.x = x * cursor.width;
-            cursor.y = y * cursor.height
+            cursor.x = x * screen.charWidth;
+            cursor.y = y * screen.lineHeight
         }
 
         onReset: resetModel();

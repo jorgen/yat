@@ -89,7 +89,7 @@ public:
     void moveCursor(int x, int y);
     void setCursorVisible(bool visible);
     bool cursorVisible();
-    void setBlinkingCursor(bool blinking);
+    void setCursorBlinking(bool blinking);
     bool cursorBlinking();
     void saveCursor();
     void restoreCursor();
@@ -106,6 +106,11 @@ public:
     void eraseScreen();
 
     void lineFeed();
+    void reverseLineFeed();
+    void insertLines(int count);
+    void deleteLines(int count);
+
+    void setScrollArea(int from, int to);
 
     void setTitle(const QString &title);
     QString title() const;
@@ -127,8 +132,7 @@ public:
     QString characterMap() const;
 
 signals:
-    void scrollUp(int from_line, int count);
-    void scrollDown(int from_line, int count);
+    void moveLines(int from_line, int to_line, int count);
 
     void linesInserted(int count);
     void linesRemoved(int count);
@@ -153,8 +157,7 @@ signals:
 private:
 
     void readData();
-    void doScrollOneLineUpAt(int line);
-    void doScrollOneLineDownAt(int line);
+    void scheduleMoveSignal(qint16 from, qint16 to);
 
     Line *line_at_cursor();
     ScreenData *current_screen_data() const { return m_screen_stack[m_screen_stack.size()-1]; }
@@ -170,7 +173,9 @@ private:
     QVector<QPoint> m_cursor_stack;
 
     bool m_cursor_visible;
+    bool m_cursor_visible_changed;
     bool m_cursor_blinking;
+    bool m_cursor_blinking_changed;
 
     QFont m_font;
     QFontMetricsF m_font_metrics;

@@ -37,8 +37,10 @@ public:
     int height() const;
     void setHeight(int height);
 
+    int scrollAreaStart() const;
+    int scrollAreaEnd() const;
+
     Line *at(int index) const;
-    QPoint cursorPosition() const;
 
     void clearToEndOfLine(int row, int from_char);
     void clearToEndOfScreen(int row);
@@ -46,14 +48,18 @@ public:
     void clearLine(int index);
     void clear();
 
-    void scrollOneLineUp(int from_row);
+    void setScrollArea(int from, int to);
+
+    void moveLine(int from, int to);
 
     void printScreen() const;
 private:
     Screen *m_screen;
     int m_width;
     QVector<Line *> m_screen_lines;
-    QPoint m_cursor_pos;
+    int m_scroll_start;
+    int m_scroll_end;
+    bool m_scroll_area_set;
 };
 
 #endif // SCREENDATA_H

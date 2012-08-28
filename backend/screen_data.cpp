@@ -26,7 +26,10 @@
 #include <stdio.h>
 
 ScreenData::ScreenData(Screen *screen)
-    :m_screen(screen)
+    : m_screen(screen)
+    , m_scroll_start(0)
+    , m_scroll_end(0)
+    , m_scroll_area_set(false)
 {
 }
 
@@ -70,18 +73,23 @@ void ScreenData::setHeight(int height)
             m_screen_lines.append(newLine);
         }
     }
-    if(m_cursor_pos.y() >= m_screen_lines.size())
-        m_cursor_pos.setY(m_screen_lines.size()-1);
+    if (!m_scroll_area_set)
+        m_scroll_end = height - 1;
+}
+
+int ScreenData::scrollAreaStart() const
+{
+    return m_scroll_start;
+}
+
+int ScreenData::scrollAreaEnd() const
+{
+    return m_scroll_end;
 }
 
 Line *ScreenData::at(int index) const
 {
     return m_screen_lines.at(index);
-}
-
-QPoint ScreenData::cursorPosition() const
-{
-    return m_cursor_pos;
 }
 
 void ScreenData::clearToEndOfLine(int row, int from_char)
@@ -118,13 +126,33 @@ void ScreenData::clear()
     }
 }
 
-void ScreenData::scrollOneLineUp(int from_row)
+void ScreenData::setScrollArea(int from, int to)
 {
-    Line *firstLine = m_screen_lines.at(0);
-    Line **lines = m_screen_lines.data();
-    memmove(lines,lines+1,sizeof(lines) * from_row);
-    firstLine->clear();
-    m_screen_lines.replace(from_row,firstLine);
+    m_scroll_area_set = true;
+    m_scroll_start = from;
+    m_scroll_end = to;
+}
+
+void ScreenData::moveLine(int from, int to)
+{
+    if (from == to)
+        return;
+
+    if (from < to) {
+        int lines_to_shift = to - from;
+        Line *from_line = m_screen_lines.at(from);
+        Line **from_line_ptr = m_screen_lines.data() + from;
+        memmove(from_line_ptr, from_line_ptr+1, sizeof(from_line_ptr) * lines_to_shift);
+        from_line->clear();
+        m_screen_lines.replace(to,from_line);
+    } else {
+        int lines_to_shift = from - to;
+        Line *from_line = m_screen_lines.at(from);
+        Line **to_line_ptr = const_cast<Line **>(m_screen_lines.constData() + to);
+        memmove(to_line_ptr + 1, to_line_ptr, sizeof(to_line_ptr) * lines_to_shift);
+        from_line->clear();
+        m_screen_lines.replace(to,from_line);
+    }
 }
 
 void ScreenData::printScreen() const

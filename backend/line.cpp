@@ -52,10 +52,13 @@ void Line::clear()
 {
     m_text_line.fill(QChar(' '));
 
+    m_indexes_to_remove.clear();
+
     for (int i = 0; i < m_style_list.size(); i++) {
         if (m_style_list.at(i).text_segment)
             m_unused_segments.append(m_style_list.at(i).text_segment);
     }
+
     m_style_list.clear();
     m_style_list << TextStyleLine(m_screen->defaultTextStyle(),0,m_text_line.size() -1);
 
@@ -224,7 +227,7 @@ void Line::dispatchEvents()
             continue;
 
         if (current_style.old_index == -1) {
-            emit newTextSegment(i,i);
+            emit newTextSegment(i);
         } else if (current_style.changed) {
             m_style_list[i].text_segment->setStringSegment(current_style.start_index, current_style.end_index);
             m_style_list[i].text_segment->setTextStyle(current_style);

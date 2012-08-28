@@ -21,32 +21,37 @@
 #ifndef UPDATE_ACTION_H
 #define UPDATE_ACTION_H
 
+#include <QtCore/qnamespace.h>
+
 class UpdateAction
 {
 public:
     enum Action {
         InvalidAction,
-        ScrollUp,
+        MoveLine,
         ScrollDown,
         LinesInserted,
         LinesRemoved
     };
 
-    UpdateAction(Action action, int from_line, int count)
+    UpdateAction(Action action, qint16 from_line, qint16 to_line, qint16 count)
         : action(action)
         , from_line(from_line)
+        , to_line(to_line)
         , count(count)
     { }
 
     UpdateAction(Action action, int count)
         : action(action)
         , from_line(0)
+        , to_line(0)
         , count(count)
     { }
 
     Action action;
-    int from_line;
-    int count;
+    qint16 from_line;
+    qint16 to_line;
+    qint16 count;
 };
 
 #endif // UPDATE_ACTION_H

@@ -73,7 +73,7 @@ public:
     void insertAtPos(int i, const QString &text, const TextStyle &style);
 
 signals:
-    void newTextSegment(int index, int data_index);
+    void newTextSegment(int index);
     void textSegmentRemoved(int index);
 
     void reset();
