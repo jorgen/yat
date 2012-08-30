@@ -19,6 +19,7 @@ Rectangle {
         width: paintedWidth
         textFormat: Text.PlainText
     }
+
     Component.onCompleted: {
         textSegment.dispatchEvents();
     }

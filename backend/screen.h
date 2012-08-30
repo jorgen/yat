@@ -130,6 +130,10 @@ public:
 
     void setCharacterMap(const QString &string);
     QString characterMap() const;
+    void setApplicationCursorKeysMode(bool enable);
+    bool applicationCursorKeyMode() const;
+
+    Q_INVOKABLE void sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers modifiers);
 
 signals:
     void moveLines(int from_line, int to_line, int count);
@@ -188,6 +192,7 @@ private:
     bool m_flash;
     bool m_cursor_changed;
     bool m_reset;
+    bool m_application_cursor_key_mode;
 };
 
 #endif // TERMINALSCREEN_H

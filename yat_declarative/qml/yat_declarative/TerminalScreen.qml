@@ -76,7 +76,7 @@ Rectangle {
         id: keyHandler
         focus: true
         Keys.onPressed: {
-            terminal.screen.write(event.text)
+            terminal.screen.sendKey(event.text, event.key, event.modifiers);
             if (event.text === "?") {
                 terminal.screen.printScreen()
             }

@@ -44,6 +44,7 @@ public:
 
     bool moreInput();
 
+    bool hangupReceived() const;
 signals:
     void readyRead();
 

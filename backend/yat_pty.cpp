@@ -24,6 +24,7 @@
 
 #include <pty.h>
 #include <fcntl.h>
+#include <poll.h>
 
 #include <QtCore/QSize>
 #include <QtCore/QString>
@@ -130,6 +131,19 @@ bool YatPty::moreInput()
     return data_in_buffer;
 }
 
+bool YatPty::hangupReceived() const
+{
+    struct pollfd poll_data;
+    poll_data.fd = m_master_fd;
+    poll_data.events = POLLHUP;
+    int ret = poll(&poll_data,1,0);
+    if (ret < 0) {
+        qDebug() << "hangupReceived() error";
+        return false;
+    }
+    return ret;
+
+}
 
 void YatPty::socketQuit()
 {

@@ -40,6 +40,17 @@ public:
         background = style.background;
     }
 
+    TextStyleLine()
+        : TextStyle(TextStyle::Normal, ColorPalette::Black)
+        , start_index(0)
+        , end_index(0)
+        , old_index(-1)
+        , text_segment(0)
+        , changed(false)
+    {
+
+    }
+
     int start_index;
     int end_index;
 
@@ -85,10 +96,10 @@ private:
 
     Screen *m_screen;
     QString m_text_line;
-    QList<TextStyleLine> m_style_list;
+    QVector<TextStyleLine> m_style_list;
     QList<int> m_indexes_to_remove;
 
-    QList<Text *> m_unused_segments;
+    QVector<Text *> m_unused_segments;
     bool m_changed;
     bool m_reset;
 };

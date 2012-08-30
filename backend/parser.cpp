@@ -428,7 +428,7 @@ void Parser::decodeCSI(uchar character)
                             if (m_parameters.size() > 1) {
                                 switch (m_parameters.at(1)) {
                                 case 1:
-                                    qDebug() << "Application Cursor Keys";
+                                    m_screen->setApplicationCursorKeysMode(true);
                                     break;
                                 case 12:
                                     m_screen->setCursorBlinking(true);

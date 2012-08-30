@@ -32,6 +32,8 @@ Line::Line(Screen *screen)
     , m_reset(true)
 {
     m_text_line.resize(screen->width());
+    m_style_list.reserve(25);
+    m_unused_segments.reserve(25);
 
     clear();
 
@@ -60,7 +62,7 @@ void Line::clear()
     }
 
     m_style_list.clear();
-    m_style_list << TextStyleLine(m_screen->defaultTextStyle(),0,m_text_line.size() -1);
+    m_style_list.append(TextStyleLine(m_screen->defaultTextStyle(),0,m_text_line.size() -1));
 
     m_reset = true;
     m_changed = true;
@@ -78,7 +80,7 @@ void Line::clearToEndOfLine(int index)
         if (found) {
             if (current_style.old_index >= 0)
                 m_indexes_to_remove.append(current_style.old_index);
-            m_style_list.removeAt(i);
+            m_style_list.remove(i);
             i--;
         } else {
             if (index <= current_style.end_index) {
@@ -86,7 +88,7 @@ void Line::clearToEndOfLine(int index)
                 if (current_style.start_index == index) {
                     if (current_style.old_index >= 0)
                         m_indexes_to_remove.append(current_style.old_index);
-                    m_style_list.removeAt(i);
+                    m_style_list.remove(i);
                     i--;
                 } else {
                     m_style_list[i].changed = true;
@@ -146,7 +148,7 @@ void Line::insertAtPos(int pos, const QString &text, const TextStyle &style)
                     m_unused_segments.append(current_style.text_segment);
                 if (current_style.old_index >= 0)
                     m_indexes_to_remove.append(current_style.old_index);
-                m_style_list.removeAt(i);
+                m_style_list.remove(i);
                 i--;
             } else if (current_style.start_index <= pos + text.size()) {
                 m_style_list[i].start_index = pos + text.size();
@@ -211,6 +213,7 @@ void Line::dispatchEvents()
     if (m_reset) {
         m_reset = false;
         m_changed = false;
+        m_indexes_to_remove.clear();
         emit reset();
         return;
     }
@@ -246,7 +249,8 @@ Text *Line::createTextSegment(const TextStyleLine &style_line)
 {
     Text *to_return = 0;
     if (m_unused_segments.size()) {
-        to_return = m_unused_segments.takeLast();
+        to_return = m_unused_segments.at(m_unused_segments.size()-1);
+        m_unused_segments.remove(m_unused_segments.size() -1);
     } else {
         to_return = new Text(&m_text_line, m_screen);
     }
