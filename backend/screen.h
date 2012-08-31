@@ -112,6 +112,10 @@ public:
 
     void setScrollArea(int from, int to);
 
+    Q_INVOKABLE void setSelectionArea(const QPoint &start, const QPoint &end);
+    Q_INVOKABLE void resetSelection();
+
+
     void setTitle(const QString &title);
     QString title() const;
 
@@ -120,8 +124,6 @@ public:
     Q_INVOKABLE Line *at(int i) const;
 
     Q_INVOKABLE void printScreen() const;
-
-    Q_INVOKABLE void write(const QString &data);
 
     void dispatchChanges();
 
@@ -185,6 +187,10 @@ private:
     QFontMetricsF m_font_metrics;
     TextStyle m_current_text_style;
     QString m_title;
+
+    bool m_selection_valid;
+    QPoint m_selection_start;
+    QPoint m_selection_end;
 
     QString m_character_map;
 

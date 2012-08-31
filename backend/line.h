@@ -88,6 +88,8 @@ public:
     int index() const;
     void setIndex(int index);
 
+    QString textLine() const;
+
 signals:
     void indexChanged();
 

@@ -25,6 +25,8 @@
 
 #include <stdio.h>
 
+#include <QtGui/QGuiApplication>
+
 ScreenData::ScreenData(Screen *screen)
     : m_screen(screen)
     , m_scroll_start(0)
@@ -164,6 +166,26 @@ void ScreenData::updateIndexes(int from, int to)
     for (int i = from; i <= to; i++) {
         m_screen_lines.at(i)->setIndex(i);
     }
+}
+
+void ScreenData::sendSelectionToClipboard(const QPoint &start, const QPoint &end, QClipboard::Mode clipboard)
+{
+    QString data;
+    int start_line = start.y();
+    int end_line = end.y();
+    for (int i = start_line; i <= end_line; i++) {
+        int char_start = 0;
+        int char_end = m_width - 1;
+        if (i == start_line)
+            char_start = start.x();
+        else
+            data.append(QChar('\n'));
+        if (i == end_line)
+            char_end = end.x();
+        data += m_screen_lines.at(i)->textLine().mid(char_start, (char_end - char_start) + 1).trimmed();
+    }
+
+    QGuiApplication::clipboard()->setText(data, clipboard);
 }
 
 void ScreenData::printScreen() const

@@ -23,6 +23,7 @@
 
 #include <QtCore/QVector>
 #include <QtCore/QPoint>
+#include <QtGui/QClipboard>
 
 class Line;
 class Screen;
@@ -53,6 +54,8 @@ public:
     void moveLine(int from, int to);
 
     void updateIndexes(int from = 0, int to = -1);
+
+    void sendSelectionToClipboard(const QPoint &start, const QPoint &end, QClipboard::Mode clipboard);
 
     void printScreen() const;
 private:

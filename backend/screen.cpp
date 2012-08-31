@@ -38,6 +38,7 @@ Screen::Screen(QObject *parent)
     , m_cursor_blinking_changed(false)
     , m_font_metrics(m_font)
     , m_current_text_style(TextStyle(TextStyle::Normal,ColorPalette::DefaultForground))
+    , m_selection_valid(false)
     , m_flash(false)
     , m_cursor_changed(false)
     , m_reset(false)
@@ -427,6 +428,22 @@ void Screen::setScrollArea(int from, int to)
     current_screen_data()->setScrollArea(from,to);
 }
 
+void Screen::setSelectionArea(const QPoint &start, const QPoint &end)
+{
+
+    m_selection_start = start;
+    m_selection_end = end;
+
+    if (m_selection_start != m_selection_end)
+        current_screen_data()->sendSelectionToClipboard(m_selection_start, m_selection_end,QClipboard::Selection);
+}
+
+void Screen::resetSelection()
+{
+    m_selection_valid = false;
+    QGuiApplication::clipboard()->clear(QClipboard::Selection);
+}
+
 void Screen::setTitle(const QString &title)
 {
     m_title = title;
@@ -453,17 +470,13 @@ void Screen::printScreen() const
     current_screen_data()->printScreen();
 }
 
-void Screen::write(const QString &data)
-{
-    m_pty.write(data.toUtf8());
-}
-
 void Screen::dispatchChanges()
 {
     if (m_reset) {
         emit reset();
         m_update_actions.clear();
         m_reset = false;
+        qDebug() << "Resetting screen";
     } else {
         qint16 begin_move = -1;
         qint16 end_move = -1;
@@ -493,6 +506,9 @@ void Screen::dispatchChanges()
         if (begin_move >= 0) {
             current_screen_data()->updateIndexes(begin_move, end_move);
         }
+
+        emit dispatchLineChanges();
+        emit dispatchTextSegmentChanges();
     }
 
     if (m_flash) {
@@ -513,12 +529,11 @@ void Screen::dispatchChanges()
     if (m_cursor_blinking_changed) {
         m_cursor_blinking_changed = false;
         emit cursorBlinkingChanged();
+
     }
 
     m_update_actions.clear();
 
-    emit dispatchLineChanges();
-    emit dispatchTextSegmentChanges();
 }
 
 void Screen::sendPrimaryDA()
