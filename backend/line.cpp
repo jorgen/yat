@@ -28,6 +28,8 @@
 Line::Line(Screen *screen)
     : QObject(screen)
     , m_screen(screen)
+    , m_index(0)
+    , m_old_index(-1)
     , m_changed(true)
     , m_reset(true)
 {
@@ -200,12 +202,28 @@ void Line::insertAtPos(int pos, const QString &text, const TextStyle &style)
     }
 }
 
-bool lessThanInverse(int x1, int x2) {
+int Line::index() const
+{
+    return m_index;
+}
+
+void Line::setIndex(int index)
+{
+    m_index = index;
+}
+
+static bool lessThanInverse(int x1, int x2)
+{
     return x2 < x1;
 }
 
 void Line::dispatchEvents()
 {
+    if (m_index != m_old_index) {
+        m_old_index = m_index;
+        emit indexChanged();
+    }
+
     if (!m_changed) {
         return;
     }

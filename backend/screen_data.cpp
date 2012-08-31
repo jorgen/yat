@@ -71,6 +71,7 @@ void ScreenData::setHeight(int height)
         for (int i = 0; i < rowsToAdd; i++) {
             Line *newLine = new Line(m_screen);
             m_screen_lines.append(newLine);
+            newLine->setIndex(m_screen_lines.size()-1);
         }
     }
     if (!m_scroll_area_set)
@@ -152,6 +153,16 @@ void ScreenData::moveLine(int from, int to)
         memmove(to_line_ptr + 1, to_line_ptr, sizeof(to_line_ptr) * lines_to_shift);
         from_line->clear();
         m_screen_lines.replace(to,from_line);
+    }
+}
+
+void ScreenData::updateIndexes(int from, int to)
+{
+    if (to < 0) {
+        to = m_screen_lines.size() -1;
+    }
+    for (int i = from; i <= to; i++) {
+        m_screen_lines.at(i)->setIndex(i);
     }
 }
 

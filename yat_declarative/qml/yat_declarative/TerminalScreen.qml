@@ -7,17 +7,25 @@ Rectangle {
 
     color: "black"
 
-
-    ListView {
+    Repeater {
         anchors.fill: parent
-        model:  screenModel
-        delegate: TerminalLine {
-            id: lineDelegate
+        model:screenModel
+        TerminalLine {
+            id: terminalLine
             height: terminal.fontHeight
             width: parent.width
             textLine: line
+            x: 0
+            y: line.index * terminal.fontHeight
+            Connections {
+                id: terminalLineConnections
+                target: textLine
+
+                onIndexChanged: {
+                    terminalLine.y = terminalLine.textLine.index * terminalLine.height
+                }
+            }
         }
-        snapMode: ListView.SnapOneItem
     }
 
     Connections {

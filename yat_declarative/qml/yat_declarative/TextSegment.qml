@@ -6,21 +6,17 @@ Rectangle {
     height: text.paintedHeight
     width: text.paintedWidth
     anchors.top: parent.top
-    x: textSegment === null ? 0 : textSegment.index *  textSegment.screen.charWidth
+    x: textSegment.index *  textSegment.screen.charWidth
 
-    color: textSegment === null ? "white" : textSegment.backgroundColor
+    color: textSegment.backgroundColor
 
     Text {
         id: text
-        text: textSegment === null ? "" : textSegment.text
-        color: textSegment === null ? "black" : textSegment.foregroundColor
-        font: textSegment === null ? "Sans" : textSegment.screen.font
+        text: textSegment.text
+        color: textSegment.foregroundColor
+        font: textSegment.screen.font
         height: paintedHeight
         width: paintedWidth
         textFormat: Text.PlainText
-    }
-
-    Component.onCompleted: {
-        textSegment.dispatchEvents();
     }
 }

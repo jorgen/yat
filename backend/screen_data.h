@@ -52,6 +52,8 @@ public:
 
     void moveLine(int from, int to);
 
+    void updateIndexes(int from = 0, int to = -1);
+
     void printScreen() const;
 private:
     Screen *m_screen;

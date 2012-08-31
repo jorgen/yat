@@ -68,6 +68,8 @@ public:
 class Line : public QObject
 {
     Q_OBJECT
+
+    Q_PROPERTY(int index READ index NOTIFY indexChanged)
 public:
     Line(Screen *screen);
     ~Line();
@@ -83,7 +85,12 @@ public:
 
     void insertAtPos(int i, const QString &text, const TextStyle &style);
 
+    int index() const;
+    void setIndex(int index);
+
 signals:
+    void indexChanged();
+
     void newTextSegment(int index);
     void textSegmentRemoved(int index);
 
@@ -97,6 +104,8 @@ private:
     Screen *m_screen;
     QString m_text_line;
     QVector<TextStyleLine> m_style_list;
+    int m_index;
+    int m_old_index;
     QList<int> m_indexes_to_remove;
 
     QVector<Text *> m_unused_segments;

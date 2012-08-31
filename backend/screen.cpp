@@ -252,7 +252,6 @@ void Screen::moveCursor(int x, int y)
     current_cursor_pos().setX(x);
     int height = this->height();
     if (y >= height) {
-        qDebug() << "This is wrong";
         current_cursor_pos().setY(height-1);
     } else {
         current_cursor_pos().setY(y);
@@ -466,25 +465,33 @@ void Screen::dispatchChanges()
         m_update_actions.clear();
         m_reset = false;
     } else {
+        qint16 begin_move = -1;
+        qint16 end_move = -1;
         for (int i = 0; i < m_update_actions.size(); i++) {
             UpdateAction action = m_update_actions.at(i);
             switch(action.action) {
             case UpdateAction::MoveLine: {
-                if (action.from_line > action.to_line) {
-                    int lines_to_move = action.count % ((action.from_line - action.to_line) + 1);
-                    if (lines_to_move)
-                        emit moveLines(action.from_line - (lines_to_move -1), action.to_line, lines_to_move);
-                } else {
-                    int lines_to_move = action.count % ((action.to_line - action.from_line) + 1);
-                    if (lines_to_move)
-                        emit moveLines(action.from_line, action.to_line - (lines_to_move -1), lines_to_move);
-                }
+                if (begin_move < 0) {
+                    begin_move = qMin(action.to_line, action.from_line);
+                    end_move = qMax(action.to_line, action.from_line);
+                } else
+                    if (action.from_line > action.to_line) {
+                        begin_move = qMin(action.to_line, begin_move);
+                        end_move = qMax(action.from_line, end_move);
+                    } else {
+                        begin_move = qMin(action.from_line, begin_move);
+                        end_move = qMax(action.to_line, end_move);
+                    }
             }
                 break;
             default:
                 qDebug() << "unhandeled UpdatAction in TerminalScreen";
                 break;
             }
+        }
+
+        if (begin_move >= 0) {
+            current_screen_data()->updateIndexes(begin_move, end_move);
         }
     }
 

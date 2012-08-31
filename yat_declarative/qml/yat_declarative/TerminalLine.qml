@@ -8,7 +8,7 @@ Item{
         anchors.fill: parent
         model: lineModel
         TextSegment {
-            textSegment: textLine.at(index)
+            textSegment: segment
         }
     }
 
