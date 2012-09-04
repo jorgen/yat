@@ -212,9 +212,9 @@ void Line::setIndex(int index)
     m_index = index;
 }
 
-QString Line::textLine() const
+const QString *Line::textLine() const
 {
-    return m_text_line;
+    return &m_text_line;
 }
 
 static bool lessThanInverse(int x1, int x2)

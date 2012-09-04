@@ -49,6 +49,9 @@ class Screen : public QObject
     Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY screenTitleChanged)
     Q_PROPERTY(bool cursorVisible READ cursorVisible NOTIFY cursorVisibleChanged)
     Q_PROPERTY(bool cursorBlinking READ cursorBlinking NOTIFY cursorBlinkingChanged)
+    Q_PROPERTY(bool selectionEnabled READ selectionEnabled NOTIFY selectionEnabledChanged)
+    Q_PROPERTY(QPointF selectionAreaStart READ selectionAreaStart WRITE setSelectionAreaStart NOTIFY selectionAreaStartChanged)
+    Q_PROPERTY(QPointF selectionAreaEnd READ selectionAreaEnd WRITE setSelectionAreaEnd NOTIFY selectionAreaEndChanged)
 
 public:
     explicit Screen(QObject *parent = 0);
@@ -112,9 +115,20 @@ public:
 
     void setScrollArea(int from, int to);
 
-    Q_INVOKABLE void setSelectionArea(const QPoint &start, const QPoint &end);
-    Q_INVOKABLE void resetSelection();
+    QPointF selectionAreaStart() const;
+    void setSelectionAreaStart(const QPointF &start);
+    QPointF selectionAreaEnd() const;
+    void setSelectionAreaEnd(const QPointF &end);
 
+    bool selectionEnabled() const;
+    Q_INVOKABLE void setSelectionEnabled(bool enabled);
+
+    Q_INVOKABLE void sendSelectionToClipboard() const;
+    Q_INVOKABLE void sendSelectionToSelection() const;
+    Q_INVOKABLE void pasteFromSelection();
+    Q_INVOKABLE void pasteFromClipboard();
+
+    Q_INVOKABLE void doubleClicked(const QPointF &clicked);
 
     void setTitle(const QString &title);
     QString title() const;
@@ -155,6 +169,10 @@ signals:
     void dispatchLineChanges();
     void dispatchTextSegmentChanges();
 
+    void selectionAreaStartChanged();
+    void selectionAreaEndChanged();
+    void selectionEnabledChanged();
+
     void screenTitleChanged();
 
     void cursorPositionChanged(int x, int y);
@@ -163,6 +181,7 @@ signals:
 private:
 
     void readData();
+    void moveLine(qint16 from, qint16 to);
     void scheduleMoveSignal(qint16 from, qint16 to);
 
     Line *line_at_cursor();
@@ -170,6 +189,8 @@ private:
     QPoint &current_cursor_pos() { return m_cursor_stack[m_cursor_stack.size()-1]; }
     int current_cursor_x() const { return m_cursor_stack.at(m_cursor_stack.size()-1).x(); }
     int current_cursor_y() const { return m_cursor_stack.at(m_cursor_stack.size()-1).y(); }
+
+    void setSelectionValidity();
 
     ColorPalette m_palette;
     YatPty m_pty;
@@ -189,8 +210,9 @@ private:
     QString m_title;
 
     bool m_selection_valid;
-    QPoint m_selection_start;
-    QPoint m_selection_end;
+    bool m_selection_moved;
+    QPointF m_selection_start;
+    QPointF m_selection_end;
 
     QString m_character_map;
 

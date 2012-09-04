@@ -92,11 +92,13 @@ Rectangle {
     }
 
     HighlightArea {
-        id: selectionHighlight
         characterHeight: screen.lineHeight
         characterWidth: screen.charWidth
 
-        visible: false
+        start: screen.selectionAreaStart
+        end: screen.selectionAreaEnd
+
+        visible: screen.selectionEnabled
     }
 
     Rectangle {
@@ -133,48 +135,53 @@ Rectangle {
     MouseArea {
         id:mousArea
 
-        property int drag_start_x: 0;
-        property int drag_start_y: 0;
+        property point drag_start
 
         anchors.fill: parent
+        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
         onPressed: {
-            screen.resetSelection();
-            hoverEnabled = true;
-            var character = Math.floor((mouse.x / screen.charWidth));
-            var line = Math.floor(mouse.y / screen.lineHeight);
-            drag_start_x = character;
-            drag_start_y = line;
-            selectionHighlight.startChar = character;
-            selectionHighlight.startLine = line;
-            selectionHighlight.endChar = character;
-            selectionHighlight.endLine = line;
-            selectionHighlight.visible = true;
+            if (mouse.button == Qt.LeftButton) {
+                hoverEnabled = true;
+                var character = Math.floor((mouse.x / screen.charWidth));
+                var line = Math.floor(mouse.y / screen.lineHeight);
+                var start = Qt.point(character,line);
+                drag_start = start;
+                screen.selectionAreaStart = start;
+                screen.selectionAreaEnd = start;
+            }
         }
 
         onPositionChanged: {
             var character = Math.floor(mouse.x / screen.charWidth);
             var line = Math.floor(mouse.y / screen.lineHeight);
-            if (line < drag_start_y || (line == drag_start_y && character < drag_start_x)) {
-                    selectionHighlight.startChar = character;
-                    selectionHighlight.startLine = line;
-                    selectionHighlight.endChar = drag_start_x;
-                    selectionHighlight.line = drag_start_y;
+            var current_pos = Qt.point(character,line);
+            if (line < drag_start.y || (line === drag_start.y && character < drag_start.x)) {
+                screen.selectionAreaStart = current_pos;
+                screen.selectionAreaEnd = drag_start;
             }else {
-                selectionHighlight.endChar = character;
-                selectionHighlight.endLine = line;
-                selectionHighlight.startChar = drag_start_x;
-                selectionHighlight.startLine = drag_start_y;
+                screen.selectionAreaEnd = current_pos;
+                screen.selectionAreaStart = drag_start;
             }
         }
 
         onReleased: {
-            hoverEnabled = false;
-            drag_start_x = 0;
-            drag_start_y = 0;
+            if (mouse.button == Qt.LeftButton) {
+                hoverEnabled = false;
+                screen.sendSelectionToSelection();
+            }
+        }
 
-            var selection_start = Qt.point(selectionHighlight.startChar, selectionHighlight.startLine);
-            var selection_end = Qt.point(selectionHighlight.endChar, selectionHighlight.endLine);
-            screen.setSelectionArea(selection_start, selection_end);
+        onClicked: {
+            if (mouse.button == Qt.MiddleButton) {
+                screen.pasteFromSelection();
+            }
+        }
+        onDoubleClicked: {
+            if (mouse.button == Qt.LeftButton) {
+                var character = Math.floor(mouse.x / screen.charWidth);
+                var line = Math.floor(mouse.y / screen.lineHeight);
+                screen.doubleClicked(Qt.point(character,line));
+            }
         }
     }
 }

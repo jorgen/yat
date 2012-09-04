@@ -55,7 +55,9 @@ public:
 
     void updateIndexes(int from = 0, int to = -1);
 
-    void sendSelectionToClipboard(const QPoint &start, const QPoint &end, QClipboard::Mode clipboard);
+    void sendSelectionToClipboard(const QPointF &start, const QPointF &end, QClipboard::Mode clipboard);
+
+    void getDoubleClickSelectionArea(const QPointF &cliked, int *start_ret, int *end_ret) const;
 
     void printScreen() const;
 private:

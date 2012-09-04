@@ -26,8 +26,11 @@
 
 #include <QtCore/QElapsedTimer>
 #include <QtGui/QGuiApplication>
+#include <QtGui/qmime.h>
 
 #include <QtCore/QDebug>
+
+#include <float.h>
 
 Screen::Screen(QObject *parent)
     : QObject(parent)
@@ -39,6 +42,7 @@ Screen::Screen(QObject *parent)
     , m_font_metrics(m_font)
     , m_current_text_style(TextStyle(TextStyle::Normal,ColorPalette::DefaultForground))
     , m_selection_valid(false)
+    , m_selection_moved(0)
     , m_flash(false)
     , m_cursor_changed(false)
     , m_reset(false)
@@ -130,6 +134,7 @@ void Screen::saveScreenData()
     current_screen_data()->setHeight(pty_size.height());
     current_screen_data()->setWidth(pty_size.width());
     m_reset = true;
+    setSelectionEnabled(false);
 
 }
 
@@ -142,6 +147,7 @@ void Screen::restoreScreenData()
     current_screen_data()->setHeight(pty_size.height());
     current_screen_data()->setWidth(pty_size.width());
     m_reset = true;
+    setSelectionEnabled(false);
 }
 
 int Screen::height() const
@@ -300,6 +306,12 @@ void Screen::insertAtCursor(const QString &text)
 {
     Line *line;
 
+    if (m_selection_valid ) {
+        if (current_cursor_y() >= m_selection_start.y() && current_cursor_y() <= m_selection_end.y())
+            //don't need to schedule as event since it will only happen once
+            setSelectionEnabled(false);
+    }
+
     if (current_cursor_x() + text.size() <= width()) {
         line = current_screen_data()->at(current_cursor_y());
         line->insertAtPos(current_cursor_x(), text, m_current_text_style);
@@ -312,11 +324,11 @@ void Screen::insertAtCursor(const QString &text)
             }
             QString toLine = text.mid(i,current_screen_data()->width() - current_cursor_x());
             line = current_screen_data()->at(current_cursor_y());
-            line->insertAtPos(current_cursor_x(),toLine,m_current_text_style);
             i+= toLine.size();
             current_cursor_pos().rx() += toLine.size();
         }
     }
+
 
     m_cursor_changed = true;
 }
@@ -384,8 +396,10 @@ void Screen::lineFeed()
 {
     int cursor_y = current_cursor_y();
     if(cursor_y == current_screen_data()->scrollAreaEnd()) {
-            current_screen_data()->moveLine(current_screen_data()->scrollAreaStart(),cursor_y);
-        scheduleMoveSignal(current_screen_data()->scrollAreaStart(),cursor_y);
+        m_selection_start.ry()--;
+        m_selection_end.ry()--;
+        m_selection_moved = true;
+        moveLine(current_screen_data()->scrollAreaStart(),cursor_y);
     } else {
         current_cursor_pos().ry()++;
         m_cursor_changed = true;
@@ -396,8 +410,10 @@ void Screen::reverseLineFeed()
 {
     int cursor_y = current_cursor_y();
     if (cursor_y == current_screen_data()->scrollAreaStart()) {
-        current_screen_data()->moveLine(current_screen_data()->scrollAreaEnd(), cursor_y);
-        scheduleMoveSignal(current_screen_data()->scrollAreaEnd(), cursor_y);
+        m_selection_start.ry()++;
+        m_selection_end.ry()++;
+        m_selection_moved = true;
+        moveLine(current_screen_data()->scrollAreaEnd(), cursor_y);
     } else {
         current_cursor_pos().ry()--;
         m_cursor_changed = true;
@@ -407,16 +423,14 @@ void Screen::reverseLineFeed()
 void Screen::insertLines(int count)
 {
     for (int i = 0; i < count; i++) {
-        current_screen_data()->moveLine(current_screen_data()->scrollAreaEnd(),current_cursor_y());
-        scheduleMoveSignal(current_screen_data()->scrollAreaEnd(),current_cursor_y());
+        moveLine(current_screen_data()->scrollAreaEnd(),current_cursor_y());
     }
 }
 
 void Screen::deleteLines(int count)
 {
     for (int i = 0; i < count; i++) {
-        current_screen_data()->moveLine(current_cursor_y(),current_screen_data()->scrollAreaEnd());
-        scheduleMoveSignal(current_cursor_y(),current_screen_data()->scrollAreaEnd());
+        moveLine(current_cursor_y(),current_screen_data()->scrollAreaEnd());
     }
 
 }
@@ -428,20 +442,73 @@ void Screen::setScrollArea(int from, int to)
     current_screen_data()->setScrollArea(from,to);
 }
 
-void Screen::setSelectionArea(const QPoint &start, const QPoint &end)
+QPointF Screen::selectionAreaStart() const
 {
-
-    m_selection_start = start;
-    m_selection_end = end;
-
-    if (m_selection_start != m_selection_end)
-        current_screen_data()->sendSelectionToClipboard(m_selection_start, m_selection_end,QClipboard::Selection);
+    return m_selection_start;
 }
 
-void Screen::resetSelection()
+void Screen::setSelectionAreaStart(const QPointF &start)
 {
-    m_selection_valid = false;
-    QGuiApplication::clipboard()->clear(QClipboard::Selection);
+    bool emitChanged = m_selection_start != start;
+    m_selection_start = start;
+    setSelectionValidity();
+    if (emitChanged)
+        emit selectionAreaStartChanged();
+}
+
+QPointF Screen::selectionAreaEnd() const
+{
+    return m_selection_end;
+}
+
+void Screen::setSelectionAreaEnd(const QPointF &end)
+{
+    bool emitChanged = m_selection_end != end;
+    m_selection_end = end;
+    setSelectionValidity();
+    if (emitChanged)
+        emit selectionAreaEndChanged();
+}
+
+bool Screen::selectionEnabled() const
+{
+    return m_selection_valid;
+}
+
+void Screen::setSelectionEnabled(bool enabled)
+{
+    bool emitchanged = m_selection_valid != enabled;
+    m_selection_valid = enabled;
+    if (emitchanged)
+        emit selectionEnabledChanged();
+}
+
+void Screen::sendSelectionToClipboard() const
+{
+    current_screen_data()->sendSelectionToClipboard(m_selection_start, m_selection_end, QClipboard::Clipboard);
+}
+
+void Screen::sendSelectionToSelection() const
+{
+    current_screen_data()->sendSelectionToClipboard(m_selection_start, m_selection_end, QClipboard::Selection);
+}
+
+void Screen::pasteFromSelection()
+{
+    m_pty.write(QGuiApplication::clipboard()->text(QClipboard::Selection).toUtf8());
+}
+
+void Screen::pasteFromClipboard()
+{
+    m_pty.write(QGuiApplication::clipboard()->text(QClipboard::Clipboard).toUtf8());
+}
+
+void Screen::doubleClicked(const QPointF &clicked)
+{
+    int start, end;
+    current_screen_data()->getDoubleClickSelectionArea(clicked, &start, &end);
+    setSelectionAreaStart(QPointF(start,clicked.y()));
+    setSelectionAreaEnd(QPointF(end,clicked.y()));
 }
 
 void Screen::setTitle(const QString &title)
@@ -476,7 +543,6 @@ void Screen::dispatchChanges()
         emit reset();
         m_update_actions.clear();
         m_reset = false;
-        qDebug() << "Resetting screen";
     } else {
         qint16 begin_move = -1;
         qint16 end_move = -1;
@@ -530,6 +596,16 @@ void Screen::dispatchChanges()
         m_cursor_blinking_changed = false;
         emit cursorBlinkingChanged();
 
+    }
+
+    if (m_selection_valid && m_selection_moved) {
+        if (m_selection_start.y() < 0 ||
+                m_selection_end.y() >= current_screen_data()->height()) {
+            setSelectionEnabled(false);
+        } else {
+            emit selectionAreaStartChanged();
+            emit selectionAreaEndChanged();
+        }
     }
 
     m_update_actions.clear();
@@ -723,7 +799,7 @@ void Screen::sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers mod
             key_text.append(key_char & 0x1F);
 
         } else {
-            key_text = text.toAscii();
+            key_text = text.toUtf8();
         }
 
         if (modifiers &  Qt::AltModifier) {
@@ -756,6 +832,12 @@ void Screen::readData()
     dispatchChanges();
 }
 
+void Screen::moveLine(qint16 from, qint16 to)
+{
+    current_screen_data()->moveLine(from,to);
+    scheduleMoveSignal(from,to);
+}
+
 void Screen::scheduleMoveSignal(qint16 from, qint16 to)
 {
     if (m_update_actions.size() &&
@@ -765,5 +847,17 @@ void Screen::scheduleMoveSignal(qint16 from, qint16 to)
         m_update_actions.last().count++;
     } else {
         m_update_actions << UpdateAction(UpdateAction::MoveLine, from, to, 1);
+    }
+}
+
+
+void Screen::setSelectionValidity()
+{
+    if (m_selection_end.y() > m_selection_start.y() ||
+            (m_selection_end.y() == m_selection_start.y() &&
+             m_selection_end.x() > m_selection_start.x())) {
+        setSelectionEnabled(true);
+    } else {
+        setSelectionEnabled(false);
     }
 }

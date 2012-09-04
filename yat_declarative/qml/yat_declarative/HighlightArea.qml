@@ -1,77 +1,74 @@
 import QtQuick 2.0
 
 Item {
-    anchors.fill: parent
+    id: highlightArea
 
     property real characterWidth: 0
     property real characterHeight: 0
     property int screenWidth: width / characterWidth
 
-    property int startLine: 0
-    property int startChar: 0
-    property int endLine: 0
-    property int endChar: 0
+    property point start
+    property point end
 
     property color color: "grey"
+
+    width: parent.width
+    height: parent.height
+
     opacity: 0.8
 
     Rectangle {
-        id: begginning
+        id: begginning_rectangle
         color: parent.color
         opacity: parent.opacity
+        y:0
+        height: characterHeight
     }
 
     Rectangle {
-        id: middle
+        id: middle_rectangle
         color: parent.color
         opacity: parent.opacity
         width: parent.width
         x: 0
+        anchors.top: begginning_rectangle.bottom
 
     }
 
     Rectangle {
-        id: end
+        id: end_rectangle
         color: parent.color
         opacity: parent.opacity
         x: 0
+        height: characterHeight
+        anchors.top: middle_rectangle.bottom
     }
 
     onCharacterWidthChanged: calculateRectangles();
     onCharacterHeightChanged: calculateRectangles();
     onScreenWidthChanged: calculateRectangles();
 
-    onStartLineChanged: calculateRectangles();
-    onStartCharChanged: calculateRectangles();
-    onEndLineChanged: calculateRectangles();
-    onEndCharChanged: calculateRectangles();
-
-    onVisibleChanged: calculateRectangles();
+    onStartChanged: calculateRectangles();
+    onEndChanged: calculateRectangles();
 
     function calculateRectangles() {
-        if (visible === false)
-            return;
-
-        begginning.x = startChar * characterWidth;
-        begginning.y = startLine * characterHeight;
-        begginning.height = characterHeight;
-        if (startLine == endLine) {
-            middle.visible = false;
-            end.visible = false
-            begginning.width = (endChar - startChar) * characterWidth;
+        highlightArea.y = start.y * characterHeight;
+        begginning_rectangle.x = start.x * characterWidth;
+        if (start.y === end.y) {
+            middle_rectangle.visible = false;
+            end_rectangle.visible = false
+            begginning_rectangle.width = (end.x - start.x) * characterWidth;
         } else {
-            begginning.width = (screenWidth - startChar) * characterWidth;
-            if (startLine == endLine - 1) {
-                middle.visible = false;
+            begginning_rectangle.width = (screenWidth - start.x) * characterWidth;
+            if (start.y === end.y - 1) {
+                middle_rectangle.height = 0;
+                middle_rectangle.visible = false;
             }else {
-                middle.visible = true;
-                middle.height = (endLine - startLine - 1) * characterHeight;
-                middle.y = (startLine + 1) * characterHeight;
+                middle_rectangle.visible = true;
+                middle_rectangle.height = (end.y - start.y - 1) * characterHeight;
             }
-            end.visible = true;
-            end.y = endLine * characterHeight;
-            end.height = characterHeight;
-            end.width = endChar * characterWidth;
+            end_rectangle.visible = true;
+            end_rectangle.width = end.x * characterWidth;
         }
     }
 

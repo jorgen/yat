@@ -168,11 +168,11 @@ void ScreenData::updateIndexes(int from, int to)
     }
 }
 
-void ScreenData::sendSelectionToClipboard(const QPoint &start, const QPoint &end, QClipboard::Mode clipboard)
+void ScreenData::sendSelectionToClipboard(const QPointF &start, const QPointF &end, QClipboard::Mode clipboard)
 {
     QString data;
-    int start_line = start.y();
-    int end_line = end.y();
+    int start_line = qMax((int)start.y(), 0);
+    int end_line = qMin((int)end.y(), m_screen_lines.size()-1);
     for (int i = start_line; i <= end_line; i++) {
         int char_start = 0;
         int char_end = m_width - 1;
@@ -182,10 +182,78 @@ void ScreenData::sendSelectionToClipboard(const QPoint &start, const QPoint &end
             data.append(QChar('\n'));
         if (i == end_line)
             char_end = end.x();
-        data += m_screen_lines.at(i)->textLine().mid(char_start, (char_end - char_start) + 1).trimmed();
+        data += m_screen_lines.at(i)->textLine()->mid(char_start, char_end - char_start).trimmed();
     }
 
     QGuiApplication::clipboard()->setText(data, clipboard);
+}
+
+void ScreenData::getDoubleClickSelectionArea(const QPointF &cliked, int *start_ret, int *end_ret) const
+{
+    static const QChar delimiter_list[] = {
+        ' ',
+        '<',
+        '>',
+        ')',
+        '(',
+        '{',
+        '}',
+        '[',
+        ']'
+    };
+    static const int size_of_delimiter_list = sizeof delimiter_list / sizeof *delimiter_list;
+
+    *start_ret = -1;
+    *end_ret = -1;
+    bool find_equals = false;
+
+    QStringRef to_return(m_screen_lines.at(cliked.y())->textLine());
+
+    QChar clicked_char = to_return.at(cliked.x());
+
+    for (int i=0; i<size_of_delimiter_list; i++) {
+        if (clicked_char == delimiter_list[i])
+            find_equals = true;
+    }
+
+    for (int i = cliked.x() - 1; i >= 0; i--) {
+        if (find_equals) {
+            if (clicked_char != to_return.at(i)) {
+                *start_ret = i + 1;
+                break;
+            }
+        } else {
+            for (int delimiter_i = 0; delimiter_i < size_of_delimiter_list; delimiter_i++) {
+                if (to_return.at(i) == delimiter_list[delimiter_i]) {
+                    *start_ret = i + 1;
+                    i = -1;
+                    break;
+                }
+            }
+        }
+    }
+    if (*start_ret < 0)
+        *start_ret = 0;
+
+    for (int i = cliked.x() + 1; i < to_return.size(); i++) {
+        if (find_equals) {
+            if (clicked_char != to_return.at(i)) {
+                *end_ret = i;
+                break;
+            }
+        } else {
+            for (int delimiter_i = 0; delimiter_i < size_of_delimiter_list; delimiter_i++) {
+                if (to_return.at(i) == delimiter_list[delimiter_i]) {
+                    *end_ret = i;
+                    i = to_return.size();
+                    break;
+                }
+            }
+        }
+    }
+    if (*end_ret < 0)
+        *end_ret = to_return.size();
+
 }
 
 void ScreenData::printScreen() const
