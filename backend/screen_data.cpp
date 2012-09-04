@@ -64,8 +64,12 @@ void ScreenData::setHeight(int height)
 
     if (m_screen_lines.size() > height) {
         int removeElements = m_screen_lines.size() - height;
-        for (int i = 0; i < removeElements; i++) {
-            delete m_screen_lines[i];
+        for (int i = 0; i < m_screen_lines.size(); i++) {
+            if (i <removeElements) {
+                delete m_screen_lines[i];
+            } else {
+                m_screen_lines.at(i)->setIndex(i - removeElements);
+            }
         }
         m_screen_lines.remove(0, removeElements);
     } else if (m_screen_lines.size() < height){

@@ -113,6 +113,7 @@ void Screen::setHeight(int height)
     }
 
     m_pty.setHeight(height, height * lineHeight());
+    dispatchChanges();
 }
 
 void Screen::setWidth(int width)
