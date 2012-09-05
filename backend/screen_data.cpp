@@ -35,6 +35,14 @@ ScreenData::ScreenData(Screen *screen)
 {
 }
 
+ScreenData::~ScreenData()
+{
+    for (int i = 0; i < m_screen_lines.size(); i++) {
+        delete m_screen_lines.at(i);
+    }
+}
+
+
 int ScreenData::width() const
 {
     return m_width;

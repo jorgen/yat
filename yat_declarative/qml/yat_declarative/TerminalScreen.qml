@@ -1,30 +1,34 @@
 import QtQuick 2.0
 
 Rectangle {
+    id: screenItem
+
     property QtObject screen: null
+    property Component lineFactory: Qt.createComponent("TerminalLine.qml")
 
     anchors.fill: parent
 
     color: "black"
 
-    Repeater {
-        anchors.fill: parent
-        model:screenModel
-        TerminalLine {
-            id: terminalLine
-            height: terminal.fontHeight
-            width: parent.width
-            textLine: line
-            x: 0
-            y: line.index * terminal.fontHeight
-            Connections {
-                id: terminalLineConnections
-                target: textLine
+    Component.onCompleted: resetScreenItems();
 
-                onIndexChanged: {
-                    terminalLine.y = terminalLine.textLine.index * terminalLine.height
-                }
-            }
+    function createLineItem(screenLine) {
+        var line = lineFactory.createObject(screenItem,
+                                            {
+                                                "id": "terminalLine",
+                                                "textLine": screenLine,
+                                                "width": parent.width,
+                                                "height": terminal.fontHeight,
+                                                "x": 0,
+                                                "y": screenLine.index * terminal.fontHeight,
+                                            });
+        screenLine.quickItem = line;
+    }
+
+    function resetScreenItems() {
+        for (var i = 0; i < screen.height; i++) {
+            var screen_line = screen.at(i);
+            createLineItem(screen_line);
         }
     }
 
@@ -33,24 +37,22 @@ Rectangle {
 
         target: terminal.screen
 
-        onMoveLines: {
-            screenModel.move(from_line, to_line, count);
-        }
-
         onLinesInserted: {
-            var model_size = screenModel.count;
+            var last_index_before_insertion = screen.height -1 - count;
+
             for (var i = 0; i < count; i++) {
-                screenModel.append({
-                                       "line": terminal.screen.at(model_size + i)
-                                   });
+                var screen_line = screen.at(last_index_before_insertion +i);
+                createLineItem(screen_line);
             }
         }
 
-        onLinesRemoved: {
-            for (var i = 0; i < count; i++) {
-                screenModel.remove(0)
-            }
+        onLineRemoved: {
+            console.log("Line destroyed " + item);
+            item.parent = null;
+            item.visible = false;
+            item.destroy();
         }
+
 
         onFlash: {
             flashAnimation.start()
@@ -61,24 +63,12 @@ Rectangle {
             cursor.y = y * screen.lineHeight
         }
 
-        onReset: resetModel();
-    }
-
-
-    ListModel {
-        id: screenModel
-        Component.onCompleted:  resetModel();
-    }
-
-
-    function resetModel() {
-        screenModel.clear();
-        for (var i = 0; i < terminal.screen.height(); i++) {
-            screenModel.append({
-                                   "line": terminal.screen.at(i)
-                               });
+        onReset: {
+            resetScreenItems();
         }
     }
+
+
 
     Item {
         id: keyHandler

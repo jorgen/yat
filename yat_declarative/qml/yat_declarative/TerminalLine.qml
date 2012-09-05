@@ -25,8 +25,14 @@ Item{
         }
     }
 
+    onTextLineChanged: resetModel();
+
     Connections {
         target: textLine
+
+        onIndexChanged: {
+            y = textLine.index * height;
+        }
 
         onNewTextSegment: {
             var textSegment = { "segment" : textLine.at(index)};

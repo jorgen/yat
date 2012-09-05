@@ -28,16 +28,16 @@ TerminalItem {
     function setTerminalWidth() {
         if (fontWidth > 0) {
             var pty_width = width / fontWidth;
-            terminal.screen.setWidth(pty_width);
+            terminal.screen.width = pty_width;
         } else {
-            terminal.screen.setWidth(10);
+            terminal.screen.width = 10;
         }
     }
 
     function setTerminalHeight() {
         if (fontHeight > 0) {
             var pty_height = height / fontHeight;
-            terminal.screen.setHeight(pty_height);
+            terminal.screen.height = pty_height;
         }
     }
 

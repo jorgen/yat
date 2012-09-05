@@ -28,6 +28,8 @@
 #include <QtGui/QGuiApplication>
 #include <QtGui/qmime.h>
 
+#include <QtQuick/QQuickItem>
+
 #include <QtCore/QDebug>
 
 #include <float.h>
@@ -102,15 +104,13 @@ void Screen::setHeight(int height)
 
     data->setHeight(height);
 
-    if(current_cursor_y() >= height)
-        current_cursor_pos().setY(height - 1);
-
-
     if (size_difference > 0) {
-        emit linesRemoved(size_difference);
+        if (current_cursor_y() > 0)
+            current_cursor_pos().ry()--;
     } else {
         emit linesInserted(-size_difference);
     }
+
 
     m_pty.setHeight(height, height * lineHeight());
     dispatchChanges();
@@ -130,11 +130,19 @@ int Screen::width() const
 
 void Screen::saveScreenData()
 {
-    m_screen_stack << new ScreenData(this);
+    ScreenData *new_data = new ScreenData(this);
     QSize pty_size = m_pty.size();
-    current_screen_data()->setHeight(pty_size.height());
-    current_screen_data()->setWidth(pty_size.width());
-    m_reset = true;
+    new_data->setHeight(pty_size.height());
+    new_data->setWidth(pty_size.width());
+
+    for (int i = 0; i < new_data->height(); i++) {
+        QQuickItem *item = current_screen_data()->at(i)->takeQuickItem();
+        new_data->at(i)->setQuickItem(item);
+        item->setProperty("textLine", QVariant::fromValue(new_data->at(i)));
+    }
+
+    m_screen_stack << new_data;
+
     setSelectionEnabled(false);
 
 }
@@ -143,11 +151,17 @@ void Screen::restoreScreenData()
 {
     ScreenData *data = current_screen_data();
     m_screen_stack.remove(m_screen_stack.size()-1);
-    delete data;
     QSize pty_size = m_pty.size();
     current_screen_data()->setHeight(pty_size.height());
     current_screen_data()->setWidth(pty_size.width());
-    m_reset = true;
+
+    for (int i = 0; i < data->height(); i++) {
+        QQuickItem *item = data->at(i)->takeQuickItem();
+        current_screen_data()->at(i)->setQuickItem(item);
+        item->setProperty("textLine", QVariant::fromValue(current_screen_data()->at(i)));
+    }
+
+    delete data;
     setSelectionEnabled(false);
 }
 
@@ -814,6 +828,11 @@ void Screen::sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers mod
         to_pty.append(key_text);
         m_pty.write(to_pty);
     }
+}
+
+void Screen::emitQuickItemRemoved(QQuickItem *item)
+{
+    lineRemoved(item);
 }
 
 void Screen::readData()

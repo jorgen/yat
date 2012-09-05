@@ -32,6 +32,7 @@ Line::Line(Screen *screen)
     , m_old_index(-1)
     , m_changed(true)
     , m_reset(true)
+    , m_quick_item(0)
 {
     m_text_line.resize(screen->width());
     m_style_list.reserve(25);
@@ -45,6 +46,8 @@ Line::Line(Screen *screen)
 
 Line::~Line()
 {
+    if (m_quick_item)
+        m_screen->emitQuickItemRemoved(m_quick_item);
 }
 
 Screen *Line::screen() const
@@ -215,6 +218,28 @@ void Line::setIndex(int index)
 const QString *Line::textLine() const
 {
     return &m_text_line;
+}
+
+QQuickItem *Line::quickItem() const
+{
+    return m_quick_item;
+}
+
+void Line::setQuickItem(QQuickItem *item)
+{
+    bool changed = m_quick_item != item;
+    if (m_quick_item)
+        m_screen->emitQuickItemRemoved(m_quick_item);
+    m_quick_item = item;
+    if (changed)
+        emit quickItemChanged();
+}
+
+QQuickItem *Line::takeQuickItem()
+{
+    QQuickItem *item = m_quick_item;
+    m_quick_item = 0;
+    return item;
 }
 
 static bool lessThanInverse(int x1, int x2)

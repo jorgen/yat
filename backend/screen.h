@@ -38,6 +38,7 @@
 #include <QtCore/QVarLengthArray>
 
 class Line;
+class QQuickItem;
 
 class Screen : public QObject
 {
@@ -46,6 +47,8 @@ class Screen : public QObject
     Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
     Q_PROPERTY(qreal charWidth READ charWidth NOTIFY charWidthChanged)
     Q_PROPERTY(qreal lineHeight READ lineHeight NOTIFY lineHeightChanged)
+    Q_PROPERTY(int height READ height WRITE setHeight)
+    Q_PROPERTY(int width READ width WRITE setWidth)
     Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY screenTitleChanged)
     Q_PROPERTY(bool cursorVisible READ cursorVisible NOTIFY cursorVisibleChanged)
     Q_PROPERTY(bool cursorBlinking READ cursorBlinking NOTIFY cursorBlinkingChanged)
@@ -57,10 +60,10 @@ public:
     explicit Screen(QObject *parent = 0);
     ~Screen();
     
-    Q_INVOKABLE void setHeight(int height);
-    Q_INVOKABLE int height() const;
-    Q_INVOKABLE void setWidth(int width);
-    Q_INVOKABLE int width() const;
+    void setHeight(int height);
+    int height() const;
+    void setWidth(int width);
+    int width() const;
 
     void saveScreenData();
     void restoreScreenData();
@@ -151,11 +154,12 @@ public:
 
     Q_INVOKABLE void sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers modifiers);
 
+    void emitQuickItemRemoved(QQuickItem *item);
 signals:
     void moveLines(int from_line, int to_line, int count);
 
     void linesInserted(int count);
-    void linesRemoved(int count);
+    void lineRemoved(QQuickItem *item);
 
     void reset();
 

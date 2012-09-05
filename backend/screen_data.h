@@ -32,6 +32,7 @@ class ScreenData
 {
 public:
     ScreenData(Screen *screen);
+    ~ScreenData();
 
     int width() const;
     void setWidth(int width);

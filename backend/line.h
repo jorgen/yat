@@ -26,6 +26,7 @@
 #include "text.h"
 
 class Screen;
+class QQuickItem;
 
 class TextStyleLine : public TextStyle {
 public:
@@ -70,6 +71,7 @@ class Line : public QObject
     Q_OBJECT
 
     Q_PROPERTY(int index READ index NOTIFY indexChanged)
+    Q_PROPERTY(QQuickItem *quickItem READ quickItem WRITE setQuickItem NOTIFY quickItemChanged)
 public:
     Line(Screen *screen);
     ~Line();
@@ -90,11 +92,17 @@ public:
 
     const QString *textLine() const;
 
+    QQuickItem *quickItem() const;
+    void setQuickItem(QQuickItem *item);
+    QQuickItem *takeQuickItem();
+
 signals:
     void indexChanged();
 
     void newTextSegment(int index);
     void textSegmentRemoved(int index);
+
+    void quickItemChanged();
 
     void reset();
 
@@ -113,6 +121,8 @@ private:
     QVector<Text *> m_unused_segments;
     bool m_changed;
     bool m_reset;
+
+    QQuickItem *m_quick_item;
 };
 
 #endif // TEXT_SEGMENT_LINE_H
