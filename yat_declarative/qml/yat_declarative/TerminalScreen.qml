@@ -47,9 +47,6 @@ Rectangle {
         }
 
         onLineRemoved: {
-            console.log("Line destroyed " + item);
-            item.parent = null;
-            item.visible = false;
             item.destroy();
         }
 

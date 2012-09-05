@@ -30,8 +30,10 @@ Text::Text(QString *text_line, Screen *screen)
     , m_old_start_index(0)
     , m_end_index(0)
     , m_style(screen->defaultTextStyle())
-    , m_dirty(true)
+    , m_style_dirty(false)
+    , m_text_dirty(false)
     , m_screen(screen)
+    , m_quick_item(0)
 {
     connect(screen, &Screen::dispatchTextSegmentChanges,
             this, &Text::dispatchEvents);
@@ -39,6 +41,7 @@ Text::Text(QString *text_line, Screen *screen)
 
 Text::~Text()
 {
+    emit aboutToDestroy();
 }
 
 int Text::index() const
@@ -76,13 +79,13 @@ void Text::setStringSegment(int start_index, int end_index)
     m_start_index = start_index;
     m_end_index = end_index;
 
-    m_dirty = true;
+    m_text_dirty = true;
 }
 
 void Text::setTextStyle(const TextStyle &style)
 {
     m_style = style;
-    m_dirty = true;
+    m_style_dirty = true;
 }
 
 Screen *Text::screen() const
@@ -90,10 +93,27 @@ Screen *Text::screen() const
     return m_screen;
 }
 
+QQuickItem *Text::quickItem() const
+{
+    return m_quick_item;
+}
+
+void Text::setQuickItem(QQuickItem *quickItem)
+{
+    bool changed = m_quick_item != quickItem;
+    m_quick_item = quickItem;
+    if (changed)
+        emit quickItemChanged();
+}
+
 void Text::dispatchEvents()
 {
-    if (m_dirty) {
-        m_dirty = false;
+    if (m_style_dirty) {
+        m_style_dirty = false;
+        emit styleChanged();
+    }
+
+    if (m_text_dirty) {
         m_text = m_text_line->mid(m_start_index, m_end_index + 1 - m_start_index);
         if (m_old_start_index != m_start_index) {
             m_old_start_index = m_start_index;

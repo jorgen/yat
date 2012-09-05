@@ -2,30 +2,42 @@ import QtQuick 2.0
 
 Item{
     id: text_line
-    property QtObject textLine: null
+    property QtObject textLine
+    property Component segmentFactory: Qt.createComponent("TextSegment.qml")
 
-    Repeater {
-        anchors.fill: parent
-        model: lineModel
-        TextSegment {
-            textSegment: segment
+    function setTextItemForSegment(index) {
+        var segment = textLine.at(index);
+        var segmentItem = segment.quickItem;
+        if (segmentItem === null) {
+            segmentItem = segmentFactory.createObject(text_line, {
+                                                          "textSegment": textLine.at(index)
+                                                      });
+            segment.quickItem = segmentItem;
+        } else {
+            segmentItem.textSegment = textLine.at(index);
         }
-    }
-
-    ListModel {
-        id: lineModel
-        Component.onCompleted: resetModel();
+        segmentItem.x = segment.index *  segment.screen.charWidth;
+        segmentItem.text = segment.text;
+        segmentItem.foregroundColor = segment.foregroundColor;
+        segmentItem.backgroundColor = segment.backgroundColor;
+        segmentItem.font = segment.screen.font
+        segmentItem.text.font = segment.screen.font
     }
 
     function resetModel() {
-        lineModel.clear();
+        if (textLine === null)
+            return;
         for (var i = 0; i < textLine.size(); i++) {
-            var textSegment = { "segment" : textLine.at(i)};
-            lineModel.append(textSegment);
+            setTextItemForSegment(i);
         }
     }
 
-    onTextLineChanged: resetModel();
+    onTextLineChanged:  {
+        if (segmentFactory && segmentFactory.status === Component.Ready) {
+            console.log("RESETTING");
+            resetModel();
+        }
+    }
 
     Connections {
         target: textLine
@@ -35,18 +47,12 @@ Item{
         }
 
         onNewTextSegment: {
-            var textSegment = { "segment" : textLine.at(index)};
-            lineModel.insert(index,textSegment);
-        }
-
-        onTextSegmentRemoved: {
-            if (lineModel.count == 0)
-                console.log("Remove when there is no indexes");
-            lineModel.remove(index);
+            setTextItemForSegment(index);
         }
 
         onReset: {
             resetModel();
+
         }
     }
 }

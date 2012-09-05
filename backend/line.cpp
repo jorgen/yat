@@ -59,8 +59,6 @@ void Line::clear()
 {
     m_text_line.fill(QChar(' '));
 
-    m_indexes_to_remove.clear();
-
     for (int i = 0; i < m_style_list.size(); i++) {
         if (m_style_list.at(i).text_segment)
             m_unused_segments.append(m_style_list.at(i).text_segment);
@@ -83,16 +81,16 @@ void Line::clearToEndOfLine(int index)
     for (int i = 0; i < m_style_list.size(); i++) {
         const TextStyleLine current_style = m_style_list.at(i);
         if (found) {
-            if (current_style.old_index >= 0)
-                m_indexes_to_remove.append(current_style.old_index);
+            if (current_style.text_segment)
+                m_unused_segments.append(current_style.text_segment);
             m_style_list.remove(i);
             i--;
         } else {
             if (index <= current_style.end_index) {
                 found = true;
                 if (current_style.start_index == index) {
-                    if (current_style.old_index >= 0)
-                        m_indexes_to_remove.append(current_style.old_index);
+                    if (current_style.text_segment)
+                        m_unused_segments.append(current_style.text_segment);
                     m_style_list.remove(i);
                     i--;
                 } else {
@@ -151,8 +149,6 @@ void Line::insertAtPos(int pos, const QString &text, const TextStyle &style)
             if (current_style.end_index <= pos + text.size()) {
                 if (current_style.text_segment)
                     m_unused_segments.append(current_style.text_segment);
-                if (current_style.old_index >= 0)
-                    m_indexes_to_remove.append(current_style.old_index);
                 m_style_list.remove(i);
                 i--;
             } else if (current_style.start_index <= pos + text.size()) {
@@ -242,11 +238,6 @@ QQuickItem *Line::takeQuickItem()
     return item;
 }
 
-static bool lessThanInverse(int x1, int x2)
-{
-    return x2 < x1;
-}
-
 void Line::dispatchEvents()
 {
     if (m_index != m_old_index) {
@@ -261,23 +252,26 @@ void Line::dispatchEvents()
     if (m_reset) {
         m_reset = false;
         m_changed = false;
-        m_indexes_to_remove.clear();
+        for (int i = 0; i < m_style_list.size(); i++) {
+            if (m_style_list.at(i).text_segment) {
+                m_unused_segments.append(m_style_list.at(i).text_segment);
+                m_style_list[i].text_segment = 0;
+            }
+        }
         emit reset();
+        for (int i = 0; i < m_unused_segments.size(); i++) {
+            delete m_unused_segments.at(i);
+        }
+        m_unused_segments.clear();
         return;
     }
-
-    qSort(m_indexes_to_remove.begin(), m_indexes_to_remove.end(), lessThanInverse);
-    for (int i = 0; i < m_indexes_to_remove.size(); i++) {
-        emit textSegmentRemoved(m_indexes_to_remove.at(i));
-    }
-    m_indexes_to_remove.clear();
 
     for (int i = 0; i < m_style_list.size(); i++) {
         const TextStyleLine current_style = m_style_list.at(i);
         if (!current_style.changed)
             continue;
 
-        if (current_style.old_index == -1) {
+        if (current_style.text_segment == 0) {
             emit newTextSegment(i);
         } else if (current_style.changed) {
             m_style_list[i].text_segment->setStringSegment(current_style.start_index, current_style.end_index);

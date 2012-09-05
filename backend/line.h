@@ -116,7 +116,6 @@ private:
     QVector<TextStyleLine> m_style_list;
     int m_index;
     int m_old_index;
-    QList<int> m_indexes_to_remove;
 
     QVector<Text *> m_unused_segments;
     bool m_changed;

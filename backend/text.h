@@ -29,6 +29,7 @@
 #include "text_style.h"
 
 class Screen;
+class QQuickItem;
 
 class Text : public QObject
 {
@@ -38,6 +39,7 @@ class Text : public QObject
     Q_PROPERTY(QColor foregroundColor READ foregroundColor NOTIFY forgroundColorChanged)
     Q_PROPERTY(QColor backgroundColor READ backgroundColor NOTIFY backgroundColorChanged)
     Q_PROPERTY(Screen *screen READ screen CONSTANT)
+    Q_PROPERTY(QQuickItem *quickItem READ quickItem WRITE setQuickItem NOTIFY quickItemChanged)
 public:
     Text(QString *text_line, Screen *screen);
     ~Text();
@@ -55,14 +57,21 @@ public:
 
     Screen *screen() const;
 
+    QQuickItem *quickItem() const;
+    void setQuickItem(QQuickItem *quickItem);
+
 public slots:
     void dispatchEvents();
 
 signals:
+    void aboutToDestroy();
     void textChanged();
+    void styleChanged();
     void indexChanged();
     void forgroundColorChanged();
     void backgroundColorChanged();
+
+    void quickItemChanged();
 
 private:
 
@@ -73,9 +82,12 @@ private:
     int m_end_index;
     TextStyle m_style;
 
-    bool m_dirty;
+    bool m_style_dirty;
+    bool m_text_dirty;
     bool m_initial;
     Screen *m_screen;
+
+    QQuickItem *m_quick_item;
 
 };
 
