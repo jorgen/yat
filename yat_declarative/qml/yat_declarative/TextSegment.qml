@@ -10,7 +10,7 @@ Rectangle {
 
     height: textItem.paintedHeight
     width: textItem.paintedWidth
-    anchors.top: parent.top
+    y: 0
     color: backgroundColor
 
     Text {
@@ -31,14 +31,16 @@ Rectangle {
         }
 
         onStyleChanged: {
-            textSegmentItem.color = textSegment.backgroundColor;
-            textItem.color = textSegment.foregroundColor;
+            textSegmentItem.backgroundColor = textSegment.backgroundColor;
+            textSegmentItem.foregroundColor = textSegment.foregroundColor;
         }
 
         onAboutToDestroy: {
-            textSegment = null;
-            textSegmentItem.visible = false;
             textSegmentItem.destroy();
+        }
+
+        onIndexChanged: {
+            textSegmentItem.x = textSegment.index *  textSegment.screen.charWidth;
         }
     }
 }

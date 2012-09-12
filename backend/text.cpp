@@ -21,27 +21,35 @@
 #include "text.h"
 
 #include "screen.h"
+#include "line.h"
+#include <QtQuick/QQuickItem>
+
 #include <QtCore/QDebug>
 
-Text::Text(QString *text_line, Screen *screen)
-    : QObject(screen)
+Text::Text(QString *text_line, Line *line)
+    : QObject(line)
     , m_text_line(text_line)
     , m_start_index(0)
     , m_old_start_index(0)
     , m_end_index(0)
-    , m_style(screen->defaultTextStyle())
-    , m_style_dirty(false)
-    , m_text_dirty(false)
-    , m_screen(screen)
-    , m_quick_item(0)
+    , m_style(line->screen()->defaultTextStyle())
+    , m_style_dirty(true)
+    , m_text_dirty(true)
+    , m_line(line)
+    , m_item(m_line->screen()->createTextItem())
 {
-    connect(screen, &Screen::dispatchTextSegmentChanges,
+    connect(screen(), &Screen::dispatchTextSegmentChanges,
             this, &Text::dispatchEvents);
+    m_item->setProperty("textSegment",QVariant::fromValue(this));
+    m_item->setProperty("font", screen()->font());
+    m_item->setProperty("parent", QVariant::fromValue(m_line->quickItem()));
 }
 
 Text::~Text()
 {
-    emit aboutToDestroy();
+    m_item->setProperty("textSegment", QVariant::fromValue(static_cast<Text *>(0)));
+    m_item->setProperty("visible", false);
+    m_line->screen()->destroyTextItem(m_item);
 }
 
 int Text::index() const
@@ -58,20 +66,20 @@ QColor Text::foregroundColor() const
 {
     if (m_style.style & TextStyle::Inverse) {
         if (m_style.background == ColorPalette::DefaultBackground)
-            return m_screen->screenBackground();
-        return m_screen->colorPalette()->color(m_style.background, m_style.style & TextStyle::Bold);
+            return screen()->screenBackground();
+        return screen()->colorPalette()->color(m_style.background, m_style.style & TextStyle::Bold);
     }
 
-    return m_screen->colorPalette()->color(m_style.foreground, m_style.style & TextStyle::Bold);
+    return screen()->colorPalette()->color(m_style.foreground, m_style.style & TextStyle::Bold);
 }
 
 
 QColor Text::backgroundColor() const
 {
     if (m_style.style & TextStyle::Inverse)
-        return m_screen->colorPalette()->color(m_style.foreground, false);
+        return screen()->colorPalette()->color(m_style.foreground, false);
 
-    return m_screen->colorPalette()->color(m_style.background, false);
+    return screen()->colorPalette()->color(m_style.background, false);
 }
 
 void Text::setStringSegment(int start_index, int end_index)
@@ -90,20 +98,12 @@ void Text::setTextStyle(const TextStyle &style)
 
 Screen *Text::screen() const
 {
-    return m_screen;
+    return m_line->screen();
 }
 
-QQuickItem *Text::quickItem() const
+QObject *Text::item() const
 {
-    return m_quick_item;
-}
-
-void Text::setQuickItem(QQuickItem *quickItem)
-{
-    bool changed = m_quick_item != quickItem;
-    m_quick_item = quickItem;
-    if (changed)
-        emit quickItemChanged();
+    return m_item;
 }
 
 void Text::dispatchEvents()

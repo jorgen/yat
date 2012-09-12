@@ -29,6 +29,8 @@
 #include <QtGui/qmime.h>
 
 #include <QtQuick/QQuickItem>
+#include <QtQuick/QQuickView>
+#include <QtQml/QQmlComponent>
 
 #include <QtCore/QDebug>
 
@@ -49,6 +51,9 @@ Screen::Screen(QObject *parent)
     , m_cursor_changed(false)
     , m_reset(false)
     , m_application_cursor_key_mode(false)
+    , m_view(0)
+    , m_line_component(0)
+    , m_text_component(0)
 {
     connect(&m_pty, &YatPty::readyRead,
             this, &Screen::readData);
@@ -65,12 +70,8 @@ Screen::Screen(QObject *parent)
 
     m_cursor_stack << QPoint(0,0);
 
-    setWidth(80);
-    setHeight(25);
-
     m_current_text_style.foreground = ColorPalette::DefaultForground;
     m_current_text_style.background = ColorPalette::DefaultBackground;
-
 }
 
 Screen::~Screen()
@@ -588,8 +589,10 @@ void Screen::dispatchChanges()
             current_screen_data()->updateIndexes(begin_move, end_move);
         }
 
-        emit dispatchLineChanges();
-        emit dispatchTextSegmentChanges();
+        if (m_view) {
+            emit dispatchLineChanges();
+            emit dispatchTextSegmentChanges();
+        }
     }
 
     if (m_flash) {
@@ -810,7 +813,7 @@ void Screen::sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers mod
         QByteArray to_pty;
         QByteArray key_text;
         if (modifiers & Qt::ControlModifier) {
-            char key_char = text.toAscii().at(0);
+            char key_char = text.toLocal8Bit().at(0);
             key_text.append(key_char & 0x1F);
 
         } else {
@@ -828,6 +831,45 @@ void Screen::sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers mod
         to_pty.append(key_text);
         m_pty.write(to_pty);
     }
+}
+
+void Screen::setQuickView(QQuickView *view)
+{
+    m_view = view;
+    delete m_line_component;
+    delete m_text_component;
+
+    if (view) {
+        m_line_component = new QQmlComponent(view->engine(), QUrl("qrc:/qml/yat_declarative/TerminalLine.qml"),QQmlComponent::PreferSynchronous);
+        m_text_component = new QQmlComponent(view->engine(), QUrl("qrc:/qml/yat_declarative/TextSegment.qml"),QQmlComponent::PreferSynchronous);
+    }
+}
+
+QQuickView *Screen::view() const
+{
+    return m_view;
+}
+
+QObject *Screen::createLineItem()
+{
+    return m_line_component->create();
+}
+
+void Screen::destroyLineItem(QObject *lineItem)
+{
+    lineItem->deleteLater();
+}
+
+QObject *Screen::createTextItem()
+{
+    while(!m_text_component->isReady())
+        QCoreApplication::processEvents();
+    return m_text_component->create();
+}
+
+void Screen::destroyTextItem(QObject *textItem)
+{
+    textItem->deleteLater();
 }
 
 void Screen::emitQuickItemRemoved(QQuickItem *item)

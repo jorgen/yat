@@ -72,6 +72,7 @@ class Line : public QObject
 
     Q_PROPERTY(int index READ index NOTIFY indexChanged)
     Q_PROPERTY(QQuickItem *quickItem READ quickItem WRITE setQuickItem NOTIFY quickItemChanged)
+    Q_PROPERTY(Screen *screen READ screen CONSTANT)
 public:
     Line(Screen *screen);
     ~Line();
@@ -119,7 +120,6 @@ private:
 
     QVector<Text *> m_unused_segments;
     bool m_changed;
-    bool m_reset;
 
     QQuickItem *m_quick_item;
 };

@@ -31,7 +31,6 @@ Line::Line(Screen *screen)
     , m_index(0)
     , m_old_index(-1)
     , m_changed(true)
-    , m_reset(true)
     , m_quick_item(0)
 {
     m_text_line.resize(screen->width());
@@ -67,7 +66,6 @@ void Line::clear()
     m_style_list.clear();
     m_style_list.append(TextStyleLine(m_screen->defaultTextStyle(),0,m_text_line.size() -1));
 
-    m_reset = true;
     m_changed = true;
 }
 
@@ -249,33 +247,19 @@ void Line::dispatchEvents()
         return;
     }
 
-    if (m_reset) {
-        m_reset = false;
-        m_changed = false;
-        for (int i = 0; i < m_style_list.size(); i++) {
-            if (m_style_list.at(i).text_segment) {
-                m_unused_segments.append(m_style_list.at(i).text_segment);
-                m_style_list[i].text_segment = 0;
-            }
-        }
-        emit reset();
-        for (int i = 0; i < m_unused_segments.size(); i++) {
-            delete m_unused_segments.at(i);
-        }
-        m_unused_segments.clear();
-        return;
-    }
-
     for (int i = 0; i < m_style_list.size(); i++) {
         const TextStyleLine current_style = m_style_list.at(i);
         if (!current_style.changed)
             continue;
 
-        if (current_style.text_segment == 0) {
-            emit newTextSegment(i);
-        } else if (current_style.changed) {
+
+        if (current_style.changed) {
+            if (current_style.text_segment == 0) {
+                m_style_list[i].text_segment = new Text(&m_text_line,this);
+            }
             m_style_list[i].text_segment->setStringSegment(current_style.start_index, current_style.end_index);
             m_style_list[i].text_segment->setTextStyle(current_style);
+            m_style_list[i].changed = false;
         }
     }
 
@@ -294,7 +278,7 @@ Text *Line::createTextSegment(const TextStyleLine &style_line)
         to_return = m_unused_segments.at(m_unused_segments.size()-1);
         m_unused_segments.remove(m_unused_segments.size() -1);
     } else {
-        to_return = new Text(&m_text_line, m_screen);
+        to_return = new Text(&m_text_line, this);
     }
 
     to_return->setStringSegment(style_line.start_index, style_line.end_index);

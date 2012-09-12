@@ -39,6 +39,8 @@
 
 class Line;
 class QQuickItem;
+class QQuickView;
+class QQmlComponent;
 
 class Screen : public QObject
 {
@@ -154,6 +156,14 @@ public:
 
     Q_INVOKABLE void sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers modifiers);
 
+    void setQuickView(QQuickView *view);
+    QQuickView *view() const;
+
+    QObject *createLineItem();
+    void destroyLineItem(QObject *lineItem);
+    QObject *createTextItem();
+    void destroyTextItem(QObject *textItem);
+
     void emitQuickItemRemoved(QQuickItem *item);
 signals:
     void moveLines(int from_line, int to_line, int count);
@@ -225,6 +235,10 @@ private:
     bool m_cursor_changed;
     bool m_reset;
     bool m_application_cursor_key_mode;
+
+    QQuickView *m_view;
+    QQmlComponent *m_line_component;
+    QQmlComponent *m_text_component;
 };
 
 #endif // TERMINALSCREEN_H

@@ -22,9 +22,12 @@
 #include <QtCore/QResource>
 
 #include <QtQuick/QQuickView>
+#include <QtQuick/QQuickItem>
 
 #include "register_qml_types.h"
+#include "terminal_item.h"
 
+#include <QtCore/QDebug>
 int main(int argc, char **argv)
 {
     QGuiApplication app(argc, argv);
@@ -32,6 +35,7 @@ int main(int argc, char **argv)
     register_qml_types();
 
     QQuickView view(QUrl("qrc:/qml/yat_declarative/main.qml"));
+    qobject_cast<TerminalItem *>(view.rootObject())->screen()->setQuickView(&view);
     view.setResizeMode(QQuickView::SizeRootObjectToView);
     view.show();
     return app.exec();

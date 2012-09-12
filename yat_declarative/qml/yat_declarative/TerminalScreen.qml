@@ -1,7 +1,6 @@
 import QtQuick 2.0
 
-Rectangle {
-    id: screenItem
+Rectangle { id: screenItem
 
     property QtObject screen: null
     property Component lineFactory: Qt.createComponent("TerminalLine.qml")
