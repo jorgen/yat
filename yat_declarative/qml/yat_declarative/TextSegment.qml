@@ -37,5 +37,9 @@ Rectangle {
         onIndexChanged: {
             textSegmentItem.x = textSegment.index *  textSegment.screen.charWidth;
         }
+
+        onVisibleChanged: {
+            textSegmentItem.visible = textSegment.visible;
+        }
     }
 }

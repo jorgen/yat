@@ -28,9 +28,10 @@
 
 Text::Text(Screen *screen)
     : QObject(screen)
+    , m_visible(true)
+    , m_visible_old(true)
     , m_line(0)
     , m_item(screen->createTextItem())
-    , m_visible_old(true)
 {
     m_item->setProperty("font", screen->font());
     m_item->setProperty("textSegment",QVariant::fromValue(this));
@@ -69,7 +70,6 @@ bool Text::visible() const
 void Text::setVisible(bool visible)
 {
     m_visible = visible;
-    m_item->setProperty("visible",m_visible);
 }
 
 QString Text::text() const
@@ -137,7 +137,6 @@ void Text::dispatchEvents()
         }
         emit textChanged();
     }
-
 
     if (m_visible_old != m_visible) {
         m_visible_old = m_visible;

@@ -24,7 +24,7 @@
 
 #include "controll_chars.h"
 
-#include <QtCore/QElapsedTimer>
+#include <QtCore/QTimer>
 #include <QtGui/QGuiApplication>
 #include <QtGui/qmime.h>
 
@@ -39,6 +39,7 @@
 Screen::Screen(QQmlEngine *engine, QObject *parent)
     : QObject(parent)
     , m_parser(this)
+    , m_first_read(true)
     , m_cursor_visible(true)
     , m_cursor_visible_changed(false)
     , m_cursor_blinking(true)
@@ -600,6 +601,9 @@ void Screen::dispatchChanges()
 
         current_screen_data()->dispatchLineEvents();
         emit dispatchTextSegmentChanges();
+        for (int i = 0; i < m_unused_text.size(); i++) {
+            m_unused_text.at(i)->dispatchEvents();
+        }
     }
 
     if (m_flash) {
@@ -871,7 +875,6 @@ Text *Screen::createText()
 void Screen::releaseText(Text *text)
 {
     m_unused_text << text;
-    qDebug() << m_unused_text.size();
 }
 
 void Screen::emitQuickItemRemoved(QQuickItem *item)
@@ -884,16 +887,23 @@ void Screen::readData()
     if (m_pty.hangupReceived()) {
         qGuiApp->quit();
     }
+
     for (int i = 0; i < 60; i++) {
+        if (!m_pty.moreInput()) {
+            break;
+        }
         QByteArray data = m_pty.read();
 
         m_parser.addData(data);
-
-        if (!m_pty.moreInput())
-            break;
     }
 
-    dispatchChanges();
+    if (m_first_read) {
+        m_first_read = false;
+        QTimer::singleShot(0,this, SLOT(readData()));
+    } else {
+        dispatchChanges();
+        m_first_read = true;
+    }
 }
 
 void Screen::moveLine(qint16 from, qint16 to)

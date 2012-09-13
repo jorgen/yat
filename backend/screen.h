@@ -166,6 +166,9 @@ public:
 
     void emitQuickItemRemoved(QQuickItem *item);
 
+public slots:
+    void readData();
+
 signals:
     void moveLines(int from_line, int to_line, int count);
 
@@ -193,9 +196,8 @@ signals:
     void cursorPositionChanged(int x, int y);
     void cursorVisibleChanged();
     void cursorBlinkingChanged();
-private:
 
-    void readData();
+private:
     void moveLine(qint16 from, qint16 to);
     void scheduleMoveSignal(qint16 from, qint16 to);
 
@@ -210,6 +212,7 @@ private:
     ColorPalette m_palette;
     YatPty m_pty;
     Parser m_parser;
+    bool m_first_read;
 
     QVector<ScreenData *> m_screen_stack;
     QVector<QPoint> m_cursor_stack;
