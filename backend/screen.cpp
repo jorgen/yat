@@ -330,8 +330,6 @@ void Screen::restoreCursor()
 
 void Screen::insertAtCursor(const QString &text)
 {
-    Line *line;
-
     if (m_selection_valid ) {
         if (current_cursor_y() >= m_selection_start.y() && current_cursor_y() <= m_selection_end.y())
             //don't need to schedule as event since it will only happen once
@@ -339,7 +337,7 @@ void Screen::insertAtCursor(const QString &text)
     }
 
     if (current_cursor_x() + text.size() <= width()) {
-        line = current_screen_data()->at(current_cursor_y());
+        Line *line = current_screen_data()->at(current_cursor_y());
         line->insertAtPos(current_cursor_x(), text, m_current_text_style);
         current_cursor_pos().rx() += text.size();
     } else {
@@ -349,7 +347,8 @@ void Screen::insertAtCursor(const QString &text)
                 lineFeed();
             }
             QString toLine = text.mid(i,current_screen_data()->width() - current_cursor_x());
-            line = current_screen_data()->at(current_cursor_y());
+            Line *line = current_screen_data()->at(current_cursor_y());
+            line->insertAtPos(current_cursor_x(),toLine, m_current_text_style);
             i+= toLine.size();
             current_cursor_pos().rx() += toLine.size();
         }
