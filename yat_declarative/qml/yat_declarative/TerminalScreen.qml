@@ -1,54 +1,23 @@
 import QtQuick 2.0
 
-Rectangle { id: screenItem
+Rectangle {
+    id: screenItem
 
-    property QtObject screen: null
-    property Component lineFactory: Qt.createComponent("TerminalLine.qml")
+    property QtObject screen
+
+    property font font: screen.font
+    property real fontWidth: screen.charWidth
+    property real fontHeight: screen.lineHeight
 
     anchors.fill: parent
 
     color: "black"
 
-    Component.onCompleted: resetScreenItems();
-
-    function createLineItem(screenLine) {
-        var line = lineFactory.createObject(screenItem,
-                                            {
-                                                "id": "terminalLine",
-                                                "textLine": screenLine,
-                                                "width": parent.width,
-                                                "height": terminal.fontHeight,
-                                                "x": 0,
-                                                "y": screenLine.index * terminal.fontHeight,
-                                            });
-        screenLine.quickItem = line;
-    }
-
-    function resetScreenItems() {
-        for (var i = 0; i < screen.height; i++) {
-            var screen_line = screen.at(i);
-            createLineItem(screen_line);
-        }
-    }
 
     Connections {
         id: connections
 
         target: terminal.screen
-
-        onLinesInserted: {
-            var last_index_before_insertion = screen.height -1 - count;
-
-            for (var i = 0; i < count; i++) {
-                var screen_line = screen.at(last_index_before_insertion +i);
-                createLineItem(screen_line);
-            }
-        }
-
-        onLineRemoved: {
-            item.destroy();
-        }
-
 
         onFlash: {
             flashAnimation.start()
@@ -64,6 +33,37 @@ Rectangle { id: screenItem
         }
     }
 
+    onFontChanged: {
+        setTerminalHeight();
+        setTerminalWidth();
+    }
+
+    onWidthChanged: {
+        setTerminalWidth();
+    }
+    onHeightChanged: {
+        setTerminalHeight();
+    }
+    Component.onCompleted: {
+        setTerminalWidth();
+        setTerminalHeight();
+    }
+
+    function setTerminalWidth() {
+        if (fontWidth > 0) {
+            var pty_width = width / fontWidth;
+            screen.width = pty_width;
+        } else {
+            screen.width = 10;
+        }
+    }
+
+    function setTerminalHeight() {
+        if (fontHeight > 0) {
+            var pty_height = height / fontHeight;
+            screen.height = pty_height;
+        }
+    }
 
 
     Item {

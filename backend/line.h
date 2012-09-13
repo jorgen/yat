@@ -31,19 +31,19 @@ class QQuickItem;
 class TextStyleLine : public TextStyle {
 public:
     TextStyleLine(const TextStyle &style, int start_index, int end_index)
-        : TextStyle(style.style,style.foreground)
-        , start_index(start_index)
+        : start_index(start_index)
         , end_index(end_index)
         , old_index(-1)
         , text_segment(0)
         , changed(true)
     {
+        this->style = style.style;
+        foreground = style.foreground;
         background = style.background;
     }
 
     TextStyleLine()
-        : TextStyle(TextStyle::Normal, ColorPalette::Black)
-        , start_index(0)
+        : start_index(0)
         , end_index(0)
         , old_index(-1)
         , text_segment(0)
@@ -71,7 +71,7 @@ class Line : public QObject
     Q_OBJECT
 
     Q_PROPERTY(int index READ index NOTIFY indexChanged)
-    Q_PROPERTY(QQuickItem *quickItem READ quickItem WRITE setQuickItem NOTIFY quickItemChanged)
+    Q_PROPERTY(QObject *item READ item CONSTANT)
     Q_PROPERTY(Screen *screen READ screen CONSTANT)
 public:
     Line(Screen *screen);
@@ -79,38 +79,33 @@ public:
 
     Q_INVOKABLE Screen *screen() const;
 
+    void releaseTextObjects();
+
     void clear();
     void clearToEndOfLine(int index);
     void setWidth(int width);
 
     Q_INVOKABLE int size() const;
-    Q_INVOKABLE Text *at(int i);
 
     void insertAtPos(int i, const QString &text, const TextStyle &style);
 
     int index() const;
     void setIndex(int index);
 
-    const QString *textLine() const;
+    QString *textLine();
 
-    QQuickItem *quickItem() const;
-    void setQuickItem(QQuickItem *item);
-    QQuickItem *takeQuickItem();
+    QObject *item() const;
 
+    void setVisible(bool visible);
+
+    void dispatchEvents();
 signals:
     void indexChanged();
 
-    void newTextSegment(int index);
-    void textSegmentRemoved(int index);
-
-    void quickItemChanged();
-
-    void reset();
-
 private:
-    void dispatchEvents();
 
     Text *createTextSegment(const TextStyleLine &style_line);
+    void releaseTextSegment(Text *text);
 
     Screen *m_screen;
     QString m_text_line;
@@ -121,7 +116,7 @@ private:
     QVector<Text *> m_unused_segments;
     bool m_changed;
 
-    QQuickItem *m_quick_item;
+    QObject *m_item;
 };
 
 #endif // TEXT_SEGMENT_LINE_H

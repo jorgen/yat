@@ -36,16 +36,22 @@ class Text : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(int index READ index NOTIFY indexChanged)
+    Q_PROPERTY(bool visible READ visible NOTIFY visibleChanged)
     Q_PROPERTY(QString text READ text NOTIFY textChanged)
     Q_PROPERTY(QColor foregroundColor READ foregroundColor NOTIFY forgroundColorChanged)
     Q_PROPERTY(QColor backgroundColor READ backgroundColor NOTIFY backgroundColorChanged)
     Q_PROPERTY(Screen *screen READ screen CONSTANT)
     Q_PROPERTY(QObject *item READ item CONSTANT)
 public:
-    Text(QString *text_line, Line *line);
+    Text(Screen *screen);
     ~Text();
 
+    void setLine(Line *line);
+
     int index() const;
+
+    bool visible() const;
+    void setVisible(bool visible);
 
     QString text() const;
 
@@ -64,10 +70,10 @@ public slots:
     void dispatchEvents();
 
 signals:
-    void aboutToDestroy();
+    void indexChanged();
+    void visibleChanged();
     void textChanged();
     void styleChanged();
-    void indexChanged();
     void forgroundColorChanged();
     void backgroundColorChanged();
 
@@ -82,7 +88,9 @@ private:
 
     bool m_style_dirty;
     bool m_text_dirty;
-    bool m_initial;
+    bool m_visible;
+    bool m_visible_old;
+
     Line *m_line;
 
     QObject *m_item;

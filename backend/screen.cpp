@@ -36,7 +36,7 @@
 
 #include <float.h>
 
-Screen::Screen(QObject *parent)
+Screen::Screen(QQmlEngine *engine, QObject *parent)
     : QObject(parent)
     , m_parser(this)
     , m_cursor_visible(true)
@@ -44,16 +44,15 @@ Screen::Screen(QObject *parent)
     , m_cursor_blinking(true)
     , m_cursor_blinking_changed(false)
     , m_font_metrics(m_font)
-    , m_current_text_style(TextStyle(TextStyle::Normal,ColorPalette::DefaultForground))
     , m_selection_valid(false)
     , m_selection_moved(0)
     , m_flash(false)
     , m_cursor_changed(false)
     , m_reset(false)
     , m_application_cursor_key_mode(false)
-    , m_view(0)
-    , m_line_component(0)
-    , m_text_component(0)
+    , m_engine(engine)
+    , m_line_component(new QQmlComponent(engine, QUrl("qrc:/qml/yat_declarative/TerminalLine.qml"),QQmlComponent::PreferSynchronous))
+    , m_text_component(new QQmlComponent(engine, QUrl("qrc:/qml/yat_declarative/TextSegment.qml"),QQmlComponent::PreferSynchronous))
 {
     connect(&m_pty, &YatPty::readyRead,
             this, &Screen::readData);
@@ -66,16 +65,23 @@ Screen::Screen(QObject *parent)
     setFont(font);
 
     m_screen_stack.reserve(2);
-    m_screen_stack << new ScreenData(this);
 
     m_cursor_stack << QPoint(0,0);
 
+    m_current_text_style.style = TextStyle::Normal;
     m_current_text_style.foreground = ColorPalette::DefaultForground;
     m_current_text_style.background = ColorPalette::DefaultBackground;
 }
 
 Screen::~Screen()
 {
+    for (int i = 0; i < m_screen_stack.size(); i++) {
+        delete m_screen_stack.at(i);
+
+    }
+    for (int i = 0; i < m_unused_text.size(); i++) {
+        delete m_unused_text.at(i);
+    }
 }
 
 
@@ -96,6 +102,9 @@ QColor Screen::defaultBackgroundColor() const
 
 void Screen::setHeight(int height)
 {
+    if (!m_screen_stack.size()) {
+            m_screen_stack << new ScreenData(this);
+    }
 
     ScreenData *data = current_screen_data();
     int size_difference = data->height() - height;
@@ -119,6 +128,9 @@ void Screen::setHeight(int height)
 
 void Screen::setWidth(int width)
 {
+    if (!m_screen_stack.size())
+        m_screen_stack << new ScreenData(this);
+
     current_screen_data()->setWidth(width);
     m_pty.setWidth(width, width * charWidth());
 
@@ -137,9 +149,7 @@ void Screen::saveScreenData()
     new_data->setWidth(pty_size.width());
 
     for (int i = 0; i < new_data->height(); i++) {
-        QQuickItem *item = current_screen_data()->at(i)->takeQuickItem();
-        new_data->at(i)->setQuickItem(item);
-        item->setProperty("textLine", QVariant::fromValue(new_data->at(i)));
+        current_screen_data()->at(i)->releaseTextObjects();
     }
 
     m_screen_stack << new_data;
@@ -152,23 +162,22 @@ void Screen::restoreScreenData()
 {
     ScreenData *data = current_screen_data();
     m_screen_stack.remove(m_screen_stack.size()-1);
+    delete data;
+
     QSize pty_size = m_pty.size();
     current_screen_data()->setHeight(pty_size.height());
     current_screen_data()->setWidth(pty_size.width());
 
-    for (int i = 0; i < data->height(); i++) {
-        QQuickItem *item = data->at(i)->takeQuickItem();
-        current_screen_data()->at(i)->setQuickItem(item);
-        item->setProperty("textLine", QVariant::fromValue(current_screen_data()->at(i)));
+    for (int i = 0; i < current_screen_data()->height(); i++) {
+        current_screen_data()->at(i)->dispatchEvents();
     }
 
-    delete data;
     setSelectionEnabled(false);
 }
 
 int Screen::height() const
 {
-    return m_screen_stack.last()->height();
+    return current_screen_data()->height();
 }
 
 QFont Screen::font() const
@@ -222,7 +231,7 @@ TextStyle Screen::currentTextStyle() const
 
 TextStyle Screen::defaultTextStyle() const
 {
-    return TextStyle(TextStyle::Normal,ColorPalette::DefaultForground);
+    return { TextStyle::Normal, ColorPalette::DefaultForground, ColorPalette::DefaultBackground };
 }
 
 QPoint Screen::cursorPosition() const
@@ -589,10 +598,8 @@ void Screen::dispatchChanges()
             current_screen_data()->updateIndexes(begin_move, end_move);
         }
 
-        if (m_view) {
-            emit dispatchLineChanges();
-            emit dispatchTextSegmentChanges();
-        }
+        current_screen_data()->dispatchLineEvents();
+        emit dispatchTextSegmentChanges();
     }
 
     if (m_flash) {
@@ -833,23 +840,6 @@ void Screen::sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers mod
     }
 }
 
-void Screen::setQuickView(QQuickView *view)
-{
-    m_view = view;
-    delete m_line_component;
-    delete m_text_component;
-
-    if (view) {
-        m_line_component = new QQmlComponent(view->engine(), QUrl("qrc:/qml/yat_declarative/TerminalLine.qml"),QQmlComponent::PreferSynchronous);
-        m_text_component = new QQmlComponent(view->engine(), QUrl("qrc:/qml/yat_declarative/TextSegment.qml"),QQmlComponent::PreferSynchronous);
-    }
-}
-
-QQuickView *Screen::view() const
-{
-    return m_view;
-}
-
 QObject *Screen::createLineItem()
 {
     return m_line_component->create();
@@ -862,14 +852,26 @@ void Screen::destroyLineItem(QObject *lineItem)
 
 QObject *Screen::createTextItem()
 {
-    while(!m_text_component->isReady())
-        QCoreApplication::processEvents();
     return m_text_component->create();
 }
 
 void Screen::destroyTextItem(QObject *textItem)
 {
     textItem->deleteLater();
+}
+
+Text *Screen::createText()
+{
+    if (m_unused_text.size())
+        return m_unused_text.takeLast();
+
+    return new Text(this);
+}
+
+void Screen::releaseText(Text *text)
+{
+    m_unused_text << text;
+    qDebug() << m_unused_text.size();
 }
 
 void Screen::emitQuickItemRemoved(QQuickItem *item)

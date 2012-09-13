@@ -26,6 +26,7 @@
 #include <stdio.h>
 
 #include <QtGui/QGuiApplication>
+#include <QtCore/QDebug>
 
 ScreenData::ScreenData(Screen *screen)
     : m_screen(screen)
@@ -268,12 +269,20 @@ void ScreenData::getDoubleClickSelectionArea(const QPointF &cliked, int *start_r
 
 }
 
+void ScreenData::dispatchLineEvents()
+{
+    for (int i = 0; i < m_screen_lines.size(); i++) {
+        m_screen_lines.at(i)->dispatchEvents();
+    }
+}
+
 void ScreenData::printScreen() const
 {
     for (int line = 0; line < m_screen_lines.size(); line++) {
-        for (int i = 0; i < m_screen_lines.at(line)->size(); i++) {
-            fprintf(stderr, "%s", qPrintable(m_screen_lines.at(line)->at(i)->text()));
-        }
-        fprintf(stderr, "\n");
+//        for (int i = 0; i < m_screen_lines.at(line)->size(); i++) {
+//            fprintf(stderr, "%s", qPrintable(m_screen_lines.at(line)->at(i)->text()));
+//        }
+//        fprintf(stderr, "\n");
+        fprintf(stderr, "%s\n", qPrintable(*m_screen_lines.at(line)->textLine()));
     }
 }

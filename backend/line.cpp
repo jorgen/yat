@@ -23,6 +23,9 @@
 #include "text.h"
 #include "screen.h"
 
+#include <QtQuick/QQuickView>
+#include <QtQuick/QQuickItem>
+
 #include <QtCore/QDebug>
 
 Line::Line(Screen *screen)
@@ -31,7 +34,7 @@ Line::Line(Screen *screen)
     , m_index(0)
     , m_old_index(-1)
     , m_changed(true)
-    , m_quick_item(0)
+    , m_item(screen->createLineItem())
 {
     m_text_line.resize(screen->width());
     m_style_list.reserve(25);
@@ -39,19 +42,35 @@ Line::Line(Screen *screen)
 
     clear();
 
-    connect(screen,&Screen::dispatchLineChanges,
-            this, &Line::dispatchEvents);
+    m_item->setProperty("parent", QVariant::fromValue(m_screen->parent()));
+    m_item->setProperty("height", m_screen->lineHeight());
+    m_item->setProperty("textLine", QVariant::fromValue(this));
 }
 
 Line::~Line()
 {
-    if (m_quick_item)
-        m_screen->emitQuickItemRemoved(m_quick_item);
+    releaseTextObjects();
+
+    if (m_item)
+        m_screen->destroyLineItem(m_item);
 }
 
 Screen *Line::screen() const
 {
     return m_screen;
+}
+
+void Line::releaseTextObjects()
+{
+    m_changed = true;
+    for (int i = 0; i < m_style_list.size(); i++) {
+        if (m_style_list.at(i).text_segment) {
+            m_style_list.at(i).text_segment->setVisible(false);
+            screen()->releaseText(m_style_list.at(i).text_segment);
+            m_style_list[i].text_segment = 0;
+            m_style_list[i].changed = true;
+        }
+    }
 }
 
 void Line::clear()
@@ -60,7 +79,7 @@ void Line::clear()
 
     for (int i = 0; i < m_style_list.size(); i++) {
         if (m_style_list.at(i).text_segment)
-            m_unused_segments.append(m_style_list.at(i).text_segment);
+            releaseTextSegment(m_style_list.at(i).text_segment);
     }
 
     m_style_list.clear();
@@ -80,7 +99,7 @@ void Line::clearToEndOfLine(int index)
         const TextStyleLine current_style = m_style_list.at(i);
         if (found) {
             if (current_style.text_segment)
-                m_unused_segments.append(current_style.text_segment);
+                releaseTextSegment(current_style.text_segment);
             m_style_list.remove(i);
             i--;
         } else {
@@ -88,7 +107,7 @@ void Line::clearToEndOfLine(int index)
                 found = true;
                 if (current_style.start_index == index) {
                     if (current_style.text_segment)
-                        m_unused_segments.append(current_style.text_segment);
+                        releaseTextSegment(current_style.text_segment);
                     m_style_list.remove(i);
                     i--;
                 } else {
@@ -119,19 +138,6 @@ int Line::size() const
     return m_style_list.size();
 }
 
-Text *Line::at(int i)
-{
-    if (i < 0 || i >= m_style_list.size())
-        return 0;
-    if (!m_style_list.at(i).text_segment) {
-        m_style_list[i].text_segment = createTextSegment(m_style_list.at(i));
-    }
-
-    m_style_list[i].old_index = i;
-
-    return m_style_list.at(i).text_segment;
-}
-
 void Line::insertAtPos(int pos, const QString &text, const TextStyle &style)
 {
     Q_ASSERT(pos + text.size() <= m_text_line.size());
@@ -146,7 +152,7 @@ void Line::insertAtPos(int pos, const QString &text, const TextStyle &style)
         if (found) {
             if (current_style.end_index <= pos + text.size()) {
                 if (current_style.text_segment)
-                    m_unused_segments.append(current_style.text_segment);
+                    releaseTextSegment(current_style.text_segment);
                 m_style_list.remove(i);
                 i--;
             } else if (current_style.start_index <= pos + text.size()) {
@@ -209,31 +215,19 @@ void Line::setIndex(int index)
     m_index = index;
 }
 
-const QString *Line::textLine() const
+QString *Line::textLine()
 {
     return &m_text_line;
 }
 
-QQuickItem *Line::quickItem() const
+QObject *Line::item() const
 {
-    return m_quick_item;
+    return m_item;
 }
 
-void Line::setQuickItem(QQuickItem *item)
+void Line::setVisible(bool visible)
 {
-    bool changed = m_quick_item != item;
-    if (m_quick_item)
-        m_screen->emitQuickItemRemoved(m_quick_item);
-    m_quick_item = item;
-    if (changed)
-        emit quickItemChanged();
-}
-
-QQuickItem *Line::takeQuickItem()
-{
-    QQuickItem *item = m_quick_item;
-    m_quick_item = 0;
-    return item;
+    m_item->setProperty("visible", visible);
 }
 
 void Line::dispatchEvents()
@@ -255,35 +249,33 @@ void Line::dispatchEvents()
 
         if (current_style.changed) {
             if (current_style.text_segment == 0) {
-                m_style_list[i].text_segment = new Text(&m_text_line,this);
+                m_style_list[i].text_segment = createTextSegment(current_style);
             }
             m_style_list[i].text_segment->setStringSegment(current_style.start_index, current_style.end_index);
             m_style_list[i].text_segment->setTextStyle(current_style);
             m_style_list[i].changed = false;
+
+            m_style_list.at(i).text_segment->dispatchEvents();
         }
     }
 
     m_changed = false;
-
-    for (int i = 0; i < m_unused_segments.size(); i++) {
-        delete m_unused_segments.at(i);
-    }
-    m_unused_segments.clear();
 }
 
 Text *Line::createTextSegment(const TextStyleLine &style_line)
 {
-    Text *to_return = 0;
-    if (m_unused_segments.size()) {
-        to_return = m_unused_segments.at(m_unused_segments.size()-1);
-        m_unused_segments.remove(m_unused_segments.size() -1);
-    } else {
-        to_return = new Text(&m_text_line, this);
-    }
-
+    Text *to_return = screen()->createText();
+    to_return->setLine(this);
     to_return->setStringSegment(style_line.start_index, style_line.end_index);
     to_return->setTextStyle(style_line);
+    to_return->setVisible(true);
 
     return to_return;
+}
+
+void Line::releaseTextSegment(Text *text)
+{
+    screen()->releaseText(text);
+    text->setVisible(false);
 }
 

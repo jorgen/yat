@@ -6,44 +6,26 @@ TerminalItem {
     id: terminal
     width: 800
     height: 600
-    property font font: screen.font;
+    property font font
 
-    property real fontWidth: screen.charWidth;
-    property real fontHeight: screen.lineHeight;
+    property real fontWidth
+    property real fontHeight
 
-    onWidthChanged: {
-        setTerminalWidth();
-    }
-    onHeightChanged: {
-        setTerminalHeight();
-    }
+    property Component terminalScreenComponent: Qt.createComponent("TerminalScreen.qml")
 
-    onFontHeightChanged: {
-        setTerminalHeight();
-    }
-    onFontWidthChanged: {
-        setTerminalWidth();
-    }
+    property Item terminalScreen: null
 
-    function setTerminalWidth() {
-        if (fontWidth > 0) {
-            var pty_width = width / fontWidth;
-            terminal.screen.width = pty_width;
-        } else {
-            terminal.screen.width = 10;
+    onScreenChanged: {
+        if (screen === null) {
+            terminalScreen = null;
+            return;
         }
+        terminalScreen = terminalScreenComponent.createObject(terminal,
+                                                              {
+                                                                  "screen": screen,
+                                                              });
     }
 
-    function setTerminalHeight() {
-        if (fontHeight > 0) {
-            var pty_height = height / fontHeight;
-            terminal.screen.height = pty_height;
-        }
-    }
 
-    TerminalScreen {
-        anchors.fill: parent
-        screen: terminal.screen
-    }
 
 }

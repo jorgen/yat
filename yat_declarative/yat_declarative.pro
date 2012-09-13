@@ -1,6 +1,8 @@
 QT += gui quick
 TARGET = yat
 
+CONFIG += c++11
+
 include(../backend/backend.pri)
 SOURCES += main.cpp \
     terminal_item.cpp \

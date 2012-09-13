@@ -8,10 +8,9 @@ Rectangle {
     property color backgroundColor
     property font font
 
-    height: textItem.paintedHeight
-    width: textItem.paintedWidth
     y: 0
-    color: backgroundColor
+
+    color: "red"
 
     Text {
         id: textItem
@@ -27,16 +26,12 @@ Rectangle {
         target: textSegment
 
         onTextChanged: {
-            textItem.text = textSegment.text
+            textSegmentItem.text = textSegment.text
         }
 
         onStyleChanged: {
             textSegmentItem.backgroundColor = textSegment.backgroundColor;
             textSegmentItem.foregroundColor = textSegment.foregroundColor;
-        }
-
-        onAboutToDestroy: {
-            textSegmentItem.destroy();
         }
 
         onIndexChanged: {

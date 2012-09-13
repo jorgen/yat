@@ -26,35 +26,50 @@
 
 #include <QtCore/QDebug>
 
-Text::Text(QString *text_line, Line *line)
-    : QObject(line)
-    , m_text_line(text_line)
-    , m_start_index(0)
-    , m_old_start_index(0)
-    , m_end_index(0)
-    , m_style(line->screen()->defaultTextStyle())
-    , m_style_dirty(true)
-    , m_text_dirty(true)
-    , m_line(line)
-    , m_item(m_line->screen()->createTextItem())
+Text::Text(Screen *screen)
+    : QObject(screen)
+    , m_line(0)
+    , m_item(screen->createTextItem())
+    , m_visible_old(true)
 {
-    connect(screen(), &Screen::dispatchTextSegmentChanges,
-            this, &Text::dispatchEvents);
+    m_item->setProperty("font", screen->font());
     m_item->setProperty("textSegment",QVariant::fromValue(this));
-    m_item->setProperty("font", screen()->font());
-    m_item->setProperty("parent", QVariant::fromValue(m_line->quickItem()));
 }
 
 Text::~Text()
 {
-    m_item->setProperty("textSegment", QVariant::fromValue(static_cast<Text *>(0)));
-    m_item->setProperty("visible", false);
-    m_line->screen()->destroyTextItem(m_item);
+    if (m_item) {
+        m_item->setProperty("textSegment", QVariant::fromValue(static_cast<Text *>(0)));
+        m_item->setProperty("visible", false);
+        m_line->screen()->destroyTextItem(m_item);
+    }
+}
+
+void Text::setLine(Line *line)
+{
+    if (line == m_line)
+        return;
+    m_line = line;
+    if (m_line) {
+        m_text_line = line->textLine();
+        m_item->setProperty("parent", QVariant::fromValue(m_line->item()));
+    }
 }
 
 int Text::index() const
 {
     return m_start_index;
+}
+
+bool Text::visible() const
+{
+    return m_visible;
+}
+
+void Text::setVisible(bool visible)
+{
+    m_visible = visible;
+    m_item->setProperty("visible",m_visible);
 }
 
 QString Text::text() const
@@ -114,12 +129,19 @@ void Text::dispatchEvents()
     }
 
     if (m_text_dirty) {
+        m_text_dirty = false;
         m_text = m_text_line->mid(m_start_index, m_end_index + 1 - m_start_index);
         if (m_old_start_index != m_start_index) {
             m_old_start_index = m_start_index;
             emit indexChanged();
         }
         emit textChanged();
+    }
+
+
+    if (m_visible_old != m_visible) {
+        m_visible_old = m_visible;
+        emit visibleChanged();
     }
 }
 

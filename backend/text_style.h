@@ -25,8 +25,6 @@ public:
     };
     Q_DECLARE_FLAGS(Styles, Style)
 
-    TextStyle(Styles style, ColorPalette::Color foreground);
-
     Styles style;
     ColorPalette::Color foreground;
     ColorPalette::Color background;

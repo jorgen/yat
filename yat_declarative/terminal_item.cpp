@@ -22,8 +22,15 @@
 
 TerminalItem::TerminalItem(QQuickItem *parent)
     : QQuickItem(parent)
-    , m_screen(new Screen(this))
+    , m_screen(0)
 {
+}
+
+void TerminalItem::createScreen(QQmlEngine *engine)
+{
+    delete m_screen;
+    m_screen = new Screen(engine,this);
+    emit screenChanged();
 }
 
 Screen *TerminalItem::screen() const

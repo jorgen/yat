@@ -60,6 +60,8 @@ public:
 
     void getDoubleClickSelectionArea(const QPointF &cliked, int *start_ret, int *end_ret) const;
 
+    void dispatchLineEvents();
+
     void printScreen() const;
 private:
     Screen *m_screen;
