@@ -1,6 +1,6 @@
 YAT is a terminal emulator written in qml and c++
 
 The main goal of the project was to see if it was possible to use qml to write
-a performant terminal emulator.
+a terminal emulator which performed on par with xterm and konsole.
 
-Turnes out its possible.
+Turnes out, its possible.
