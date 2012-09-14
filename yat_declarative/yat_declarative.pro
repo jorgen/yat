@@ -6,7 +6,7 @@ CONFIG += c++11
 include(../backend/backend.pri)
 SOURCES += main.cpp \
     terminal_item.cpp \
-    register_qml_types.cpp
+    register_qml_types.cpp \
 
 QML_IMPORT_PATH =
 
@@ -22,4 +22,4 @@ RESOURCES += \
 
 HEADERS += \
     terminal_item.h \
-    register_qml_types.h
+    register_qml_types.h \

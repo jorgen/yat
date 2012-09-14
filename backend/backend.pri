@@ -16,7 +16,8 @@ HEADERS += \
            $$PWD/color_palette.h \
            $$PWD/text_style.h \
            $$PWD/update_action.h \
-           $$PWD/screen_data.h
+           $$PWD/screen_data.h \
+           $$PWD/pty_reader.h
 
 SOURCES += \
            $$PWD/yat_pty.cpp \
@@ -27,4 +28,5 @@ SOURCES += \
            $$PWD/color_palette.cpp \
            $$PWD/text_style.cpp \
            $$PWD/update_action.cpp \
-           $$PWD/screen_data.cpp
+           $$PWD/screen_data.cpp \
+           $$PWD/pty_reader.cpp

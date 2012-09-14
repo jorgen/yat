@@ -25,6 +25,7 @@
 #include "controll_chars.h"
 
 #include <QtCore/QTimer>
+#include <QtCore/QSocketNotifier>
 #include <QtGui/QGuiApplication>
 #include <QtGui/qmime.h>
 
@@ -55,8 +56,8 @@ Screen::Screen(QQmlEngine *engine, QObject *parent)
     , m_line_component(new QQmlComponent(engine, QUrl("qrc:/qml/yat_declarative/TerminalLine.qml"),QQmlComponent::PreferSynchronous))
     , m_text_component(new QQmlComponent(engine, QUrl("qrc:/qml/yat_declarative/TextSegment.qml"),QQmlComponent::PreferSynchronous))
 {
-    connect(&m_pty, &YatPty::readyRead,
-            this, &Screen::readData);
+    QSocketNotifier *pty_read_notifier = new QSocketNotifier(m_pty.eventFd(),QSocketNotifier::Read,this);
+    connect(pty_read_notifier, &QSocketNotifier::activated, this, &Screen::readData);
 
     QFont font;
     font.setFamily(QStringLiteral("Courier"));
@@ -72,6 +73,8 @@ Screen::Screen(QQmlEngine *engine, QObject *parent)
     m_current_text_style.style = TextStyle::Normal;
     m_current_text_style.foreground = ColorPalette::DefaultForground;
     m_current_text_style.background = ColorPalette::DefaultBackground;
+
+    connect(&m_pty, SIGNAL(hangupReceived()),qGuiApp, SLOT(quit()));
 }
 
 Screen::~Screen()
@@ -118,10 +121,7 @@ void Screen::setHeight(int height)
     if (size_difference > 0) {
         if (current_cursor_y() > 0)
             current_cursor_pos().ry()--;
-    } else {
-        emit linesInserted(-size_difference);
     }
-
 
     m_pty.setHeight(height, height * lineHeight());
     dispatchChanges();
@@ -353,7 +353,6 @@ void Screen::insertAtCursor(const QString &text)
             current_cursor_pos().rx() += toLine.size();
         }
     }
-
 
     m_cursor_changed = true;
 }
@@ -876,33 +875,23 @@ void Screen::releaseText(Text *text)
     m_unused_text << text;
 }
 
-void Screen::emitQuickItemRemoved(QQuickItem *item)
+YatPty *Screen::pty()
 {
-    lineRemoved(item);
+    return &m_pty;
 }
 
 void Screen::readData()
 {
-    if (m_pty.hangupReceived()) {
-        qGuiApp->quit();
-    }
-
-    for (int i = 0; i < 60; i++) {
-        if (!m_pty.moreInput()) {
-            break;
-        }
-        QByteArray data = m_pty.read();
-
+    bool events_processed = false;
+    PtyBuffer *pty_buffer;
+    while((pty_buffer = m_pty.nextPtyBuffer())) {
+        QByteArray data = QByteArray::fromRawData(pty_buffer->buffer(),pty_buffer->size());
         m_parser.addData(data);
+        events_processed = true;
     }
 
-    if (m_first_read) {
-        m_first_read = false;
-        QTimer::singleShot(0,this, SLOT(readData()));
-    } else {
+    if (events_processed)
         dispatchChanges();
-        m_first_read = true;
-    }
 }
 
 void Screen::moveLine(qint16 from, qint16 to)

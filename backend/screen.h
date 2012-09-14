@@ -38,6 +38,7 @@
 #include <QtCore/QVarLengthArray>
 
 class Line;
+class PtyBuffer;
 class QQuickItem;
 class QQmlEngine;
 class QQmlComponent;
@@ -160,20 +161,16 @@ public:
     void destroyLineItem(QObject *lineItem);
     QObject *createTextItem();
     void destroyTextItem(QObject *textItem);
-
     Text *createText();
     void releaseText(Text *text);
 
-    void emitQuickItemRemoved(QQuickItem *item);
+    YatPty *pty();
 
 public slots:
     void readData();
 
 signals:
     void moveLines(int from_line, int to_line, int count);
-
-    void linesInserted(int count);
-    void lineRemoved(QQuickItem *item);
 
     void reset();
 

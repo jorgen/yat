@@ -27,6 +27,8 @@
 
 #include "screen.h"
 
+class PtyReadHandler;
+
 class TerminalItem : public QQuickItem
 {
     Q_OBJECT

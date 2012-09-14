@@ -28,10 +28,7 @@ class UpdateAction
 public:
     enum Action {
         InvalidAction,
-        MoveLine,
-        ScrollDown,
-        LinesInserted,
-        LinesRemoved
+        MoveLine
     };
 
     UpdateAction(Action action, qint16 from_line, qint16 to_line, qint16 count)
