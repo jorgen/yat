@@ -40,7 +40,7 @@
 Screen::Screen(QQmlEngine *engine, QObject *parent)
     : QObject(parent)
     , m_parser(this)
-    , m_first_read(true)
+    , m_timer_event_id(0)
     , m_cursor_visible(true)
     , m_cursor_visible_changed(false)
     , m_cursor_blinking(true)
@@ -56,8 +56,7 @@ Screen::Screen(QQmlEngine *engine, QObject *parent)
     , m_line_component(new QQmlComponent(engine, QUrl("qrc:/qml/yat_declarative/TerminalLine.qml"),QQmlComponent::PreferSynchronous))
     , m_text_component(new QQmlComponent(engine, QUrl("qrc:/qml/yat_declarative/TextSegment.qml"),QQmlComponent::PreferSynchronous))
 {
-    QSocketNotifier *pty_read_notifier = new QSocketNotifier(m_pty.eventFd(),QSocketNotifier::Read,this);
-    connect(pty_read_notifier, &QSocketNotifier::activated, this, &Screen::readData);
+    connect(&m_pty, &YatPty::readyRead, this, &Screen::readData);
 
     QFont font;
     font.setFamily(QStringLiteral("Courier"));
@@ -637,6 +636,7 @@ void Screen::dispatchChanges()
 
     m_update_actions.clear();
 
+    m_time_since_dispatched.restart();
 }
 
 void Screen::sendPrimaryDA()
@@ -880,18 +880,13 @@ YatPty *Screen::pty()
     return &m_pty;
 }
 
-void Screen::readData()
+void Screen::readData(const QByteArray &data)
 {
-    bool events_processed = false;
-    PtyBuffer *pty_buffer;
-    while((pty_buffer = m_pty.nextPtyBuffer())) {
-        QByteArray data = QByteArray::fromRawData(pty_buffer->buffer(),pty_buffer->size());
-        m_parser.addData(data);
-        events_processed = true;
-    }
+    m_parser.addData(data);
 
-    if (events_processed)
-        dispatchChanges();
+    if (!m_timer_event_id)
+        m_timer_event_id = startTimer(14);
+    m_time_since_parsed.restart();
 }
 
 void Screen::moveLine(qint16 from, qint16 to)
@@ -921,5 +916,16 @@ void Screen::setSelectionValidity()
         setSelectionEnabled(true);
     } else {
         setSelectionEnabled(false);
+    }
+}
+
+
+void Screen::timerEvent(QTimerEvent *)
+{
+    if (m_timer_event_id && m_time_since_parsed.elapsed() > 15 ||
+            (!m_time_since_dispatched.isValid() || m_time_since_dispatched.elapsed() > 50)) {
+        killTimer(m_timer_event_id);
+        m_timer_event_id = 0;
+        dispatchChanges();
     }
 }

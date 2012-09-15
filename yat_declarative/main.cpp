@@ -30,14 +30,11 @@
 #include "terminal_item.h"
 #include "yat_pty.h"
 
-#include <QtCore/QDebug>
 int main(int argc, char **argv)
 {
     QGuiApplication app(argc, argv);
 
     register_qml_types();
-    qRegisterMetaType<PtyBuffer *>("PtyBuffer *");
-    qRegisterMetaType<YatPty *>("YatPty *");
 
     QQuickView view(QUrl("qrc:/qml/yat_declarative/main.qml"));
     qobject_cast<TerminalItem *>(view.rootObject())->createScreen(view.engine());

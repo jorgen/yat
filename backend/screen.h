@@ -35,10 +35,9 @@
 #include <QtCore/QStack>
 #include <QtGui/QFont>
 #include <QtGui/QFontMetrics>
-#include <QtCore/QVarLengthArray>
+#include <QtCore/QElapsedTimer>
 
 class Line;
-class PtyBuffer;
 class QQuickItem;
 class QQmlEngine;
 class QQmlComponent;
@@ -167,7 +166,7 @@ public:
     YatPty *pty();
 
 public slots:
-    void readData();
+    void readData(const QByteArray &data);
 
 signals:
     void moveLines(int from_line, int to_line, int count);
@@ -194,6 +193,9 @@ signals:
     void cursorVisibleChanged();
     void cursorBlinkingChanged();
 
+protected:
+    void timerEvent(QTimerEvent *);
+
 private:
     void moveLine(qint16 from, qint16 to);
     void scheduleMoveSignal(qint16 from, qint16 to);
@@ -209,7 +211,10 @@ private:
     ColorPalette m_palette;
     YatPty m_pty;
     Parser m_parser;
-    bool m_first_read;
+    QElapsedTimer m_time_since_parsed;
+    QElapsedTimer m_time_since_dispatched;
+
+    int m_timer_event_id;
 
     QVector<ScreenData *> m_screen_stack;
     QVector<QPoint> m_cursor_stack;

@@ -28,37 +28,6 @@
 #include <QtCore/QLinkedList>
 #include <QtCore/QMutex>
 
-class QSocketNotifier;
-class PtyReadHandler;
-
-class PtyBuffer : public QObject
-{
-    Q_OBJECT
-public:
-    PtyBuffer(QObject *parent);
-
-    void setSize(int size);
-
-    int size() const;
-    int space() const;
-
-    bool available() const;
-
-    void setAvailable(bool available);
-
-    char *buffer();
-
-    void release();
-
-signals:
-    void released(PtyBuffer *buffer);
-
-private:
-    bool m_is_available;
-    int m_size;
-    char m_buffer[64];
-};
-
 class YatPty : public QObject
 {
     Q_OBJECT
@@ -73,27 +42,20 @@ public:
     QSize size() const;
 
     int masterDevice() const;
-    int eventFd() const;
 
-    void queuePtyBuffer(PtyBuffer *buffer);
-    PtyBuffer *nextPtyBuffer();
 signals:
     void hangupReceived();
+    void readyRead(const QByteArray &data);
 
 private:
-    void socketQuit();
-    void writeEventFd();
-    void readEventFd();
+    void readData();
 
     pid_t m_terminal_pid;
     int m_master_fd;
-    int m_event_fd;
     char m_slave_file_name[PATH_MAX];
     struct termios m_termios;
     struct winsize *m_winsize;
-    QLinkedList<PtyBuffer *>m_buffers;
-    PtyBuffer *m_current_buffer;
-    QMutex m_buffer_guard;
+    char m_data_buffer[4096];
 };
 
 #endif //YAT_PTY_H
