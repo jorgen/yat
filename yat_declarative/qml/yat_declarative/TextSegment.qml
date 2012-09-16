@@ -9,8 +9,10 @@ Rectangle {
     property font font
 
     y: 0
+    width: textItem.paintedWidth
+    height: textItem.paintedHeight
 
-    color: "red"
+    color: backgroundColor
 
     Text {
         id: textItem
