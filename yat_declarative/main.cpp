@@ -24,7 +24,6 @@
 
 #include <QtQuick/QQuickView>
 #include <QtQuick/QQuickItem>
-#include <sys/eventfd.h>
 
 #include "register_qml_types.h"
 #include "terminal_item.h"

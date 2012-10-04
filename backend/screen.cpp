@@ -27,7 +27,6 @@
 #include <QtCore/QTimer>
 #include <QtCore/QSocketNotifier>
 #include <QtGui/QGuiApplication>
-#include <QtGui/qmime.h>
 
 #include <QtQuick/QQuickItem>
 #include <QtQuick/QQuickView>

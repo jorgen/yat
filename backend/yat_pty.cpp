@@ -20,11 +20,15 @@
 
 #include "yat_pty.h"
 
-#include <pty.h>
 #include <fcntl.h>
 #include <poll.h>
-#include <sys/eventfd.h>
+
+#ifdef LINUX
 #include <sys/epoll.h>
+#endif
+
+#include <util.h>
+#include <sys/ioctl.h>
 
 #include <QtCore/QSize>
 #include <QtCore/QString>
@@ -54,9 +58,10 @@ YatPty::YatPty()
         for (int i = 0; i < env_variables_size; i++) {
             ::putenv(env_variables[i]);
         }
-        ::execl("/bin/bash", "/bin/bash", (const char *) 0);
+        :execl("/bin/bash", "/bin/bash", (const char *) 0);
     }
 
+#ifdef LINUX
     //if you don't have epoll, then convert this to kqueue or figure out how to get the hup event
     //from the socket notifier. Doing an extra poll is not an option
     int epoll_hup = epoll_create1(EPOLL_CLOEXEC);
@@ -66,6 +71,7 @@ YatPty::YatPty()
     epoll_ctl(epoll_hup, EPOLL_CTL_ADD, m_master_fd, &event);
     QSocketNotifier *hupNotifier = new QSocketNotifier(epoll_hup,QSocketNotifier::Read, this);
     connect(hupNotifier, &QSocketNotifier::activated, this, &YatPty::hangupReceived);
+#endif //LINUX
 
     QSocketNotifier *reader = new QSocketNotifier(m_master_fd,QSocketNotifier::Read,this);
     connect(reader, &QSocketNotifier::activated, this, &YatPty::readData);

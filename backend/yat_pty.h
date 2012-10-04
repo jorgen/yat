@@ -22,7 +22,6 @@
 #define YAT_PTY_H
 
 #include <unistd.h>
-#include <pty.h>
 
 #include <QtCore/QObject>
 #include <QtCore/QLinkedList>
@@ -53,7 +52,6 @@ private:
     pid_t m_terminal_pid;
     int m_master_fd;
     char m_slave_file_name[PATH_MAX];
-    struct termios m_termios;
     struct winsize *m_winsize;
     char m_data_buffer[4096];
 };
