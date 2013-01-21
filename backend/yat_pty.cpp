@@ -27,8 +27,9 @@
 #include <sys/epoll.h>
 #endif
 
-#include <util.h>
 #include <sys/ioctl.h>
+#include <pty.h>
+#include <utmp.h>
 
 #include <QtCore/QSize>
 #include <QtCore/QString>
@@ -58,7 +59,7 @@ YatPty::YatPty()
         for (int i = 0; i < env_variables_size; i++) {
             ::putenv(env_variables[i]);
         }
-        :execl("/bin/bash", "/bin/bash", (const char *) 0);
+        ::execl("/bin/bash", "/bin/bash", (const char *) 0);
     }
 
 #ifdef LINUX
