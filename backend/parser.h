@@ -24,6 +24,7 @@
 #include <QtCore/QString>
 #include <QtCore/QVector>
 #include <QtCore/QLinkedList>
+#include <QtCore/QTextDecoder>
 
 #include "text.h"
 
@@ -31,6 +32,7 @@ class Parser
 {
 public:
     Parser(Screen *screen);
+    ~Parser();
 
     void addData(const QByteArray &data);
 
@@ -52,6 +54,7 @@ private:
         None
     };
 
+    void decodeCharacter(ushort character);
     void decodeC0(uchar character);
     void decodeC1_7bit(uchar character);
     void decodeParameters(uchar character);
@@ -63,10 +66,11 @@ private:
 
     void appendParameter();
 
+    QTextDecoder* decoder;
     DecodeState m_decode_state;
     DecodeOSCState m_decode_osc_state;
 
-    QByteArray m_current_data;
+    QString currentData;
 
     int m_current_token_start;
     int m_currrent_position;
