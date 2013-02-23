@@ -28,7 +28,11 @@
 #endif
 
 #include <sys/ioctl.h>
+#ifdef Q_OS_MAC
+#include <util.h>
+#else
 #include <pty.h>
+#endif
 #include <utmp.h>
 
 #include <QtCore/QSize>
