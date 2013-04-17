@@ -63,20 +63,9 @@ YatPty::YatPty()
         for (int i = 0; i < env_variables_size; i++) {
             ::putenv(env_variables[i]);
         }
-        ::execl("/bin/bash", "/bin/bash", (const char *) 0);
+        ::execl("/bin/bash", "/bin/bash", "--login", (const char *) 0);
+        exit(0);
     }
-
-#ifdef LINUX
-    //if you don't have epoll, then convert this to kqueue or figure out how to get the hup event
-    //from the socket notifier. Doing an extra poll is not an option
-    int epoll_hup = epoll_create1(EPOLL_CLOEXEC);
-    epoll_event event;
-    event.data.ptr = 0;
-    event.events = EPOLLHUP;
-    epoll_ctl(epoll_hup, EPOLL_CTL_ADD, m_master_fd, &event);
-    QSocketNotifier *hupNotifier = new QSocketNotifier(epoll_hup,QSocketNotifier::Read, this);
-    connect(hupNotifier, &QSocketNotifier::activated, this, &YatPty::hangupReceived);
-#endif //LINUX
 
     QSocketNotifier *reader = new QSocketNotifier(m_master_fd,QSocketNotifier::Read,this);
     connect(reader, &QSocketNotifier::activated, this, &YatPty::readData);
@@ -138,7 +127,13 @@ int YatPty::masterDevice() const
 void YatPty::readData()
 {
     int size_of_buffer = sizeof m_data_buffer / sizeof *m_data_buffer;
-    int read_size = ::read(m_master_fd,m_data_buffer,size_of_buffer);
-    QByteArray to_return = QByteArray::fromRawData(m_data_buffer,read_size);
-    emit readyRead(to_return);
+    ssize_t read_size = ::read(m_master_fd,m_data_buffer,size_of_buffer);
+    if (read_size > 0) {
+        QByteArray to_return = QByteArray::fromRawData(m_data_buffer,read_size);
+        emit readyRead(to_return);
+    } else if (read_size < 0) {
+        emit hangupReceived();
+    } else {
+        emit hangupReceived();
+    }
 }

@@ -57,10 +57,10 @@ Screen::Screen(QQmlEngine *engine, QObject *parent)
 {
     connect(&m_pty, &YatPty::readyRead, this, &Screen::readData);
 
-    QFont font;
-    font.setFamily(QStringLiteral("Courier"));
+    QFont font("Courier");
     font.setPointSize(10);
-    font.setBold(true);
+    font.setFixedPitch(true);
+    font.setStyleHint(QFont::Courier);
     font.setHintingPreference(QFont::PreferNoHinting);
     setFont(font);
 
@@ -818,14 +818,32 @@ void Screen::sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers mod
         m_pty.write(toPty);
 
     } else {
+        QString verifiedText = text;
+        if (text.isEmpty()) {
+            switch (key) {
+            case Qt::Key_Return:
+            case Qt::Key_Enter:
+                verifiedText = "\r";
+                break;
+            case Qt::Key_Backspace:
+                verifiedText = "\010";
+                break;
+            case Qt::Key_Tab:
+                verifiedText = "\t";
+                break;
+            default:
+                qDebug() << "Could not find string info for: " << key;
+                return;
+            }
+        }
         QByteArray to_pty;
         QByteArray key_text;
         if (modifiers & Qt::ControlModifier) {
-            char key_char = text.toLocal8Bit().at(0);
+            char key_char = verifiedText.toLocal8Bit().at(0);
             key_text.append(key_char & 0x1F);
 
         } else {
-            key_text = text.toUtf8();
+            key_text = verifiedText.toUtf8();
         }
 
         if (modifiers &  Qt::AltModifier) {
@@ -921,8 +939,8 @@ void Screen::setSelectionValidity()
 
 void Screen::timerEvent(QTimerEvent *)
 {
-    if (m_timer_event_id && m_time_since_parsed.elapsed() > 15 ||
-            (!m_time_since_dispatched.isValid() || m_time_since_dispatched.elapsed() > 50)) {
+    if ((m_timer_event_id && m_time_since_parsed.elapsed() > 5) ||
+            (!m_time_since_dispatched.isValid() || m_time_since_dispatched.elapsed() > 15)) {
         killTimer(m_timer_event_id);
         m_timer_event_id = 0;
         dispatchChanges();
