@@ -24,6 +24,7 @@
 #include "screen.h"
 
 #include <QtCore/QDebug>
+#include <QtCore/QTextCodec>
 
 Parser::Parser(Screen *screen)
     : m_decode_state(PlainText)
@@ -33,55 +34,72 @@ Parser::Parser(Screen *screen)
     , m_parameters(10)
     , m_screen(screen)
 {
+     QTextCodec *codec = QTextCodec::codecForName("UTF-8");
+     decoder = codec->makeDecoder();
+}
+
+Parser::~Parser() {
+    delete decoder;
+}
+
+void Parser::decodeCharacter(ushort character)
+{
+    switch (m_decode_state) {
+    case PlainText:
+        if (character < C0::C0_END ||
+                (character >= C1_8bit::C1_8bit_Start &&
+                 character <= C1_8bit::C1_8bit_Stop)) {
+
+            if (m_currrent_position != m_current_token_start) {
+                m_screen->insertAtCursor(QString(currentData.mid(m_current_token_start,
+                                                                    m_currrent_position - m_current_token_start)));
+                tokenFinished();
+                m_current_token_start--;
+            }
+            m_decode_state = DecodeC0;
+            decodeC0(character);
+        }
+        break;
+    case DecodeC0:
+        decodeC0(character);
+        break;
+    case DecodeC1_7bit:
+        decodeC1_7bit(character);
+        break;
+    case DecodeCSI:
+        decodeCSI(character);
+        break;
+    case DecodeOSC:
+        decodeOSC(character);
+        break;
+    case DecodeOtherEscape:
+        decodeOtherEscape(character);
+        break;
+   }
 }
 
 void Parser::addData(const QByteArray &data)
 {
-    m_current_token_start = 0;
-    m_current_data = data;
-    for (m_currrent_position = 0; m_currrent_position < data.size(); m_currrent_position++) {
-        uchar character = data.at(m_currrent_position);
-        switch (m_decode_state) {
-        case PlainText:
-            if (character < C0::C0_END ||
-                    (character >= C1_8bit::C1_8bit_Start &&
-                     character <= C1_8bit::C1_8bit_Stop)) {
-                if (m_currrent_position != m_current_token_start) {
-                    m_screen->insertAtCursor(QString::fromUtf8(data.mid(m_current_token_start,
-                                                                        m_currrent_position - m_current_token_start)));
-                    tokenFinished();
-                    m_current_token_start--;
-                }
-                m_decode_state = DecodeC0;
-                decodeC0(data.at(m_currrent_position));
-            }
-            break;
-        case DecodeC0:
-            decodeC0(character);
-            break;
-        case DecodeC1_7bit:
-            decodeC1_7bit(character);
-            break;
-        case DecodeCSI:
-            decodeCSI(character);
-            break;
-        case DecodeOSC:
-            decodeOSC(character);
-            break;
-        case DecodeOtherEscape:
-            decodeOtherEscape(character);
-            break;
-       }
+    currentData = decoder->toUnicode(data);
 
+    if(!currentData.length())
+        return;
+    m_current_token_start = 0;
+    for (m_currrent_position = 0; m_currrent_position < currentData.length(); m_currrent_position++) {
+
+        QChar qChar = currentData.at(m_currrent_position);
+
+        decodeCharacter(qChar.unicode());
     }
     if (m_decode_state == PlainText) {
-        QByteArray text = data.mid(m_current_token_start);
+        QString text = currentData.mid(m_current_token_start);
         if (text.size()) {
-            m_screen->insertAtCursor(QString::fromUtf8(text));
+            m_screen->insertAtCursor(QString(text));
             tokenFinished();
         }
     }
-    m_current_data = QByteArray();
+
+    currentData = "";
 }
 
 void Parser::decodeC0(uchar character)
@@ -642,7 +660,7 @@ void Parser::decodeOSC(uchar character)
                 if (character == 0x07) {
                     if (m_decode_osc_state == ChangeWindowAndIconName ||
                         m_decode_osc_state == ChangeWindowTitle) {
-                        QString title = QString::fromUtf8(m_current_data.mid(m_current_token_start+4,
+                        QString title = QString(currentData.mid(m_current_token_start+4,
                                                                              m_currrent_position - m_current_token_start -1));
                         m_screen->setTitle(title);
                     }
