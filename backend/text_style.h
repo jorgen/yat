@@ -28,8 +28,6 @@ public:
     Styles style;
     ColorPalette::Color foreground;
     ColorPalette::Color background;
-
-    bool isCompatible(const TextStyle &other) const;
 };
 
 #endif // TEXT_STYLE_H

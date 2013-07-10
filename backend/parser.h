@@ -25,7 +25,7 @@
 #include <QtCore/QVector>
 #include <QtCore/QLinkedList>
 
-#include "text.h"
+class Screen;
 
 class Parser
 {
@@ -46,10 +46,11 @@ private:
     };
 
     enum DecodeOSCState {
+        None,
         ChangeWindowAndIconName,
         ChangeIconTitle,
         ChangeWindowTitle,
-        None
+        Unknown
     };
 
     void decodeC0(uchar character);

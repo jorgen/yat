@@ -217,6 +217,7 @@ void Parser::decodeParameters(uchar character)
         appendParameter();
         m_parameters.append(-character);
         break;
+
     default:
         //this is undefined for now
         qDebug() << "Encountered undefined parameter byte";
@@ -616,18 +617,18 @@ void Parser::decodeCSI(uchar character)
 
 void Parser::decodeOSC(uchar character)
 {
-        if (!m_parameters.size() &&
-                character >= 0x30 && character <= 0x3f) {
-            decodeParameters(character);
-        } else {
-            if (m_decode_osc_state ==  None) {
-                appendParameter();
-                if (m_parameters.size() != 1) {
-                    tokenFinished();
-                    return;
-                }
+    if (!m_parameters.size() &&
+            character >= 0x30 && character <= 0x3f) {
+        decodeParameters(character);
+    } else {
+        if (m_decode_osc_state ==  None) {
+            appendParameter();
+            if (m_parameters.size() != 1) {
+                tokenFinished();
+                return;
+            }
 
-                switch (m_parameters.at(0)) {
+            switch (m_parameters.at(0)) {
                 case 0:
                     m_decode_osc_state = ChangeWindowAndIconName;
                     break;
@@ -637,19 +638,22 @@ void Parser::decodeOSC(uchar character)
                 case 2:
                     m_decode_osc_state = ChangeWindowTitle;
                     break;
-                }
-            } else {
-                if (character == 0x07) {
-                    if (m_decode_osc_state == ChangeWindowAndIconName ||
+                default:
+                    m_decode_osc_state = Unknown;
+                    break;
+            }
+        } else {
+            if (character == C0::BEL) {
+                if (m_decode_osc_state == ChangeWindowAndIconName ||
                         m_decode_osc_state == ChangeWindowTitle) {
-                        QString title = QString::fromUtf8(m_current_data.mid(m_current_token_start+4,
-                                                                             m_currrent_position - m_current_token_start -1));
-                        m_screen->setTitle(title);
-                    }
-                    tokenFinished();
+                    QString title = QString::fromUtf8(m_current_data.mid(m_current_token_start+4,
+                                m_currrent_position - m_current_token_start -1));
+                    m_screen->setTitle(title);
                 }
+                tokenFinished();
             }
         }
+    }
 }
 
 void Parser::decodeOtherEscape(uchar character)

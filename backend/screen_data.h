@@ -24,14 +24,15 @@
 #include <QtCore/QVector>
 #include <QtCore/QPoint>
 #include <QtGui/QClipboard>
+#include <QtGui/QTextDocument>
+#include <QtGui/QTextCursor>
 
-class Line;
 class Screen;
 
 class ScreenData
 {
 public:
-    ScreenData(Screen *screen);
+    ScreenData(Screen *screen, QTextDocument *document);
     ~ScreenData();
 
     int width() const;
@@ -42,7 +43,9 @@ public:
     int scrollAreaStart() const;
     int scrollAreaEnd() const;
 
-    Line *at(int index) const;
+    void insertAtCursor(const QString &text);
+    void insertLineFeed();
+
 
     void clearToEndOfLine(int row, int from_char);
     void clearToEndOfScreen(int row);
@@ -65,8 +68,9 @@ public:
     void printScreen() const;
 private:
     Screen *m_screen;
+    QTextDocument *m_document;
+    QTextCursor m_cursor;
     int m_width;
-    QVector<Line *> m_screen_lines;
     int m_scroll_start;
     int m_scroll_end;
     bool m_scroll_area_set;

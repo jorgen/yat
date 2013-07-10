@@ -20,49 +20,31 @@
 
 #include "screen.h"
 
-#include "line.h"
-
 #include "controll_chars.h"
 
-#include <QtCore/QTimer>
 #include <QtCore/QSocketNotifier>
 #include <QtGui/QGuiApplication>
-
-#include <QtQuick/QQuickItem>
-#include <QtQuick/QQuickView>
-#include <QtQml/QQmlComponent>
 
 #include <QtCore/QDebug>
 
 #include <float.h>
 
-Screen::Screen(QQmlEngine *engine, QObject *parent)
+Screen::Screen(QTextDocument *primary, QTextDocument *secondary, QObject *parent)
     : QObject(parent)
     , m_parser(this)
-    , m_timer_event_id(0)
     , m_cursor_visible(true)
     , m_cursor_visible_changed(false)
     , m_cursor_blinking(true)
     , m_cursor_blinking_changed(false)
     , m_font_metrics(m_font)
-    , m_selection_valid(false)
-    , m_selection_moved(0)
     , m_flash(false)
     , m_cursor_changed(false)
     , m_reset(false)
     , m_application_cursor_key_mode(false)
-    , m_engine(engine)
-    , m_line_component(new QQmlComponent(engine, QUrl("qrc:/qml/yat_declarative/TerminalLine.qml"),QQmlComponent::PreferSynchronous))
-    , m_text_component(new QQmlComponent(engine, QUrl("qrc:/qml/yat_declarative/TextSegment.qml"),QQmlComponent::PreferSynchronous))
 {
+    m_screen_stack << new ScreenData(this, primary);
+    m_screen_stack << new ScreenData(this, secondary);
     connect(&m_pty, &YatPty::readyRead, this, &Screen::readData);
-
-    QFont font("Courier");
-    font.setPointSize(10);
-    font.setFixedPitch(true);
-    font.setStyleHint(QFont::Courier);
-    font.setHintingPreference(QFont::PreferNoHinting);
-    setFont(font);
 
     m_screen_stack.reserve(2);
 
@@ -81,11 +63,7 @@ Screen::~Screen()
         delete m_screen_stack.at(i);
 
     }
-    for (int i = 0; i < m_unused_text.size(); i++) {
-        delete m_unused_text.at(i);
-    }
 }
-
 
 QColor Screen::screenBackground()
 {
@@ -104,9 +82,9 @@ QColor Screen::defaultBackgroundColor() const
 
 void Screen::setHeight(int height)
 {
-    if (!m_screen_stack.size()) {
-            m_screen_stack << new ScreenData(this);
-    }
+    m_pty.setHeight(height, height * lineHeight());
+    if (!m_screen_stack.size())
+        return;
 
     ScreenData *data = current_screen_data();
     int size_difference = data->height() - height;
@@ -120,18 +98,16 @@ void Screen::setHeight(int height)
         if (current_cursor_y() > 0)
             current_cursor_pos().ry()--;
     }
-
-    m_pty.setHeight(height, height * lineHeight());
-    dispatchChanges();
 }
 
 void Screen::setWidth(int width)
 {
+    m_pty.setWidth(width, width * charWidth());
+
     if (!m_screen_stack.size())
-        m_screen_stack << new ScreenData(this);
+        return;
 
     current_screen_data()->setWidth(width);
-    m_pty.setWidth(width, width * charWidth());
 
 }
 
@@ -142,19 +118,10 @@ int Screen::width() const
 
 void Screen::saveScreenData()
 {
-    ScreenData *new_data = new ScreenData(this);
+    Q_ASSERT(false);
     QSize pty_size = m_pty.size();
-    new_data->setHeight(pty_size.height());
-    new_data->setWidth(pty_size.width());
-
-    for (int i = 0; i < new_data->height(); i++) {
-        current_screen_data()->at(i)->releaseTextObjects();
-    }
-
-    m_screen_stack << new_data;
-
-    setSelectionEnabled(false);
-
+    current_screen_data()->setHeight(pty_size.height());
+    current_screen_data()->setWidth(pty_size.width());
 }
 
 void Screen::restoreScreenData()
@@ -166,35 +133,11 @@ void Screen::restoreScreenData()
     QSize pty_size = m_pty.size();
     current_screen_data()->setHeight(pty_size.height());
     current_screen_data()->setWidth(pty_size.width());
-
-    for (int i = 0; i < current_screen_data()->height(); i++) {
-        current_screen_data()->at(i)->dispatchEvents();
-    }
-
-    setSelectionEnabled(false);
 }
 
 int Screen::height() const
 {
     return current_screen_data()->height();
-}
-
-QFont Screen::font() const
-{
-    return m_font;
-}
-
-void Screen::setFont(const QFont &font)
-{
-    qreal old_width = m_font_metrics.averageCharWidth();
-    qreal old_height = m_font_metrics.lineSpacing();
-    m_font = font;
-    m_font_metrics = QFontMetricsF(font);
-    emit fontChanged();
-    if (m_font_metrics.averageCharWidth() != old_width)
-        emit charWidthChanged();
-    if (m_font_metrics.lineSpacing() != old_height)
-        emit lineHeightChanged();
 }
 
 qreal Screen::charWidth() const
@@ -328,31 +271,8 @@ void Screen::restoreCursor()
 
 void Screen::insertAtCursor(const QString &text)
 {
-    if (m_selection_valid ) {
-        if (current_cursor_y() >= m_selection_start.y() && current_cursor_y() <= m_selection_end.y())
-            //don't need to schedule as event since it will only happen once
-            setSelectionEnabled(false);
-    }
-
-    if (current_cursor_x() + text.size() <= width()) {
-        Line *line = current_screen_data()->at(current_cursor_y());
-        line->insertAtPos(current_cursor_x(), text, m_current_text_style);
-        current_cursor_pos().rx() += text.size();
-    } else {
-        for (int i = 0; i < text.size();) {
-            if (current_cursor_x() == width()) {
-                current_cursor_pos().setX(0);
-                lineFeed();
-            }
-            QString toLine = text.mid(i,current_screen_data()->width() - current_cursor_x());
-            Line *line = current_screen_data()->at(current_cursor_y());
-            line->insertAtPos(current_cursor_x(),toLine, m_current_text_style);
-            i+= toLine.size();
-            current_cursor_pos().rx() += toLine.size();
-        }
-    }
-
-    m_cursor_changed = true;
+    //fprintf(stderr, "%s", qPrintable(text));
+    current_screen_data()->insertAtCursor(text);
 }
 
 void Screen::backspace()
@@ -368,19 +288,14 @@ void Screen::eraseLine()
 
 void Screen::eraseFromCursorPositionToEndOfLine()
 {
-    current_screen_data()->clearToEndOfLine(current_cursor_y(), current_cursor_x());
 }
 
 void Screen::eraseFromCurrentLineToEndOfScreen()
 {
-    current_screen_data()->clearToEndOfScreen(current_cursor_y());
-
 }
 
 void Screen::eraseFromCurrentLineToBeginningOfScreen()
 {
-    current_screen_data()->clearToBeginningOfScreen(current_cursor_y());
-
 }
 
 void Screen::eraseToCursorPosition()
@@ -416,25 +331,13 @@ const ColorPalette *Screen::colorPalette() const
 
 void Screen::lineFeed()
 {
-    int cursor_y = current_cursor_y();
-    if(cursor_y == current_screen_data()->scrollAreaEnd()) {
-        m_selection_start.ry()--;
-        m_selection_end.ry()--;
-        m_selection_moved = true;
-        moveLine(current_screen_data()->scrollAreaStart(),cursor_y);
-    } else {
-        current_cursor_pos().ry()++;
-        m_cursor_changed = true;
-    }
+    current_screen_data()->insertLineFeed();
 }
 
 void Screen::reverseLineFeed()
 {
     int cursor_y = current_cursor_y();
     if (cursor_y == current_screen_data()->scrollAreaStart()) {
-        m_selection_start.ry()++;
-        m_selection_end.ry()++;
-        m_selection_moved = true;
         moveLine(current_screen_data()->scrollAreaEnd(), cursor_y);
     } else {
         current_cursor_pos().ry()--;
@@ -464,57 +367,6 @@ void Screen::setScrollArea(int from, int to)
     current_screen_data()->setScrollArea(from,to);
 }
 
-QPointF Screen::selectionAreaStart() const
-{
-    return m_selection_start;
-}
-
-void Screen::setSelectionAreaStart(const QPointF &start)
-{
-    bool emitChanged = m_selection_start != start;
-    m_selection_start = start;
-    setSelectionValidity();
-    if (emitChanged)
-        emit selectionAreaStartChanged();
-}
-
-QPointF Screen::selectionAreaEnd() const
-{
-    return m_selection_end;
-}
-
-void Screen::setSelectionAreaEnd(const QPointF &end)
-{
-    bool emitChanged = m_selection_end != end;
-    m_selection_end = end;
-    setSelectionValidity();
-    if (emitChanged)
-        emit selectionAreaEndChanged();
-}
-
-bool Screen::selectionEnabled() const
-{
-    return m_selection_valid;
-}
-
-void Screen::setSelectionEnabled(bool enabled)
-{
-    bool emitchanged = m_selection_valid != enabled;
-    m_selection_valid = enabled;
-    if (emitchanged)
-        emit selectionEnabledChanged();
-}
-
-void Screen::sendSelectionToClipboard() const
-{
-    current_screen_data()->sendSelectionToClipboard(m_selection_start, m_selection_end, QClipboard::Clipboard);
-}
-
-void Screen::sendSelectionToSelection() const
-{
-    current_screen_data()->sendSelectionToClipboard(m_selection_start, m_selection_end, QClipboard::Selection);
-}
-
 void Screen::pasteFromSelection()
 {
     m_pty.write(QGuiApplication::clipboard()->text(QClipboard::Selection).toUtf8());
@@ -529,8 +381,6 @@ void Screen::doubleClicked(const QPointF &clicked)
 {
     int start, end;
     current_screen_data()->getDoubleClickSelectionArea(clicked, &start, &end);
-    setSelectionAreaStart(QPointF(start,clicked.y()));
-    setSelectionAreaEnd(QPointF(end,clicked.y()));
 }
 
 void Screen::setTitle(const QString &title)
@@ -549,93 +399,9 @@ void Screen::scheduleFlash()
     m_flash = true;
 }
 
-Line *Screen::at(int i) const
-{
-    return current_screen_data()->at(i);
-}
-
 void Screen::printScreen() const
 {
     current_screen_data()->printScreen();
-}
-
-void Screen::dispatchChanges()
-{
-    if (m_reset) {
-        emit reset();
-        m_update_actions.clear();
-        m_reset = false;
-    } else {
-        qint16 begin_move = -1;
-        qint16 end_move = -1;
-        for (int i = 0; i < m_update_actions.size(); i++) {
-            UpdateAction action = m_update_actions.at(i);
-            switch(action.action) {
-            case UpdateAction::MoveLine: {
-                if (begin_move < 0) {
-                    begin_move = qMin(action.to_line, action.from_line);
-                    end_move = qMax(action.to_line, action.from_line);
-                } else
-                    if (action.from_line > action.to_line) {
-                        begin_move = qMin(action.to_line, begin_move);
-                        end_move = qMax(action.from_line, end_move);
-                    } else {
-                        begin_move = qMin(action.from_line, begin_move);
-                        end_move = qMax(action.to_line, end_move);
-                    }
-            }
-                break;
-            default:
-                qDebug() << "unhandeled UpdatAction in TerminalScreen";
-                break;
-            }
-        }
-
-        if (begin_move >= 0) {
-            current_screen_data()->updateIndexes(begin_move, end_move);
-        }
-
-        current_screen_data()->dispatchLineEvents();
-        emit dispatchTextSegmentChanges();
-        for (int i = 0; i < m_unused_text.size(); i++) {
-            m_unused_text.at(i)->dispatchEvents();
-        }
-    }
-
-    if (m_flash) {
-        m_flash = false;
-        emit flash();
-    }
-
-    if (m_cursor_changed) {
-        m_cursor_changed = false;
-        emit cursorPositionChanged(current_cursor_x(), current_cursor_y());
-    }
-
-    if (m_cursor_visible_changed) {
-        m_cursor_visible_changed = false;
-        emit cursorVisibleChanged();
-    }
-
-    if (m_cursor_blinking_changed) {
-        m_cursor_blinking_changed = false;
-        emit cursorBlinkingChanged();
-
-    }
-
-    if (m_selection_valid && m_selection_moved) {
-        if (m_selection_start.y() < 0 ||
-                m_selection_end.y() >= current_screen_data()->height()) {
-            setSelectionEnabled(false);
-        } else {
-            emit selectionAreaStartChanged();
-            emit selectionAreaEndChanged();
-        }
-    }
-
-    m_update_actions.clear();
-
-    m_time_since_dispatched.restart();
 }
 
 void Screen::sendPrimaryDA()
@@ -859,39 +625,6 @@ void Screen::sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers mod
     }
 }
 
-QObject *Screen::createLineItem()
-{
-    return m_line_component->create();
-}
-
-void Screen::destroyLineItem(QObject *lineItem)
-{
-    lineItem->deleteLater();
-}
-
-QObject *Screen::createTextItem()
-{
-    return m_text_component->create();
-}
-
-void Screen::destroyTextItem(QObject *textItem)
-{
-    textItem->deleteLater();
-}
-
-Text *Screen::createText()
-{
-    if (m_unused_text.size())
-        return m_unused_text.takeLast();
-
-    return new Text(this);
-}
-
-void Screen::releaseText(Text *text)
-{
-    m_unused_text << text;
-}
-
 YatPty *Screen::pty()
 {
     return &m_pty;
@@ -900,49 +633,10 @@ YatPty *Screen::pty()
 void Screen::readData(const QByteArray &data)
 {
     m_parser.addData(data);
-
-    if (!m_timer_event_id)
-        m_timer_event_id = startTimer(14);
-    m_time_since_parsed.restart();
 }
 
 void Screen::moveLine(qint16 from, qint16 to)
 {
     current_screen_data()->moveLine(from,to);
-    scheduleMoveSignal(from,to);
 }
 
-void Screen::scheduleMoveSignal(qint16 from, qint16 to)
-{
-    if (m_update_actions.size() &&
-            m_update_actions.last().action == UpdateAction::MoveLine &&
-            m_update_actions.last().from_line == from &&
-            m_update_actions.last().to_line == to) {
-        m_update_actions.last().count++;
-    } else {
-        m_update_actions << UpdateAction(UpdateAction::MoveLine, from, to, 1);
-    }
-}
-
-
-void Screen::setSelectionValidity()
-{
-    if (m_selection_end.y() > m_selection_start.y() ||
-            (m_selection_end.y() == m_selection_start.y() &&
-             m_selection_end.x() > m_selection_start.x())) {
-        setSelectionEnabled(true);
-    } else {
-        setSelectionEnabled(false);
-    }
-}
-
-
-void Screen::timerEvent(QTimerEvent *)
-{
-    if ((m_timer_event_id && m_time_since_parsed.elapsed() > 5) ||
-            (!m_time_since_dispatched.isValid() || m_time_since_dispatched.elapsed() > 15)) {
-        killTimer(m_timer_event_id);
-        m_timer_event_id = 0;
-        dispatchChanges();
-    }
-}

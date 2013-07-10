@@ -63,7 +63,11 @@ YatPty::YatPty()
         for (int i = 0; i < env_variables_size; i++) {
             ::putenv(env_variables[i]);
         }
-        ::execl("/bin/bash", "/bin/bash", "--login", (const char *) 0);
+
+        struct passwd *pw = getpwuid(getuid());
+        const char *shell= pw->pw_shell;
+
+        ::execl(shell, shell, "--login", (const char *) 0);
         exit(0);
     }
 

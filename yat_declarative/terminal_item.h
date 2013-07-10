@@ -21,9 +21,8 @@
 #ifndef TERMINALITEM_H
 #define TERMINALITEM_H
 
-#include <QtCore/QObject>
 #include <QtQuick/QQuickItem>
-#include <QtQml/QQmlEngine>
+#include <QtQuick/QQuickTextDocument>
 
 #include "screen.h"
 
@@ -31,16 +30,19 @@ class TerminalItem : public QQuickItem
 {
     Q_OBJECT
 
-    Q_PROPERTY(Screen *screen READ screen NOTIFY screenChanged)
 public:
     TerminalItem(QQuickItem *parent = 0);
 
-    void createScreen(QQmlEngine *engine);
+    Q_INVOKABLE void createScreen(QQuickTextDocument *primary, QQuickTextDocument *secondary);
+    Q_INVOKABLE void sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers modifiers);
 
-    Screen *screen() const;
+public slots:
+    void handleHeightChanged();
+    void handleWidthChanged();
 
 signals:
-    void screenChanged();
+    void flash();
+    void cursorPositionChanged(int x, int y);
 
 private:
     Screen *m_screen;
