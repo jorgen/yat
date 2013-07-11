@@ -634,8 +634,6 @@ void Screen::dispatchChanges()
     }
 
     m_update_actions.clear();
-
-    m_time_since_dispatched.restart();
 }
 
 void Screen::sendPrimaryDA()
@@ -902,7 +900,7 @@ void Screen::readData(const QByteArray &data)
     m_parser.addData(data);
 
     if (!m_timer_event_id)
-        m_timer_event_id = startTimer(14);
+        m_timer_event_id = startTimer(3);
     m_time_since_parsed.restart();
 }
 
@@ -939,8 +937,7 @@ void Screen::setSelectionValidity()
 
 void Screen::timerEvent(QTimerEvent *)
 {
-    if ((m_timer_event_id && m_time_since_parsed.elapsed() > 5) ||
-            (!m_time_since_dispatched.isValid() || m_time_since_dispatched.elapsed() > 15)) {
+    if (m_timer_event_id && m_time_since_parsed.elapsed() > 3) {
         killTimer(m_timer_event_id);
         m_timer_event_id = 0;
         dispatchChanges();
