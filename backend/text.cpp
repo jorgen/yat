@@ -107,8 +107,10 @@ void Text::setStringSegment(int start_index, int end_index)
 
 void Text::setTextStyle(const TextStyle &style)
 {
-    m_style = style;
-    m_style_dirty = true;
+    if (!m_style.isCompatible(style)) {
+        m_style = style;
+        m_style_dirty = true;
+    }
 }
 
 Screen *Text::screen() const
