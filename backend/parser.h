@@ -46,10 +46,11 @@ private:
     };
 
     enum DecodeOSCState {
+        None,
         ChangeWindowAndIconName,
         ChangeIconTitle,
         ChangeWindowTitle,
-        None
+        Unknown
     };
 
     void decodeC0(uchar character);
