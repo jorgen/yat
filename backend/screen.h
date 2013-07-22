@@ -59,9 +59,14 @@ class Screen : public QObject
     Q_PROPERTY(QPointF selectionAreaEnd READ selectionAreaEnd WRITE setSelectionAreaEnd NOTIFY selectionAreaEndChanged)
 
 public:
+    enum InsertMode {
+        Insert,
+        Replace
+    };
+
     explicit Screen(QQmlEngine *engine, QObject *parent = 0);
     ~Screen();
-    
+
     void setHeight(int height);
     int height() const;
     void setWidth(int width);
@@ -74,6 +79,8 @@ public:
     void setFont(const QFont &font);
     qreal charWidth() const;
     qreal lineHeight() const;
+
+    void setInsertMode(InsertMode mode);
 
     void setTextStyle(TextStyle::Style style, bool add = true);
     void resetStyle();
@@ -88,13 +95,19 @@ public:
     const ColorPalette *colorPalette() const;
 
     QPoint cursorPosition() const;
+
     void moveCursorHome();
     void moveCursorTop();
-    void moveCursorUp();
+    void moveCursorUp(int n_positions = 1);
     void moveCursorDown();
     void moveCursorLeft();
     void moveCursorRight(int n_positions);
     void moveCursor(int x, int y);
+    void moveCursorToLine(int line);
+    void moveCursorToCharacter(int character);
+
+    void deleteCharacters(int characters);
+
     void setCursorVisible(bool visible);
     bool cursorVisible();
     void setCursorBlinking(bool blinking);
@@ -193,6 +206,8 @@ signals:
     void cursorVisibleChanged();
     void cursorBlinkingChanged();
 
+    //For tests
+    Line *line_at_cursor();
 protected:
     void timerEvent(QTimerEvent *);
 
@@ -200,7 +215,6 @@ private:
     void moveLine(qint16 from, qint16 to);
     void scheduleMoveSignal(qint16 from, qint16 to);
 
-    Line *line_at_cursor();
     ScreenData *current_screen_data() const { return m_screen_stack[m_screen_stack.size()-1]; }
     QPoint &current_cursor_pos() { return m_cursor_stack[m_cursor_stack.size()-1]; }
     int current_cursor_x() const { return m_cursor_stack.at(m_cursor_stack.size()-1).x(); }
@@ -227,6 +241,8 @@ private:
     QFontMetricsF m_font_metrics;
     TextStyle m_current_text_style;
     QString m_title;
+
+    InsertMode m_insert_mode;
 
     bool m_selection_valid;
     bool m_selection_moved;

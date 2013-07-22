@@ -45,6 +45,7 @@ Screen::Screen(QQmlEngine *engine, QObject *parent)
     , m_cursor_blinking(true)
     , m_cursor_blinking_changed(false)
     , m_font_metrics(m_font)
+    , m_insert_mode(Insert)
     , m_selection_valid(false)
     , m_selection_moved(0)
     , m_flash(false)
@@ -207,6 +208,11 @@ qreal Screen::lineHeight() const
     return m_font_metrics.lineSpacing();
 }
 
+void Screen::setInsertMode(InsertMode mode)
+{
+    m_insert_mode = mode;
+}
+
 void Screen::setTextStyle(TextStyle::Style style, bool add)
 {
     if (add) {
@@ -250,10 +256,17 @@ void Screen::moveCursorTop()
     m_cursor_changed = true;
 }
 
-void Screen::moveCursorUp()
+void Screen::moveCursorUp(int n_positions)
 {
-    current_cursor_pos().ry() -= 1;
-    m_cursor_changed = true;
+    if (!current_cursor_pos().y())
+        return;
+
+    if (n_positions <= current_cursor_pos().y()) {
+        current_cursor_pos().ry() -= n_positions;
+    } else {
+        current_cursor_pos().ry() = 0;
+    }
+        m_cursor_changed = true;
 }
 
 void Screen::moveCursorDown()
@@ -288,6 +301,32 @@ void Screen::moveCursor(int x, int y)
         current_cursor_pos().setY(y);
     }
     m_cursor_changed = true;
+}
+
+void Screen::moveCursorToLine(int line)
+{
+    current_cursor_pos().setY(line-1);
+    m_cursor_changed = true;
+}
+
+void Screen::moveCursorToCharacter(int character)
+{
+    current_cursor_pos().setX(character-1);
+    m_cursor_changed = true;
+}
+
+void Screen::deleteCharacters(int characters)
+{
+    switch (m_insert_mode) {
+        case Insert:
+            //current_screen_data()->clearCharacters(current_cursor_y(), current_cursor_x(), characters);
+            break;
+        case Replace:
+            //current_screen_data()->deleteCharacters(current_cursor_y(), current_cursor_x(), characters);
+            break;
+        default:
+            break;
+    }
 }
 
 void Screen::setCursorVisible(bool visible)
@@ -556,7 +595,7 @@ Line *Screen::at(int i) const
 
 void Screen::printScreen() const
 {
-    current_screen_data()->printScreen();
+    current_screen_data()->printStyleInformation();
 }
 
 void Screen::dispatchChanges()

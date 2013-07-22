@@ -285,7 +285,17 @@ void Parser::decodeCSI(uchar character)
                 } else {
                     switch (character) {
                     case FinalBytesNoIntermediate::ICH:
-                    case FinalBytesNoIntermediate::CUU:
+                        tokenFinished();
+                        qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
+                        break;
+                    case FinalBytesNoIntermediate::CUU: {
+                        appendParameter();
+                        Q_ASSERT(m_parameters.size() < 2);
+                        int move_up = m_parameters.size() ? m_parameters.at(0) : 1;
+                        m_screen->moveCursorUp(move_up);
+                        tokenFinished();
+                    }
+                        break;
                     case FinalBytesNoIntermediate::CUD:
                         tokenFinished();
                         qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
@@ -301,9 +311,16 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::CUB:
                     case FinalBytesNoIntermediate::CNL:
                     case FinalBytesNoIntermediate::CPL:
-                    case FinalBytesNoIntermediate::CHA:
-                        tokenFinished();
                         qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
+                        tokenFinished();
+                        break;
+                    case FinalBytesNoIntermediate::CHA: {
+                        appendParameter();
+                        Q_ASSERT(m_parameters.size() < 2);
+                        int move_to_pos_on_line = m_parameters.size() ? m_parameters.at(0) : 1;
+                        m_screen->moveCursorToCharacter(move_to_pos_on_line);
+                    }
+                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::CUP:
                         appendParameter();
@@ -375,7 +392,17 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::EF:
                     case FinalBytesNoIntermediate::EA:
-                    case FinalBytesNoIntermediate::DCH:
+                        qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
+                        tokenFinished();
+                        break;
+                    case FinalBytesNoIntermediate::DCH:{
+                        appendParameter();
+                        Q_ASSERT(m_parameters.size() < 2);
+                        int n_chars = m_parameters.size() ? m_parameters.at(0) : 1;
+                        m_screen->deleteCharacters(n_chars);
+                    }
+                        tokenFinished();
+                        break;
                     case FinalBytesNoIntermediate::SSE:
                     case FinalBytesNoIntermediate::CPR:
                     case FinalBytesNoIntermediate::SU:
@@ -415,7 +442,14 @@ void Parser::decodeCSI(uchar character)
                         }
                         tokenFinished();
                         break;
-                    case FinalBytesNoIntermediate::VPA:
+                    case FinalBytesNoIntermediate::VPA: {
+                        appendParameter();
+                        Q_ASSERT(m_parameters.size() < 2);
+                        int move_to_line = m_parameters.size() ? m_parameters.at(0) : 1;
+                        m_screen->moveCursorToLine(move_to_line);
+                    }
+                        tokenFinished();
+                        break;
                     case FinalBytesNoIntermediate::VPR:
                     case FinalBytesNoIntermediate::HVP:
                     case FinalBytesNoIntermediate::TBC:
@@ -429,6 +463,12 @@ void Parser::decodeCSI(uchar character)
                                 switch (m_parameters.at(1)) {
                                 case 1:
                                     m_screen->setApplicationCursorKeysMode(true);
+                                    break;
+                                case 4:
+                                    qDebug() << "Insertion mode";
+                                    break;
+                                case 7:
+                                    qDebug() << "MODE 7";
                                     break;
                                 case 12:
                                     m_screen->setCursorBlinking(true);
@@ -489,7 +529,7 @@ void Parser::decodeCSI(uchar character)
                                 }
                                 break;
                             case 4:
-                                qDebug() << "REPLACE MODE!";
+                                m_screen->setInsertMode(Screen::Replace);
                             default:
                                 qDebug() << "unhandled CSI FinalBytesNoIntermediate::RM";
                                 break;

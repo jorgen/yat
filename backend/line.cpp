@@ -124,6 +124,57 @@ void Line::clearToEndOfLine(int index)
     }
 }
 
+void Line::clearCharacters(int from, int to)
+{
+    QString empty(to-from, QChar(' '));
+    const TextStyle &defaultTextStyle = m_screen->defaultTextStyle();
+    insertAtPos(from, empty, defaultTextStyle);
+}
+
+void Line::deleteCharacters(int from, int to)
+{
+    int removed = 0;
+    const int size = to - from;
+    bool found = false;
+
+    for (int i = 0; i < m_style_list.size(); i++) {
+        TextStyleLine &current_style = m_style_list[i];
+        if (found) {
+            current_style.start_index -= removed;
+            current_style.end_index -= removed;
+            if (removed != size) {
+                int current_style_size = current_style.end_index - current_style.start_index;
+                if (current_style_size < size - removed) {
+                    removed += current_style.end_index - current_style.start_index;
+                    if (current_style.text_segment)
+                        releaseTextSegment(current_style.text_segment);
+                    m_style_list.remove(i);
+                    i--;
+                } else {
+                    current_style.end_index -= size - removed;
+                    removed = size;
+                }
+            }
+        } else {
+            if (current_style.start_index >= from) {
+                found = true;
+                if (current_style.end_index <= to) {
+                    removed += current_style.end_index - current_style.start_index;
+                    if (current_style.text_segment)
+                        releaseTextSegment(current_style.text_segment);
+                    m_style_list.remove(i);
+                    i--;
+                } else {
+                    current_style.end_index = to;
+                    removed = size;
+                }
+            }
+        }
+    }
+
+    m_text_line.remove(from, to-from);
+}
+
 void Line::setWidth(int width)
 {
     if (m_text_line.size() > width) {
@@ -147,8 +198,8 @@ void Line::insertAtPos(int pos, const QString &text, const TextStyle &style)
     m_text_line.replace(pos,text.size(),text);
 
     bool found = false;
-    for (int i = 0;i < m_style_list.size(); i++) {
-        const TextStyleLine current_style = m_style_list.at(i);
+    for (int i = 0; i < m_style_list.size(); i++) {
+        const TextStyleLine &current_style = m_style_list.at(i);
         if (found) {
             if (current_style.end_index <= pos + text.size()) {
                 if (current_style.text_segment)
@@ -161,7 +212,7 @@ void Line::insertAtPos(int pos, const QString &text, const TextStyle &style)
             } else {
                 break;
             }
-        } else if (pos <= current_style.end_index) {
+        } else if (pos >= current_style.start_index && pos <= current_style.end_index) {
             found = true;
             if (pos + text.size() <= current_style.end_index) {
                 if (current_style.isCompatible(style)) {
@@ -262,6 +313,19 @@ void Line::dispatchEvents()
     m_changed = false;
 }
 
+void Line::printStyleElements() const
+{
+    for (int i = 0; i < m_style_list.size(); i++) {
+        if (i != 0)
+            fprintf(stderr, ",");
+        fprintf(stderr, "[%d : %d]", m_style_list.at(i).start_index, m_style_list.at(i).end_index);
+    }
+}
+
+QVector<TextStyleLine> Line::style_list()
+{
+    return m_style_list;
+}
 Text *Line::createTextSegment(const TextStyleLine &style_line)
 {
     Text *to_return = screen()->createText();

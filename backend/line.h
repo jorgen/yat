@@ -83,6 +83,8 @@ public:
 
     void clear();
     void clearToEndOfLine(int index);
+    void clearCharacters(int from, int to);
+    void deleteCharacters(int from, int to);
     void setWidth(int width);
 
     Q_INVOKABLE int size() const;
@@ -99,6 +101,10 @@ public:
     void setVisible(bool visible);
 
     void dispatchEvents();
+
+    void printStyleElements() const;
+
+    QVector<TextStyleLine> style_list();
 signals:
     void indexChanged();
 

@@ -50,6 +50,9 @@ public:
     void clearLine(int index);
     void clear();
 
+    void clearCharacters(int line, int from, int to);
+    void deleteCharacters(int line, int from, int to);
+
     void setScrollArea(int from, int to);
 
     void moveLine(int from, int to);
@@ -63,6 +66,8 @@ public:
     void dispatchLineEvents();
 
     void printScreen() const;
+
+    void printStyleInformation() const;
 private:
     Screen *m_screen;
     int m_width;

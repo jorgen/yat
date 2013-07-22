@@ -142,6 +142,18 @@ void ScreenData::clear()
     }
 }
 
+void ScreenData::clearCharacters(int line, int from, int to)
+{
+    Line *line_item = m_screen_lines.at(line);
+    line_item->clearCharacters(from,to);
+}
+
+void ScreenData::deleteCharacters(int line, int from, int to)
+{
+    Line *line_item = m_screen_lines.at(line);
+    line_item->deleteCharacters(from,to);
+}
+
 void ScreenData::setScrollArea(int from, int to)
 {
     m_scroll_area_set = true;
@@ -284,5 +296,15 @@ void ScreenData::printScreen() const
 //        }
 //        fprintf(stderr, "\n");
         fprintf(stderr, "%s\n", qPrintable(*m_screen_lines.at(line)->textLine()));
+    }
+}
+
+void ScreenData::printStyleInformation() const
+{
+    for (int line_number = 0; line_number < m_screen_lines.size(); line_number++) {
+        const Line *line = m_screen_lines.at(line_number);
+        line->printStyleElements();
+        fprintf(stderr, "\n");
+
     }
 }
