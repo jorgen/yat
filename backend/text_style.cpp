@@ -2,9 +2,16 @@
 
 #include <QtCore/QDebug>
 
+TextStyle::TextStyle()
+    : style(Normal)
+    , forground(ColorPalette::DefaultForground)
+    , background(ColorPalette::DefaultBackground)
+{
+
+}
 bool TextStyle::isCompatible(const TextStyle &other) const
 {
-    return foreground == other.foreground
+    return forground == other.forground
             && background == other.background
             && style == other.style;
 }

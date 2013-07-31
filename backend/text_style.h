@@ -25,8 +25,10 @@ public:
     };
     Q_DECLARE_FLAGS(Styles, Style)
 
+    TextStyle();
+
     Styles style;
-    ColorPalette::Color foreground;
+    ColorPalette::Color forground;
     ColorPalette::Color background;
 
     bool isCompatible(const TextStyle &other) const;

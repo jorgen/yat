@@ -36,7 +36,7 @@
 
 #include <float.h>
 
-Screen::Screen(QQmlEngine *engine, QObject *parent)
+Screen::Screen(QObject *parent)
     : QObject(parent)
     , m_parser(this)
     , m_timer_event_id(0)
@@ -44,7 +44,6 @@ Screen::Screen(QQmlEngine *engine, QObject *parent)
     , m_cursor_visible_changed(false)
     , m_cursor_blinking(true)
     , m_cursor_blinking_changed(false)
-    , m_font_metrics(m_font)
     , m_insert_mode(Insert)
     , m_selection_valid(false)
     , m_selection_moved(0)
@@ -52,25 +51,15 @@ Screen::Screen(QQmlEngine *engine, QObject *parent)
     , m_cursor_changed(false)
     , m_reset(false)
     , m_application_cursor_key_mode(false)
-    , m_engine(engine)
-    , m_line_component(new QQmlComponent(engine, QUrl("qrc:/qml/yat_declarative/TerminalLine.qml"),QQmlComponent::PreferSynchronous))
-    , m_text_component(new QQmlComponent(engine, QUrl("qrc:/qml/yat_declarative/TextSegment.qml"),QQmlComponent::PreferSynchronous))
 {
     connect(&m_pty, &YatPty::readyRead, this, &Screen::readData);
-
-    QFont font("Courier");
-    font.setPointSize(10);
-    font.setFixedPitch(true);
-    font.setStyleHint(QFont::Courier);
-    font.setHintingPreference(QFont::PreferNoHinting);
-    setFont(font);
 
     m_screen_stack.reserve(2);
 
     m_cursor_stack << QPoint(0,0);
 
     m_current_text_style.style = TextStyle::Normal;
-    m_current_text_style.foreground = ColorPalette::DefaultForground;
+    m_current_text_style.forground = ColorPalette::DefaultForground;
     m_current_text_style.background = ColorPalette::DefaultBackground;
 
     connect(&m_pty, SIGNAL(hangupReceived()),qGuiApp, SLOT(quit()));
@@ -81,9 +70,6 @@ Screen::~Screen()
     for (int i = 0; i < m_screen_stack.size(); i++) {
         delete m_screen_stack.at(i);
 
-    }
-    for (int i = 0; i < m_unused_text.size(); i++) {
-        delete m_unused_text.at(i);
     }
 }
 
@@ -122,7 +108,7 @@ void Screen::setHeight(int height)
             current_cursor_pos().ry()--;
     }
 
-    m_pty.setHeight(height, height * lineHeight());
+    m_pty.setHeight(height, height * 10);
     dispatchChanges();
 }
 
@@ -132,7 +118,7 @@ void Screen::setWidth(int width)
         m_screen_stack << new ScreenData(this);
 
     current_screen_data()->setWidth(width);
-    m_pty.setWidth(width, width * charWidth());
+    m_pty.setWidth(width, width * 10);
 
 }
 
@@ -180,34 +166,6 @@ int Screen::height() const
     return current_screen_data()->height();
 }
 
-QFont Screen::font() const
-{
-    return m_font;
-}
-
-void Screen::setFont(const QFont &font)
-{
-    qreal old_width = m_font_metrics.averageCharWidth();
-    qreal old_height = m_font_metrics.lineSpacing();
-    m_font = font;
-    m_font_metrics = QFontMetricsF(font);
-    emit fontChanged();
-    if (m_font_metrics.averageCharWidth() != old_width)
-        emit charWidthChanged();
-    if (m_font_metrics.lineSpacing() != old_height)
-        emit lineHeightChanged();
-}
-
-qreal Screen::charWidth() const
-{
-    return m_font_metrics.averageCharWidth();
-}
-
-qreal Screen::lineHeight() const
-{
-    return m_font_metrics.lineSpacing();
-}
-
 void Screen::setInsertMode(InsertMode mode)
 {
     m_insert_mode = mode;
@@ -225,7 +183,7 @@ void Screen::setTextStyle(TextStyle::Style style, bool add)
 void Screen::resetStyle()
 {
     m_current_text_style.background = ColorPalette::DefaultBackground;
-    m_current_text_style.foreground = ColorPalette::DefaultForground;
+    m_current_text_style.forground = ColorPalette::DefaultForground;
     m_current_text_style.style = TextStyle::Normal;
 }
 
@@ -236,7 +194,11 @@ TextStyle Screen::currentTextStyle() const
 
 TextStyle Screen::defaultTextStyle() const
 {
-    return { TextStyle::Normal, ColorPalette::DefaultForground, ColorPalette::DefaultBackground };
+    TextStyle style;
+    style.style = TextStyle::Normal;
+    style.forground = ColorPalette::DefaultForground;
+    style.background = ColorPalette::DefaultBackground;
+    return style;
 }
 
 QPoint Screen::cursorPosition() const
@@ -319,10 +281,10 @@ void Screen::deleteCharacters(int characters)
 {
     switch (m_insert_mode) {
         case Insert:
-            //current_screen_data()->clearCharacters(current_cursor_y(), current_cursor_x(), characters);
+            current_screen_data()->clearCharacters(current_cursor_y(), current_cursor_x(), characters);
             break;
         case Replace:
-            //current_screen_data()->deleteCharacters(current_cursor_y(), current_cursor_x(), characters);
+            current_screen_data()->deleteCharacters(current_cursor_y(), current_cursor_x(), characters);
             break;
         default:
             break;
@@ -436,9 +398,9 @@ void Screen::setTextStyleColor(ushort color)
 {
     Q_ASSERT(color >= 30 && color < 50);
     if (color < 38) {
-        m_current_text_style.foreground = ColorPalette::Color(color - 30);
+        m_current_text_style.forground = ColorPalette::Color(color - 30);
     } else if (color == 39) {
-        m_current_text_style.foreground = ColorPalette::DefaultForground;
+        m_current_text_style.forground = ColorPalette::DefaultForground;
     } else if (color >= 40 && color < 48) {
         m_current_text_style.background = ColorPalette::Color(color - 40);
     } else if (color == 49) {
@@ -636,9 +598,6 @@ void Screen::dispatchChanges()
 
         current_screen_data()->dispatchLineEvents();
         emit dispatchTextSegmentChanges();
-        for (int i = 0; i < m_unused_text.size(); i++) {
-            m_unused_text.at(i)->dispatchEvents();
-        }
     }
 
     if (m_flash) {
@@ -894,39 +853,6 @@ void Screen::sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers mod
         to_pty.append(key_text);
         m_pty.write(to_pty);
     }
-}
-
-QObject *Screen::createLineItem()
-{
-    return m_line_component->create();
-}
-
-void Screen::destroyLineItem(QObject *lineItem)
-{
-    lineItem->deleteLater();
-}
-
-QObject *Screen::createTextItem()
-{
-    return m_text_component->create();
-}
-
-void Screen::destroyTextItem(QObject *textItem)
-{
-    textItem->deleteLater();
-}
-
-Text *Screen::createText()
-{
-    if (m_unused_text.size())
-        return m_unused_text.takeLast();
-
-    return new Text(this);
-}
-
-void Screen::releaseText(Text *text)
-{
-    m_unused_text << text;
 }
 
 YatPty *Screen::pty()

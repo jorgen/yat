@@ -1,16 +1,34 @@
 import QtQuick 2.0
 
-Item{
-    id: text_line
-    property QtObject textLine
+import org.yat 1.0
+
+ObjectDestructItem {
+    id: textLine
+
+    property var textComponent : Qt.createComponent("TerminalText.qml")
+    property font font
+    property real fontHeight
+    property real fontWidth
+
+    height: fontHeight
+    width: parent.width
+    visible: objectHandle.visible
 
     Connections {
-        target: textLine
+        target: objectHandle
 
         onIndexChanged: {
-            y = textLine.index * height;
+            y = objectHandle.index * fontHeight;
         }
 
+        onTextCreated: {
+            var textSegment = textComponent.createObject(textLine,
+                {
+                    "objectHandle" : text,
+                    "font" : textLine.font,
+                    "fontWidth" : textLine.fontWidth,
+                })
+        }
     }
 }
 

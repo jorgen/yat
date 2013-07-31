@@ -41,7 +41,6 @@ class Text : public QObject
     Q_PROPERTY(QColor foregroundColor READ foregroundColor NOTIFY forgroundColorChanged)
     Q_PROPERTY(QColor backgroundColor READ backgroundColor NOTIFY backgroundColorChanged)
     Q_PROPERTY(Screen *screen READ screen CONSTANT)
-    Q_PROPERTY(QObject *item READ item CONSTANT)
 public:
     Text(Screen *screen);
     ~Text();
@@ -54,9 +53,7 @@ public:
     void setVisible(bool visible);
 
     QString text() const;
-
     QColor foregroundColor() const;
-
     QColor backgroundColor() const;
 
     void setStringSegment(int start_index, int end_index);
@@ -73,10 +70,11 @@ signals:
     void indexChanged();
     void visibleChanged();
     void textChanged();
-    void styleChanged();
     void forgroundColorChanged();
     void backgroundColorChanged();
+    void textStyleChanged();
 
+    void aboutToBeDestroyed();
 private:
 
     QString m_text;
@@ -85,6 +83,7 @@ private:
     int m_old_start_index;
     int m_end_index;
     TextStyle m_style;
+    TextStyle m_new_style;
 
     bool m_style_dirty;
     bool m_text_dirty;
@@ -92,8 +91,6 @@ private:
     bool m_visible_old;
 
     Line *m_line;
-
-    QObject *m_item;
 };
 
 #endif // TEXT_SEGMENT_H

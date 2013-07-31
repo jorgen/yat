@@ -31,19 +31,12 @@ Text::Text(Screen *screen)
     , m_visible(true)
     , m_visible_old(true)
     , m_line(0)
-    , m_item(screen->createTextItem())
 {
-    m_item->setProperty("font", screen->font());
-    m_item->setProperty("textSegment",QVariant::fromValue(this));
 }
 
 Text::~Text()
 {
-    if (m_item) {
-        m_item->setProperty("textSegment", QVariant::fromValue(static_cast<Text *>(0)));
-        m_item->setProperty("visible", false);
-        m_line->screen()->destroyTextItem(m_item);
-    }
+    emit aboutToBeDestroyed();
 }
 
 void Text::setLine(Line *line)
@@ -53,7 +46,6 @@ void Text::setLine(Line *line)
     m_line = line;
     if (m_line) {
         m_text_line = line->textLine();
-        m_item->setProperty("parent", QVariant::fromValue(m_line->item()));
     }
 }
 
@@ -85,14 +77,14 @@ QColor Text::foregroundColor() const
         return screen()->colorPalette()->color(m_style.background, m_style.style & TextStyle::Bold);
     }
 
-    return screen()->colorPalette()->color(m_style.foreground, m_style.style & TextStyle::Bold);
+    return screen()->colorPalette()->color(m_style.forground, m_style.style & TextStyle::Bold);
 }
 
 
 QColor Text::backgroundColor() const
 {
     if (m_style.style & TextStyle::Inverse)
-        return screen()->colorPalette()->color(m_style.foreground, false);
+        return screen()->colorPalette()->color(m_style.forground, false);
 
     return screen()->colorPalette()->color(m_style.background, false);
 }
@@ -107,10 +99,8 @@ void Text::setStringSegment(int start_index, int end_index)
 
 void Text::setTextStyle(const TextStyle &style)
 {
-    if (!m_style.isCompatible(style)) {
-        m_style = style;
-        m_style_dirty = true;
-    }
+    m_new_style = style;
+    m_style_dirty = true;
 }
 
 Screen *Text::screen() const
@@ -118,16 +108,22 @@ Screen *Text::screen() const
     return m_line->screen();
 }
 
-QObject *Text::item() const
-{
-    return m_item;
-}
-
 void Text::dispatchEvents()
 {
     if (m_style_dirty) {
         m_style_dirty = false;
-        emit styleChanged();
+
+        bool emit_forground = m_new_style.forground != m_style.forground;
+        bool emit_background = m_new_style.background != m_style.background;
+        bool emit_text_style = m_new_style.style != m_style.style;
+
+        m_style = m_new_style;
+        if (emit_forground)
+            emit forgroundColorChanged();
+        if (emit_background)
+            emit backgroundColorChanged();
+        if (emit_text_style)
+            emit textStyleChanged();
     }
 
     if (m_text_dirty) {

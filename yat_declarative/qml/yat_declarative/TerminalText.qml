@@ -25,37 +25,37 @@ import QtQuick 2.0
 
 import org.yat 1.0
 
-TerminalText {
-    id: textObjectItem
+ObjectDestructItem {
+    id: textItem
     property font font
     property real fontWidth
 
     y: 0
     x: 0
 
-    width: textItem.paintedWidth
-    height: textItem.paintedHeight
+    width: textElement.paintedWidth
+    height: textElement.paintedHeight
 
-    //color: textObject.backgroundColor
+    //color: objectHandle.backgroundColor
 
     Text {
-        id: textItem
+        id: textElement
         anchors.fill: parent
-        text: textObject.text
-        color: textObject.foregroundColor
-        font: textObjectItem.font
+        text: objectHandle.text
+        color: objectHandle.foregroundColor
+        font: textItem.font
         textFormat: Text.PlainText
     }
 
     Connections {
-        target: textObject
+        target: objectHandle
 
         onIndexChanged: {
-            textObjectItem.x = textObject.index *  textObjectItem.fontWidth;
+            textItem.x = objectHandle.index *  textItem.fontWidth;
         }
 
         onVisibleChanged: {
-            textObjectItem.visible = textObject.visible;
+            textItem.visible = objectHandle.visible;
         }
     }
 

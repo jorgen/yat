@@ -72,6 +72,7 @@ private:
     Screen *m_screen;
     int m_width;
     QVector<Line *> m_screen_lines;
+    QVector<Line *> m_new_lines;
     int m_scroll_start;
     int m_scroll_end;
     bool m_scroll_area_set;

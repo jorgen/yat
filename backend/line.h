@@ -38,7 +38,7 @@ public:
         , changed(true)
     {
         this->style = style.style;
-        foreground = style.foreground;
+        forground = style.forground;
         background = style.background;
     }
 
@@ -60,7 +60,7 @@ public:
     bool changed;
 
     void setStyle(const TextStyle &style) {
-        foreground = style.foreground;
+        forground = style.forground;
         background = style.background;
         this->style = style.style;
     }
@@ -71,8 +71,8 @@ class Line : public QObject
     Q_OBJECT
 
     Q_PROPERTY(int index READ index NOTIFY indexChanged)
-    Q_PROPERTY(QObject *item READ item CONSTANT)
     Q_PROPERTY(Screen *screen READ screen CONSTANT)
+    Q_PROPERTY(bool visible READ visible WRITE setVisible NOTIFY visibleChanged)
 public:
     Line(Screen *screen);
     ~Line();
@@ -96,20 +96,21 @@ public:
 
     QString *textLine();
 
-    QObject *item() const;
-
     void setVisible(bool visible);
+    bool visible() const;
 
     void dispatchEvents();
 
     void printStyleElements() const;
 
     QVector<TextStyleLine> style_list();
+
 signals:
     void indexChanged();
+    void visibleChanged();
 
+    void textCreated(Text *text);
 private:
-
     Text *createTextSegment(const TextStyleLine &style_line);
     void releaseTextSegment(Text *text);
 
@@ -119,10 +120,11 @@ private:
     int m_index;
     int m_old_index;
 
-    QVector<Text *> m_unused_segments;
+    bool m_visible;
+    QVector<Text *> m_to_delete;
     bool m_changed;
 
-    QObject *m_item;
+    bool m_delete_handle;
 };
 
 #endif // TEXT_SEGMENT_LINE_H

@@ -33,8 +33,6 @@
 #include <QtCore/QPoint>
 #include <QtCore/QSize>
 #include <QtCore/QStack>
-#include <QtGui/QFont>
-#include <QtGui/QFontMetrics>
 #include <QtCore/QElapsedTimer>
 
 class Line;
@@ -46,9 +44,6 @@ class Screen : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
-    Q_PROPERTY(qreal charWidth READ charWidth NOTIFY charWidthChanged)
-    Q_PROPERTY(qreal lineHeight READ lineHeight NOTIFY lineHeightChanged)
     Q_PROPERTY(int height READ height WRITE setHeight)
     Q_PROPERTY(int width READ width WRITE setWidth)
     Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY screenTitleChanged)
@@ -64,7 +59,7 @@ public:
         Replace
     };
 
-    explicit Screen(QQmlEngine *engine, QObject *parent = 0);
+    explicit Screen(QObject *parent = 0);
     ~Screen();
 
     void setHeight(int height);
@@ -74,11 +69,6 @@ public:
 
     void saveScreenData();
     void restoreScreenData();
-
-    QFont font() const;
-    void setFont(const QFont &font);
-    qreal charWidth() const;
-    qreal lineHeight() const;
 
     void setInsertMode(InsertMode mode);
 
@@ -169,15 +159,10 @@ public:
 
     Q_INVOKABLE void sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers modifiers);
 
-    QObject *createLineItem();
-    void destroyLineItem(QObject *lineItem);
-    QObject *createTextItem();
-    void destroyTextItem(QObject *textItem);
-    Text *createText();
-    void releaseText(Text *text);
-
     YatPty *pty();
 
+    //For tests
+    Line *line_at_cursor();
 public slots:
     void readData(const QByteArray &data);
 
@@ -187,11 +172,6 @@ signals:
     void reset();
 
     void flash();
-
-    void fontChanged();
-    void charWidthChanged();
-    void lineHeightChanged();
-
 
     void dispatchLineChanges();
     void dispatchTextSegmentChanges();
@@ -206,8 +186,7 @@ signals:
     void cursorVisibleChanged();
     void cursorBlinkingChanged();
 
-    //For tests
-    Line *line_at_cursor();
+    void lineCreated(Line *line);
 protected:
     void timerEvent(QTimerEvent *);
 
@@ -237,8 +216,6 @@ private:
     bool m_cursor_blinking;
     bool m_cursor_blinking_changed;
 
-    QFont m_font;
-    QFontMetricsF m_font_metrics;
     TextStyle m_current_text_style;
     QString m_title;
 
@@ -257,11 +234,7 @@ private:
     bool m_reset;
     bool m_application_cursor_key_mode;
 
-    QList<Text *>m_unused_text;
-
-    QQmlEngine *m_engine;
-    QQmlComponent *m_line_component;
-    QQmlComponent *m_text_component;
+    friend class ScreenData;
 };
 
 #endif // TERMINALSCREEN_H

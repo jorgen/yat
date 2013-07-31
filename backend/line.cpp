@@ -33,26 +33,18 @@ Line::Line(Screen *screen)
     , m_screen(screen)
     , m_index(0)
     , m_old_index(-1)
+    , m_visible(true)
     , m_changed(true)
-    , m_item(screen->createLineItem())
 {
     m_text_line.resize(screen->width());
     m_style_list.reserve(25);
-    m_unused_segments.reserve(25);
 
     clear();
-
-    m_item->setProperty("parent", QVariant::fromValue(m_screen->parent()));
-    m_item->setProperty("height", m_screen->lineHeight());
-    m_item->setProperty("textLine", QVariant::fromValue(this));
 }
 
 Line::~Line()
 {
     releaseTextObjects();
-
-    if (m_item)
-        m_screen->destroyLineItem(m_item);
 }
 
 Screen *Line::screen() const
@@ -66,7 +58,7 @@ void Line::releaseTextObjects()
     for (int i = 0; i < m_style_list.size(); i++) {
         if (m_style_list.at(i).text_segment) {
             m_style_list.at(i).text_segment->setVisible(false);
-            screen()->releaseText(m_style_list.at(i).text_segment);
+            delete m_style_list.at(i).text_segment;
             m_style_list[i].text_segment = 0;
             m_style_list[i].changed = true;
         }
@@ -242,7 +234,7 @@ void Line::insertAtPos(int pos, const QString &text, const TextStyle &style)
                         m_style_list[i].end_index = pos + text.size() - 1;
                         m_style_list[i].changed = true;
                         m_style_list[i].style = style.style;
-                        m_style_list[i].foreground = style.foreground;
+                        m_style_list[i].forground = style.forground;
                         m_style_list[i].background = style.background;
                     } else {
                         m_style_list[i].end_index = pos - 1;
@@ -271,14 +263,17 @@ QString *Line::textLine()
     return &m_text_line;
 }
 
-QObject *Line::item() const
-{
-    return m_item;
-}
-
 void Line::setVisible(bool visible)
 {
-    m_item->setProperty("visible", visible);
+    if (visible != m_visible) {
+        m_visible = visible;
+        emit visibleChanged();
+    }
+}
+
+bool Line::visible() const
+{
+    return m_visible;
 }
 
 void Line::dispatchEvents()
@@ -311,6 +306,11 @@ void Line::dispatchEvents()
     }
 
     m_changed = false;
+
+    for (int i = 0; i< m_to_delete.size(); i++) {
+        delete m_to_delete[i];
+    }
+    m_to_delete.clear();
 }
 
 void Line::printStyleElements() const
@@ -326,10 +326,18 @@ QVector<TextStyleLine> Line::style_list()
 {
     return m_style_list;
 }
+
 Text *Line::createTextSegment(const TextStyleLine &style_line)
 {
-    Text *to_return = screen()->createText();
-    to_return->setLine(this);
+    Text *to_return;
+    if (m_to_delete.size()) {
+        to_return = m_to_delete.takeLast();
+    } else {
+        to_return = new Text(screen());
+        to_return->setLine(this);
+        emit textCreated(to_return);
+    }
+
     to_return->setStringSegment(style_line.start_index, style_line.end_index);
     to_return->setTextStyle(style_line);
     to_return->setVisible(true);
@@ -339,7 +347,6 @@ Text *Line::createTextSegment(const TextStyleLine &style_line)
 
 void Line::releaseTextSegment(Text *text)
 {
-    screen()->releaseText(text);
-    text->setVisible(false);
+    m_to_delete.append(text);
 }
 

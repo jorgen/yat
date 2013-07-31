@@ -1,18 +1,31 @@
 import QtQuick 2.0
 
-Rectangle {
+import org.yat 1.0
+
+TerminalScreen {
     id: screenItem
 
-    property QtObject screen
+    property font font
+    property real fontWidth: fontMetricText.paintedWidth
+    property real fontHeight: fontMetricText.paintedHeight
 
-    property font font: screen.font
-    property real fontWidth: screen.charWidth
-    property real fontHeight: screen.lineHeight
+    property var lineComponent : Qt.createComponent("TerminalLine.qml")
 
-    anchors.fill: parent
+    font.family: "courier"
 
-    color: "black"
+    Text {
+        id: fontMetricText
+        text: "B"
+        font: parent.font
+        visible: false
+        textFormat: Text.PlainText
+    }
 
+    Rectangle {
+        id: background
+        anchors.fill: parent
+        color: "black"
+    }
 
     Connections {
         id: connections
@@ -24,12 +37,22 @@ Rectangle {
         }
 
         onCursorPositionChanged: {
-            cursor.x = x * screen.charWidth;
-            cursor.y = y * screen.lineHeight
+            cursor.x = x * fontWidth;
+            cursor.y = y * fontHeight;
         }
 
         onReset: {
             resetScreenItems();
+        }
+
+        onLineCreated: {
+            var lineVariable = lineComponent.createObject(screenItem,
+                {
+                    "objectHandle" : line,
+                    "font": screenItem.font,
+                    "fontWidth" : screenItem.fontWidth,
+                    "fontHeight" : screenItem.fontHeight,
+                })
         }
     }
 
@@ -53,8 +76,6 @@ Rectangle {
         if (fontWidth > 0) {
             var pty_width = width / fontWidth;
             screen.width = pty_width;
-        } else {
-            screen.width = 10;
         }
     }
 
@@ -78,8 +99,8 @@ Rectangle {
     }
 
     HighlightArea {
-        characterHeight: screen.lineHeight
-        characterWidth: screen.charWidth
+        characterHeight: fontHeight
+        characterWidth: fontWidth
 
         start: screen.selectionAreaStart
         end: screen.selectionAreaEnd
@@ -89,8 +110,8 @@ Rectangle {
 
     Rectangle {
         id: cursor
-        width: screen.charWidth
-        height: screen.lineHeight
+        width: fontWidth
+        height: fontHeight
         x: 0
         y: 0
         color: "grey"

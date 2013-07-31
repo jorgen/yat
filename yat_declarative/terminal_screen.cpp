@@ -18,32 +18,15 @@
 *
 ***************************************************************************************************/
 
-#ifndef TERMINALITEM_H
-#define TERMINALITEM_H
+#include "terminal_screen.h"
 
-#include <QtCore/QObject>
-#include <QtQuick/QQuickItem>
-#include <QtQml/QQmlEngine>
-
-#include "screen.h"
-
-class TerminalItem : public QQuickItem
+TerminalScreen::TerminalScreen(QQuickItem *parent)
+    : QQuickItem(parent)
+    , m_screen(new Screen(this))
 {
-    Q_OBJECT
+}
 
-    Q_PROPERTY(Screen *screen READ screen NOTIFY screenChanged)
-public:
-    TerminalItem(QQuickItem *parent = 0);
-
-    void createScreen(QQmlEngine *engine);
-
-    Screen *screen() const;
-
-signals:
-    void screenChanged();
-
-private:
-    Screen *m_screen;
-};
-
-#endif // TERMINALITEM_H
+Screen *TerminalScreen::screen() const
+{
+    return m_screen;
+}

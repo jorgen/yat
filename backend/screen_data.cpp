@@ -75,6 +75,9 @@ void ScreenData::setHeight(int height)
         int removeElements = m_screen_lines.size() - height;
         for (int i = 0; i < m_screen_lines.size(); i++) {
             if (i <removeElements) {
+                int not_broadcasted = m_new_lines.indexOf(m_screen_lines.at(i));
+                if (not_broadcasted >= 0)
+                    m_new_lines.remove(not_broadcasted);
                 delete m_screen_lines[i];
             } else {
                 m_screen_lines.at(i)->setIndex(i - removeElements);
@@ -86,6 +89,7 @@ void ScreenData::setHeight(int height)
         for (int i = 0; i < rowsToAdd; i++) {
             Line *newLine = new Line(m_screen);
             m_screen_lines.append(newLine);
+            m_new_lines.append(newLine);
             newLine->setIndex(m_screen_lines.size()-1);
         }
     }
@@ -283,6 +287,11 @@ void ScreenData::getDoubleClickSelectionArea(const QPointF &cliked, int *start_r
 
 void ScreenData::dispatchLineEvents()
 {
+    for (int i = 0; i < m_new_lines.size(); i++) {
+        emit m_screen->lineCreated(m_new_lines.at(i));
+    }
+    m_new_lines.clear();
+
     for (int i = 0; i < m_screen_lines.size(); i++) {
         m_screen_lines.at(i)->dispatchEvents();
     }
