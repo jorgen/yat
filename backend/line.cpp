@@ -188,7 +188,6 @@ void Line::insertAtPos(int pos, const QString &text, const TextStyle &style)
     m_changed = true;
 
     m_text_line.replace(pos,text.size(),text);
-
     bool found = false;
     for (int i = 0; i < m_style_list.size(); i++) {
         const TextStyleLine &current_style = m_style_list.at(i);
@@ -214,13 +213,13 @@ void Line::insertAtPos(int pos, const QString &text, const TextStyle &style)
                         m_style_list[i].setStyle(style);
                     } else if (current_style.start_index == pos) {
                         m_style_list[i].start_index = pos + text.size();
-                        m_style_list.insert(i, TextStyleLine(style,pos, pos+text.size()-1));
+                        m_style_list.insert(i, TextStyleLine(style,pos, pos+text.size() -1));
                     } else if (current_style.end_index == pos + text.size()) {
-                        m_style_list[i].end_index = pos -1;
-                        m_style_list.insert(i+1, TextStyleLine(style,pos, pos+text.size() - 1));
+                        m_style_list[i].end_index = pos - 1;
+                        m_style_list.insert(i+1, TextStyleLine(style,pos, pos+text.size()));
                     } else {
-                        m_style_list[i].end_index = pos -1;
-                        m_style_list.insert(i+1, TextStyleLine(style,pos, pos+text.size() -1 ));
+                        m_style_list[i].end_index = pos - 1;
+                        m_style_list.insert(i+1, TextStyleLine(style,pos, pos + text.size() - 1));
                         m_style_list.insert(i+2, TextStyleLine(current_style,pos + text.size(), current_style.end_index));
                     }
                 }

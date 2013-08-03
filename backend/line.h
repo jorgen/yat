@@ -31,15 +31,13 @@ class QQuickItem;
 class TextStyleLine : public TextStyle {
 public:
     TextStyleLine(const TextStyle &style, int start_index, int end_index)
-        : start_index(start_index)
+        : TextStyle(style)
+        , start_index(start_index)
         , end_index(end_index)
         , old_index(-1)
         , text_segment(0)
         , changed(true)
     {
-        this->style = style.style;
-        forground = style.forground;
-        background = style.background;
     }
 
     TextStyleLine()

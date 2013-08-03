@@ -860,6 +860,11 @@ YatPty *Screen::pty()
     return &m_pty;
 }
 
+Line *Screen::line_at_cursor() const
+{
+    return current_screen_data()->at(current_cursor_y());
+}
+
 void Screen::readData(const QByteArray &data)
 {
     m_parser.addData(data);

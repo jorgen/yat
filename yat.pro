@@ -1,4 +1,5 @@
 TEMPLATE=subdirs
 CONFIG += ordered
 SUBDIRS= \
-         yat_declarative
+         yat_declarative \
+         tests

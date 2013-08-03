@@ -162,7 +162,7 @@ public:
     YatPty *pty();
 
     //For tests
-    Line *line_at_cursor();
+    Line *line_at_cursor() const;
 public slots:
     void readData(const QByteArray &data);
 
