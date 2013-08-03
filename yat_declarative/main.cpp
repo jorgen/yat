@@ -26,7 +26,7 @@
 #include <QtQuick/QQuickItem>
 
 #include "register_qml_types.h"
-#include "terminal_item.h"
+#include "terminal_screen.h"
 #include "yat_pty.h"
 
 int main(int argc, char **argv)
