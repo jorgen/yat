@@ -38,6 +38,10 @@ private slots:
     void insertIncompaitibleStylesCrossesBoundary();
     void insert3IncompatibleStyles();
     void insertIncomaptibleStylesCrosses2Boundaries();
+    void clearLine();
+    void clearToEndOfLine1Segment();
+    void clearToEndOfLine3Segment();
+    void clearToEndOfLineMiddle3Segment();
 };
 
 void tst_Line::insertStart()
@@ -256,6 +260,104 @@ void tst_Line::insertIncomaptibleStylesCrosses2Boundaries()
     const TextStyleLine &fourth_style = after_style_list.at(3);
     QCOMPARE(fourth_style.style, lineHandler.default_text_style);
     QCOMPARE(fourth_style.start_index, first_text.size() - 2 + overlap_first_third.size() + third_text.size() - 2);
+}
+
+void tst_Line::clearLine()
+{
+    LineHandler lineHandler;
+    Line *line = lineHandler.line();
+
+    QVERIFY(line->textLine()->size() > 0);
+    QCOMPARE(line->textLine()->trimmed().size(), 0);
+}
+
+void tst_Line::clearToEndOfLine1Segment()
+{
+    LineHandler lineHandler;
+    Line *line = lineHandler.line();
+
+    QString insert_text("To be inserted");
+    TextStyle style = lineHandler.default_style;
+    style.style = TextStyle::Encircled;
+    line->insertAtPos(0, insert_text, style);
+
+    int before_clear_size = line->textLine()->size();
+    line->clearToEndOfLine(5);
+
+    int after_clear_size = line->textLine()->size();
+    QCOMPARE(after_clear_size, before_clear_size);
+    QVector<TextStyleLine> style_list = line->style_list();
+    QCOMPARE(style_list.size(), 2);
+
+    const TextStyleLine &first_style = style_list.at(0);
+    QCOMPARE(first_style.start_index, 0);
+    QCOMPARE(first_style.end_index, 4);
+
+    const TextStyleLine &second_style = style_list.at(1);
+    QCOMPARE(second_style.start_index, 5);
+
+    QString cleared("To be");
+    QCOMPARE(line->textLine()->trimmed(), cleared);
+}
+
+void tst_Line::clearToEndOfLine3Segment()
+{
+    LineHandler lineHandler;
+    Line *line = lineHandler.line();
+
+    QString insert_text("To be");
+    TextStyle style = lineHandler.default_style;
+    style.style = TextStyle::Encircled;
+    line->insertAtPos(0, insert_text, style);
+
+    QString insert_text2(" or not to be");
+    style.style = TextStyle::Bold;
+    line ->insertAtPos(insert_text.size(), insert_text2, style);
+
+    line->clearToEndOfLine(insert_text.size());
+
+    QVector<TextStyleLine> style_list = line->style_list();
+    QCOMPARE(style_list.size(), 2);
+
+    const TextStyleLine &first_style = style_list.at(0);
+    QCOMPARE(first_style.start_index, 0);
+    QCOMPARE(first_style.end_index, insert_text.size() - 1);
+
+    const TextStyleLine &second_style = style_list.at(1);
+    QCOMPARE(second_style.start_index, insert_text.size());
+    QCOMPARE(second_style.style, lineHandler.default_text_style);
+}
+
+void tst_Line::clearToEndOfLineMiddle3Segment()
+{
+    LineHandler lineHandler;
+    Line *line = lineHandler.line();
+
+    QString insert_text("To be");
+    TextStyle style = lineHandler.default_style;
+    style.style = TextStyle::Encircled;
+    line->insertAtPos(0, insert_text, style);
+
+    QString insert_text2(" or not to be");
+    style.style = TextStyle::Bold;
+    line ->insertAtPos(insert_text.size(), insert_text2, style);
+
+    line->clearToEndOfLine(insert_text.size() + 3);
+
+    QVector<TextStyleLine> style_list = line->style_list();
+    QCOMPARE(style_list.size(), 3);
+
+    const TextStyleLine &first_style = style_list.at(0);
+    QCOMPARE(first_style.start_index, 0);
+    QCOMPARE(first_style.end_index, insert_text.size() - 1);
+
+    const TextStyleLine &second_style = style_list.at(1);
+    QCOMPARE(second_style.start_index, insert_text.size());
+    QCOMPARE(second_style.end_index, insert_text.size() + 2);
+
+    const TextStyleLine &third_style = style_list.at(2);
+    QCOMPARE(third_style.start_index, insert_text.size() + 3);
+    QCOMPARE(third_style.style, lineHandler.default_text_style);
 }
 
 #include <tst_line.moc>

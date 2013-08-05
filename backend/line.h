@@ -71,6 +71,7 @@ class Line : public QObject
     Q_PROPERTY(int index READ index NOTIFY indexChanged)
     Q_PROPERTY(Screen *screen READ screen CONSTANT)
     Q_PROPERTY(bool visible READ visible WRITE setVisible NOTIFY visibleChanged)
+    Q_PROPERTY(int width READ width WRITE setWidth NOTIFY widthChanged)
 public:
     Line(Screen *screen);
     ~Line();
@@ -83,9 +84,9 @@ public:
     void clearToEndOfLine(int index);
     void clearCharacters(int from, int to);
     void deleteCharacters(int from, int to);
-    void setWidth(int width);
 
-    Q_INVOKABLE int size() const;
+    void setWidth(int width);
+    int width() const;
 
     void insertAtPos(int i, const QString &text, const TextStyle &style);
 
@@ -106,6 +107,7 @@ public:
 signals:
     void indexChanged();
     void visibleChanged();
+    void widthChanged();
 
     void textCreated(Text *text);
 private:
