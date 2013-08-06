@@ -43,6 +43,9 @@ void Parser::addData(const QByteArray &data)
         uchar character = data.at(m_currrent_position);
         switch (m_decode_state) {
         case PlainText:
+            //UTF-8
+            if (character > 127)
+                continue;
             if (character < C0::C0_END ||
                     (character >= C1_8bit::C1_8bit_Start &&
                      character <= C1_8bit::C1_8bit_Stop)) {
