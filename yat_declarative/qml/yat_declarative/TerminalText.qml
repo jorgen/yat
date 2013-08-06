@@ -36,7 +36,11 @@ ObjectDestructItem {
     width: textElement.paintedWidth
     height: textElement.paintedHeight
 
-    //color: objectHandle.backgroundColor
+    Rectangle {
+        anchors.fill: parent
+        color: textItem.objectHandle.backgroundColor
+    }
+
 
     Text {
         id: textElement
