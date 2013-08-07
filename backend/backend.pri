@@ -21,6 +21,7 @@ HEADERS += \
 SOURCES += \
            $$PWD/yat_pty.cpp \
            $$PWD/text.cpp \
+           $$PWD/controll_chars.cpp \
            $$PWD/parser.cpp \
            $$PWD/screen.cpp \
            $$PWD/line.cpp \

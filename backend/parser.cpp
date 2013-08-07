@@ -97,7 +97,7 @@ void Parser::decodeC0(uchar character)
     case C0::EOT:
     case C0::ENQ:
     case C0::ACK:
-        qDebug() << "Unhandled Controll character" << character;
+        qDebug() << "Unhandled" << C0::C0(character);
         tokenFinished();
         break;
     case C0::BEL:
@@ -121,7 +121,7 @@ void Parser::decodeC0(uchar character)
         break;
     case C0::VT:
     case C0::FF:
-        qDebug() << "Unhandled Controll character" << character;
+        qDebug() << "Unhandled" << C0::C0(character);
         tokenFinished();
         break;
     case C0::CR:
@@ -142,7 +142,7 @@ void Parser::decodeC0(uchar character)
     case C0::CAN:
     case C0::EM:
     case C0::SUB:
-        qDebug() << "Unhandled Controll character" << character;
+        qDebug() << "Unhandled" << C0::C0(character);
         tokenFinished();
         break;
     case C0::ESC:
@@ -153,7 +153,7 @@ void Parser::decodeC0(uchar character)
     case C0::IS2:
     case C0::IS1:
     default:
-        qDebug() << "Unhandled Controll character" << character;
+        qDebug() << "Unhandled" << C0::C0(character);
         tokenFinished();
         break;
     }
@@ -187,7 +187,7 @@ void Parser::decodeC1_7bit(uchar character)
         tokenFinished();
         break;
     default:
-        qDebug() << "Unhandled C1_7bit character" << character;
+        qDebug() << "Unhandled" << C1_7bit::C1_7bit(character);
         tokenFinished();
     }
 }
@@ -281,7 +281,7 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesSingleIntermediate::SLS:
                     case FinalBytesSingleIntermediate::SCP:
                     default:
-                        qDebug() << "unhandled CSI FinalBytesSingleIntermediate sequence" << character;
+                        qDebug() << "unhandled CSI" << FinalBytesSingleIntermediate::FinalBytesSingleIntermediate(character);
                         tokenFinished();
                         break;
                     }
@@ -289,7 +289,7 @@ void Parser::decodeCSI(uchar character)
                     switch (character) {
                     case FinalBytesNoIntermediate::ICH:
                         tokenFinished();
-                        qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
+                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         break;
                     case FinalBytesNoIntermediate::CUU: {
                         appendParameter();
@@ -301,7 +301,7 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::CUD:
                         tokenFinished();
-                        qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
+                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         break;
                     case FinalBytesNoIntermediate::CUF:{
                         appendParameter();
@@ -314,7 +314,7 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::CUB:
                     case FinalBytesNoIntermediate::CNL:
                     case FinalBytesNoIntermediate::CPL:
-                        qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
+                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::CHA: {
@@ -339,7 +339,7 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::CHT:
                         tokenFinished();
-                        qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
+                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         break;
                     case FinalBytesNoIntermediate::ED:
                         appendParameter();
@@ -395,7 +395,7 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::EF:
                     case FinalBytesNoIntermediate::EA:
-                        qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
+                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::DCH:{
@@ -423,7 +423,7 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::HPA:
                     case FinalBytesNoIntermediate::HPR:
                     case FinalBytesNoIntermediate::REP:
-                        qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
+                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::DA:
@@ -456,7 +456,7 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::VPR:
                     case FinalBytesNoIntermediate::HVP:
                     case FinalBytesNoIntermediate::TBC:
-                        qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
+                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::SM:
@@ -500,7 +500,7 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::MC:
                     case FinalBytesNoIntermediate::HPB:
                     case FinalBytesNoIntermediate::VPB:
-                        qDebug() << "unhandled CSI FinalBytesNoIntermediate sequence" << character;
+                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::RM:
@@ -618,7 +618,7 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::DAQ:
                     case FinalBytesNoIntermediate::Reserved0:
                     case FinalBytesNoIntermediate::Reserved1:
-                        qDebug() << "Unhandeled CSI FinalBytesNoIntermediate squence" << character;
+                        qDebug() << "Unhandeled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::Reserved2:
@@ -648,7 +648,7 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::Reservede:
                     case FinalBytesNoIntermediate::Reservedf:
                     default:
-                        qDebug() << "Unhandeled CSI FinalBytesNoIntermediate squence" << character;
+                        qDebug() << "Unhandeled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         tokenFinished();
                         break;
                     }

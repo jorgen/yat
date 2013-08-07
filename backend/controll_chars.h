@@ -27,6 +27,8 @@
 //http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
 //http://www.vt100.net/docs/vt100-ug/chapter3.html
 
+#include <QtCore/QDebug>
+
 namespace C0 {
 enum C0 {
     NUL = 0x00,
@@ -63,6 +65,7 @@ enum C0 {
     IS1 = 0x1f,
     C0_END = 0x20
 };
+QDebug operator<<(QDebug debug, C0 character);
 }
 
 namespace C1_7bit {
@@ -102,6 +105,7 @@ enum C1_7bit {
     APC = 0x5f,
     C1_7bit_Stop = 0x60
 };
+QDebug operator<<(QDebug debug, C1_7bit character);
 }
 namespace C1_8bit {
 enum C1_8bit {
@@ -110,7 +114,7 @@ enum C1_8bit {
     NOT_DEFINED1 = 0x81,
     BPH = 0x82,
     NBH = 0x83,
-    NOT_DEFINED2 = 0x82,
+    NOT_DEFINED2 = 0x84,
     NEL = 0x85,
     SSA = 0x86,
     ESA = 0x87,
@@ -140,6 +144,7 @@ enum C1_8bit {
     APC = 0x9f,
     C1_8bit_Stop = 0xa0
 };
+QDebug operator<<(QDebug debug, C1_8bit character);
 }
 
 namespace FinalBytesNoIntermediate {
@@ -209,6 +214,7 @@ enum FinalBytesNoIntermediate {
     Reservede = 0x7e,
     Reservedf = 0x7f
 };
+QDebug operator<<(QDebug debug, FinalBytesNoIntermediate character);
 }
 
 namespace FinalBytesSingleIntermediate {
@@ -277,6 +283,7 @@ enum FinalBytesSingleIntermediate {
     Reservedd = 0x7d,
     Reservedf = 0x7f
 };
+QDebug operator<<(QDebug debug, FinalBytesSingleIntermediate character);
 }
 
 #endif // CONTROLL_CHARS_H
