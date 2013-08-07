@@ -74,14 +74,14 @@ TerminalScreen {
 
     function setTerminalWidth() {
         if (fontWidth > 0) {
-            var pty_width = width / fontWidth;
+            var pty_width = Math.floor(width / fontWidth);
             screen.width = pty_width;
         }
     }
 
     function setTerminalHeight() {
         if (fontHeight > 0) {
-            var pty_height = height / fontHeight;
+            var pty_height = Math.floor(height / fontHeight);
             screen.height = pty_height;
         }
     }
