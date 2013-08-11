@@ -44,7 +44,7 @@ Screen::Screen(QObject *parent)
     , m_cursor_visible_changed(false)
     , m_cursor_blinking(true)
     , m_cursor_blinking_changed(false)
-    , m_insert_mode(Insert)
+    , m_insert_mode(Replace)
     , m_selection_valid(false)
     , m_selection_moved(0)
     , m_flash(false)
@@ -281,10 +281,10 @@ void Screen::deleteCharacters(int characters)
 {
     switch (m_insert_mode) {
         case Insert:
-            current_screen_data()->clearCharacters(current_cursor_y(), current_cursor_x(), characters);
+            current_screen_data()->clearCharacters(current_cursor_y(), current_cursor_x(), current_cursor_x() + characters -1);
             break;
         case Replace:
-            current_screen_data()->deleteCharacters(current_cursor_y(), current_cursor_x(), characters);
+            current_screen_data()->deleteCharacters(current_cursor_y(), current_cursor_x(), current_cursor_x() + characters -1);
             break;
         default:
             break;
@@ -327,7 +327,7 @@ void Screen::restoreCursor()
     m_cursor_stack.remove(m_screen_stack.size()-1);
 }
 
-void Screen::insertAtCursor(const QString &text)
+void Screen::replaceAtCursor(const QString &text)
 {
     if (m_selection_valid ) {
         if (current_cursor_y() >= m_selection_start.y() && current_cursor_y() <= m_selection_end.y())
@@ -337,7 +337,7 @@ void Screen::insertAtCursor(const QString &text)
 
     if (current_cursor_x() + text.size() <= width()) {
         Line *line = current_screen_data()->at(current_cursor_y());
-        line->insertAtPos(current_cursor_x(), text, m_current_text_style);
+        line->replaceAtPos(current_cursor_x(), text, m_current_text_style);
         current_cursor_pos().rx() += text.size();
     } else {
         for (int i = 0; i < text.size();) {
@@ -347,13 +347,26 @@ void Screen::insertAtCursor(const QString &text)
             }
             QString toLine = text.mid(i,current_screen_data()->width() - current_cursor_x());
             Line *line = current_screen_data()->at(current_cursor_y());
-            line->insertAtPos(current_cursor_x(),toLine, m_current_text_style);
+            line->replaceAtPos(current_cursor_x(),toLine, m_current_text_style);
             i+= toLine.size();
             current_cursor_pos().rx() += toLine.size();
         }
     }
 
     m_cursor_changed = true;
+}
+
+void Screen::insertEmptyCharsAtCursor(int len)
+{
+    if (m_selection_valid) {
+        if (current_cursor_y() >= m_selection_start.y() && current_cursor_y() <= m_selection_end.y())
+            //don't need to schedule as event since it will only happen once
+            setSelectionEnabled(false);
+    }
+
+    Line *line = current_screen_data()->at(current_cursor_y());
+    QString empty(len, QChar(' '));
+    line->insertAtPos(current_cursor_x(), empty, defaultTextStyle());
 }
 
 void Screen::backspace()
@@ -372,10 +385,14 @@ void Screen::eraseFromCursorPositionToEndOfLine()
     current_screen_data()->clearToEndOfLine(current_cursor_y(), current_cursor_x());
 }
 
+void Screen::eraseFromCursorPosition(int n_chars)
+{
+    current_screen_data()->clearCharacters(current_cursor_y(), current_cursor_x(), current_cursor_x() + n_chars - 1);
+}
+
 void Screen::eraseFromCurrentLineToEndOfScreen()
 {
     current_screen_data()->clearToEndOfScreen(current_cursor_y());
-
 }
 
 void Screen::eraseFromCurrentLineToBeginningOfScreen()

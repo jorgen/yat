@@ -105,12 +105,15 @@ public:
     void saveCursor();
     void restoreCursor();
 
-    void insertAtCursor(const QString &text);
+    void replaceAtCursor(const QString &text);
+
+    void insertEmptyCharsAtCursor(int len);
 
     void backspace();
 
     void eraseLine();
     void eraseFromCursorPositionToEndOfLine();
+    void eraseFromCursorPosition(int n_chars);
     void eraseFromCurrentLineToEndOfScreen();
     void eraseFromCurrentLineToBeginningOfScreen();
     void eraseToCursorPosition();

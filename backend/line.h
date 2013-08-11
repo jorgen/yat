@@ -89,6 +89,7 @@ public:
     void setWidth(int width);
     int width() const;
 
+    void replaceAtPos(int i, const QString &text, const TextStyle &style);
     void insertAtPos(int i, const QString &text, const TextStyle &style);
 
     int index() const;

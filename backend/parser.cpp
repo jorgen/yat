@@ -53,7 +53,7 @@ void Parser::addData(const QByteArray &data)
                     (character >= C1_8bit::C1_8bit_Start &&
                      character <= C1_8bit::C1_8bit_Stop)) {
                 if (m_currrent_position != m_current_token_start) {
-                    m_screen->insertAtCursor(QString::fromUtf8(data.mid(m_current_token_start,
+                    m_screen->replaceAtCursor(QString::fromUtf8(data.mid(m_current_token_start,
                                                                         m_currrent_position - m_current_token_start)));
                     tokenFinished();
                     m_current_token_start--;
@@ -83,7 +83,7 @@ void Parser::addData(const QByteArray &data)
     if (m_decode_state == PlainText) {
         QByteArray text = data.mid(m_current_token_start);
         if (text.size()) {
-            m_screen->insertAtCursor(QString::fromUtf8(text));
+            m_screen->replaceAtCursor(QString::fromUtf8(text));
             tokenFinished();
         }
     }
@@ -116,7 +116,7 @@ void Parser::decodeC0(uchar character)
     case C0::HT: {
         int x = m_screen->cursorPosition().x();
         int spaces = 8 - (x % 8);
-        m_screen->insertAtCursor(QString(spaces,' '));
+        m_screen->replaceAtCursor(QString(spaces,' '));
     }
         tokenFinished();
         break;
@@ -298,9 +298,13 @@ void Parser::decodeCSI(uchar character)
                     if (yat_parser_debug)
                         qDebug() << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                     switch (character) {
-                    case FinalBytesNoIntermediate::ICH:
+                    case FinalBytesNoIntermediate::ICH: {
+                        appendParameter();
+                        int n_chars = m_parameters.size() ? m_parameters.at(0) : 1;
+                        qDebug() << "ICH WITH n_chars" << n_chars;
+                        m_screen->insertEmptyCharsAtCursor(n_chars);
                         tokenFinished();
-                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
+                    }
                         break;
                     case FinalBytesNoIntermediate::CUU: {
                         appendParameter();
