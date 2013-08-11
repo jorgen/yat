@@ -135,7 +135,7 @@ void Screen::saveScreenData()
     new_data->setWidth(pty_size.width());
 
     for (int i = 0; i < new_data->height(); i++) {
-        current_screen_data()->at(i)->releaseTextObjects();
+        current_screen_data()->at(i)->setVisible(false);
     }
 
     m_screen_stack << new_data;
@@ -155,7 +155,7 @@ void Screen::restoreScreenData()
     current_screen_data()->setWidth(pty_size.width());
 
     for (int i = 0; i < current_screen_data()->height(); i++) {
-        current_screen_data()->at(i)->dispatchEvents();
+        current_screen_data()->at(i)->setVisible(true);
     }
 
     setSelectionEnabled(false);
