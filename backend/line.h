@@ -63,6 +63,7 @@ public:
         this->style = style.style;
     }
 };
+QDebug operator<<(QDebug debug, TextStyleLine line);
 
 class Line : public QObject
 {
@@ -100,10 +101,9 @@ public:
 
     void dispatchEvents();
 
-    void printStyleElements() const;
-
     QVector<TextStyleLine> style_list();
 
+    void printStyleList() const;
 signals:
     void indexChanged();
     void visibleChanged();

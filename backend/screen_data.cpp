@@ -312,8 +312,6 @@ void ScreenData::printStyleInformation() const
 {
     for (int line_number = 0; line_number < m_screen_lines.size(); line_number++) {
         const Line *line = m_screen_lines.at(line_number);
-        line->printStyleElements();
-        fprintf(stderr, "\n");
-
+        line->printStyleList();
     }
 }

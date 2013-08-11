@@ -28,6 +28,12 @@
 
 #include <QtCore/QDebug>
 
+QDebug operator<<(QDebug debug, TextStyleLine line)
+{
+    debug << "TextStyleLine: [" << line.start_index << ":" << line.end_index << "] : style:" << line.style;
+    return debug;
+}
+
 Line::Line(Screen *screen)
     : QObject(screen)
     , m_screen(screen)
@@ -320,15 +326,6 @@ void Line::dispatchEvents()
     m_to_delete.clear();
 }
 
-void Line::printStyleElements() const
-{
-    for (int i = 0; i < m_style_list.size(); i++) {
-        if (i != 0)
-            fprintf(stderr, ",");
-        fprintf(stderr, "[%d : %d]", m_style_list.at(i).start_index, m_style_list.at(i).end_index);
-    }
-}
-
 QVector<TextStyleLine> Line::style_list()
 {
     return m_style_list;
@@ -357,3 +354,9 @@ void Line::releaseTextSegment(Text *text)
     m_to_delete.append(text);
 }
 
+void Line::printStyleList() const
+{
+    for (int i= 0; i < m_style_list.size(); i++) {
+        qDebug() << "i" << m_style_list.at(i);
+    }
+}
