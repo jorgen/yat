@@ -665,6 +665,24 @@ bool Screen::applicationCursorKeyMode() const
     return m_application_cursor_key_mode;
 }
 
+static bool hasControll(Qt::KeyboardModifiers modifiers)
+{
+#ifdef Q_OS_MAC
+    return modifiers & Qt::MetaModifier;
+#else
+    return modifiers & Qt::ControlModifier;
+#endif
+}
+
+static bool hasMeta(Qt::KeyboardModifiers modifiers)
+{
+#ifdef Q_OS_MAC
+    return modifiers & Qt::ControlModifier;
+#else
+    return modifiers & Qt::MetaModifier;
+#endif
+}
+
 void Screen::sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers modifiers)
 {
     /// UGH, this functions should be re-written
@@ -814,8 +832,8 @@ void Screen::sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers mod
         m_pty.write(toPty);
 
     } else {
-        QString verifiedText = text;
-        if (text.isEmpty()) {
+        QString verifiedText = text.simplified();
+        if (verifiedText.isEmpty()) {
             switch (key) {
             case Qt::Key_Return:
             case Qt::Key_Enter:
@@ -827,24 +845,32 @@ void Screen::sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers mod
             case Qt::Key_Tab:
                 verifiedText = "\t";
                 break;
+            case Qt::Key_Control:
+            case Qt::Key_Meta:
+            case Qt::Key_Alt:
+            case Qt::Key_Shift:
+                return;
+            case Qt::Key_Space:
+                verifiedText = " ";
+                break;
             default:
-                qDebug() << "Could not find string info for: " << key;
                 return;
             }
         }
         QByteArray to_pty;
         QByteArray key_text;
-        if (modifiers & Qt::ControlModifier) {
+        if (hasControll(modifiers)) {
             char key_char = verifiedText.toLocal8Bit().at(0);
             key_text.append(key_char & 0x1F);
-
         } else {
             key_text = verifiedText.toUtf8();
         }
 
         if (modifiers &  Qt::AltModifier) {
             to_pty.append(C0::ESC);
-        } else if (modifiers & Qt::MetaModifier) {
+        }
+
+        if (hasMeta(modifiers)) {
             to_pty.append(C0::ESC);
             to_pty.append('@');
             to_pty.append(FinalBytesNoIntermediate::Reserved3);
