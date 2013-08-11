@@ -36,6 +36,8 @@ ObjectDestructItem {
     width: textElement.paintedWidth
     height: textElement.paintedHeight
 
+    visible: objectHandle.visible
+
     Rectangle {
         anchors.fill: parent
         color: textItem.objectHandle.backgroundColor
@@ -56,10 +58,6 @@ ObjectDestructItem {
 
         onIndexChanged: {
             textItem.x = objectHandle.index *  textItem.fontWidth;
-        }
-
-        onVisibleChanged: {
-            textItem.visible = objectHandle.visible;
         }
     }
 
