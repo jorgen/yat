@@ -25,6 +25,9 @@
 
 #include <QtCore/QDebug>
 
+
+static bool yat_parser_debug = qEnvironmentVariableIsSet("YAT_PARSER_DEBUG");
+
 Parser::Parser(Screen *screen)
     : m_decode_state(PlainText)
     , m_current_token_start(0)
@@ -89,6 +92,8 @@ void Parser::addData(const QByteArray &data)
 
 void Parser::decodeC0(uchar character)
 {
+    if (yat_parser_debug)
+        qDebug() << C0::C0(character);
     switch (character) {
     case C0::NUL:
     case C0::SOH:
@@ -161,6 +166,8 @@ void Parser::decodeC0(uchar character)
 
 void Parser::decodeC1_7bit(uchar character)
 {
+    if (yat_parser_debug)
+        qDebug() << C1_7bit::C1_7bit(character);
     switch(character) {
     case C1_7bit::CSI:
         m_decode_state = DecodeCSI;
@@ -238,6 +245,8 @@ void Parser::decodeCSI(uchar character)
                 m_intermediate_char = character;
             } else if (character >= 0x40 && character <= 0x7d) {
                 if (m_intermediate_char.unicode()) {
+                    if (yat_parser_debug)
+                        qDebug() << FinalBytesSingleIntermediate::FinalBytesSingleIntermediate(character);
                     switch (character) {
                     case FinalBytesSingleIntermediate::SL:
                     case FinalBytesSingleIntermediate::SR:
@@ -286,6 +295,8 @@ void Parser::decodeCSI(uchar character)
                         break;
                     }
                 } else {
+                    if (yat_parser_debug)
+                        qDebug() << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                     switch (character) {
                     case FinalBytesNoIntermediate::ICH:
                         tokenFinished();
