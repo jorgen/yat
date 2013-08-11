@@ -28,6 +28,8 @@
 
 Text::Text(Screen *screen)
     : QObject(screen)
+    , m_style_dirty(true)
+    , m_text_dirty(true)
     , m_visible(true)
     , m_visible_old(true)
     , m_line(0)
@@ -89,12 +91,12 @@ QColor Text::backgroundColor() const
     return screen()->colorPalette()->color(m_style.background, false);
 }
 
-void Text::setStringSegment(int start_index, int end_index)
+void Text::setStringSegment(int start_index, int end_index, bool text_changed)
 {
     m_start_index = start_index;
     m_end_index = end_index;
 
-    m_text_dirty = true;
+    m_text_dirty = text_changed;
 }
 
 void Text::setTextStyle(const TextStyle &style)
@@ -126,7 +128,8 @@ void Text::dispatchEvents()
             emit textStyleChanged();
     }
 
-    if (m_text_dirty) {
+    if (m_old_start_index != m_start_index
+            || m_text_dirty) {
         m_text_dirty = false;
         m_text = m_text_line->mid(m_start_index, m_end_index + 1 - m_start_index);
         if (m_old_start_index != m_start_index) {

@@ -56,7 +56,7 @@ public:
     QColor foregroundColor() const;
     QColor backgroundColor() const;
 
-    void setStringSegment(int start_index, int end_index);
+    void setStringSegment(int start_index, int end_index, bool textChanged);
     void setTextStyle(const TextStyle &style);
 
     Screen *screen() const;

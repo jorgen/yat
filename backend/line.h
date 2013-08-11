@@ -36,7 +36,9 @@ public:
         , end_index(end_index)
         , old_index(-1)
         , text_segment(0)
-        , changed(true)
+        , style_dirty(true)
+        , index_dirty(true)
+        , text_dirty(true)
     {
     }
 
@@ -45,7 +47,9 @@ public:
         , end_index(0)
         , old_index(-1)
         , text_segment(0)
-        , changed(false)
+        , style_dirty(false)
+        , index_dirty(false)
+        , text_dirty(false)
     {
 
     }
@@ -55,7 +59,9 @@ public:
 
     int old_index;
     Text *text_segment;
-    bool changed;
+    bool style_dirty;
+    bool index_dirty;
+    bool text_dirty;
 
     void setStyle(const TextStyle &style) {
         forground = style.forground;
