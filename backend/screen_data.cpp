@@ -310,8 +310,13 @@ void ScreenData::printScreen() const
 
 void ScreenData::printStyleInformation() const
 {
+    int index = 0;
     for (int line_number = 0; line_number < m_screen_lines.size(); line_number++) {
         const Line *line = m_screen_lines.at(line_number);
-        line->printStyleList();
+        if (line->index() == index) {
+            line->printStyleList();
+            line_number = 0;
+            index++;
+        }
     }
 }

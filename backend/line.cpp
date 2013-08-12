@@ -32,7 +32,7 @@
 
 QDebug operator<<(QDebug debug, TextStyleLine line)
 {
-    debug << "TextStyleLine: [" << line.start_index << ":" << line.end_index << "] : style:" << line.style;
+    debug << "[" << line.start_index << "(" << line.style << ")" << line.end_index << "]"; 
     return debug;
 }
 
@@ -431,7 +431,10 @@ void Line::releaseTextSegment(Text *text)
 
 void Line::printStyleList() const
 {
+    qDebug() << "Line: " << this;
+    QDebug debug = qDebug();
+    debug << "\t";
     for (int i= 0; i < m_style_list.size(); i++) {
-        qDebug() << "i" << m_style_list.at(i);
+        debug << m_style_list.at(i);
     }
 }
