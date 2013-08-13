@@ -57,6 +57,8 @@ public:
 
     void moveLine(int from, int to);
 
+    void fill(const QChar &character);
+
     void updateIndexes(int from = 0, int to = -1);
 
     void sendSelectionToClipboard(const QPointF &start, const QPointF &end, QClipboard::Mode clipboard);

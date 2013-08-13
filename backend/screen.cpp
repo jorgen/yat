@@ -237,9 +237,9 @@ void Screen::moveCursorDown()
     m_cursor_changed = true;
 }
 
-void Screen::moveCursorLeft()
+void Screen::moveCursorLeft(int n_positions)
 {
-    current_cursor_pos().rx() -= 1;
+    current_cursor_pos().rx() -= n_positions;
     m_cursor_changed = true;
 }
 
@@ -403,7 +403,7 @@ void Screen::eraseFromCurrentLineToBeginningOfScreen()
 
 void Screen::eraseToCursorPosition()
 {
-    qDebug() << "eraseToCursorPosition NOT IMPLEMENTED!";
+    current_screen_data()->clearCharacters(current_cursor_y(), 0,current_cursor_x());
 }
 
 void Screen::eraseScreen()
@@ -473,6 +473,11 @@ void Screen::deleteLines(int count)
         moveLine(current_cursor_y(),current_screen_data()->scrollAreaEnd());
     }
 
+}
+
+void Screen::fill(const QChar character)
+{
+    current_screen_data()->fill(character);
 }
 
 void Screen::setScrollArea(int from, int to)

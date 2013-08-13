@@ -70,12 +70,12 @@ QDebug operator<<(QDebug debug, C0 character);
 
 namespace C1_7bit {
 enum C1_7bit {
-    C1_7bit_Start = 0x80,
+    C1_7bit_Start = 0x40,
     NOT_DEFINED = C1_7bit_Start,
-    NOT_DEFINED1 = 0x81,
+    NOT_DEFINED1 = 0x41,
     BPH = 0x42,
     NBH = 0x43,
-    NOT_DEFINED2 = 0x82,
+    IND = 0x44,
     NEL = 0x45,
     SSA = 0x46,
     ESA = 0x47,
@@ -96,7 +96,7 @@ enum C1_7bit {
     SPA = 0x56,
     EPA = 0x57,
     SOS = 0x58,
-    NOT_DEFINED3 = 0x99,
+    NOT_DEFINED3 = 0x59,
     SCI = 0x5a,
     CSI = 0x5b,
     ST  = 0x5c,
@@ -284,6 +284,22 @@ enum FinalBytesSingleIntermediate {
     Reservedf = 0x7f
 };
 QDebug operator<<(QDebug debug, FinalBytesSingleIntermediate character);
+}
+
+namespace DecMode {
+    enum DecMode {
+        DECCKM = 1,
+        DECANM = 2,
+        DECCOLM = 3,
+        DECSCLM = 4,
+        DECSCNM = 5,
+        DECOM = 6,
+        DECAWM = 7,
+        DECARM = 8,
+        DECINLM = 9,
+        LNM = 20
+    };
+QDebug operator<<(QDebug debug, DecMode mode);
 }
 
 #endif // CONTROLL_CHARS_H

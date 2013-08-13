@@ -154,8 +154,8 @@ QDebug operator<<(QDebug debug, C1_7bit character) {
         case NBH:
             debug << "NBH";
             break;
-        case NOT_DEFINED2:
-            debug << "NOT_DEFINED2";
+        case IND:
+            debug << "IND";
             break;
         case NEL:
             debug << "NEL";
@@ -773,4 +773,53 @@ QDebug operator<<(QDebug debug, FinalBytesSingleIntermediate character)
     debug.setAutoInsertSpaces(insert_space);
     return debug;
 }
+}
+
+namespace DecMode {
+
+QDebug operator<<(QDebug debug, DecMode mode)
+{
+    bool insert_space = debug.autoInsertSpaces();
+    debug.setAutoInsertSpaces(false);
+    debug << "FinalBytesSingleIntermediate::";
+    switch(mode) {
+    case DECCKM:
+        debug << "DECCKM";
+        break;
+    case DECANM:
+        debug << "DECANM";
+        break;
+    case DECCOLM:
+        debug << "DECCOLM";
+        break;
+    case DECSCLM:
+        debug << "DECSCLM";
+        break;
+    case DECSCNM:
+        debug << "DECSCNM";
+        break;
+    case DECOM:
+        debug << "DECOM";
+        break;
+    case DECAWM:
+        debug << "DECAWM";
+        break;
+    case DECARM:
+        debug << "DECARM";
+        break;
+    case DECINLM:
+        debug << "DECINLM";
+        break;
+    case LNM:
+        debug << "LNM";
+        break;
+    default:
+        debug << mode;
+        break;
+    }
+
+    debug.setAutoInsertSpaces(insert_space);
+    return debug;
+}
+
 }

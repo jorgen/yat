@@ -90,7 +90,7 @@ public:
     void moveCursorTop();
     void moveCursorUp(int n_positions = 1);
     void moveCursorDown();
-    void moveCursorLeft();
+    void moveCursorLeft(int n_positions);
     void moveCursorRight(int n_positions);
     void moveCursor(int x, int y);
     void moveCursorToLine(int line);
@@ -123,6 +123,8 @@ public:
     void reverseLineFeed();
     void insertLines(int count);
     void deleteLines(int count);
+
+    void fill(const QChar character);
 
     void setScrollArea(int from, int to);
 

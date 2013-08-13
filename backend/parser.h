@@ -26,6 +26,7 @@
 #include <QtCore/QLinkedList>
 
 #include "text.h"
+#include "controll_chars.h"
 
 class Parser
 {
@@ -42,7 +43,8 @@ private:
         DecodeC1_7bit,
         DecodeCSI,
         DecodeOSC,
-        DecodeOtherEscape
+        DecodeOtherEscape,
+        DecodeFontSize
     };
 
     enum DecodeOSCState {
@@ -59,6 +61,10 @@ private:
     void decodeCSI(uchar character);
     void decodeOSC(uchar character);
     void decodeOtherEscape(uchar character);
+    void decodeFontSize(uchar character);
+
+    void setMode(DecMode::DecMode mode);
+    void resetMode(DecMode::DecMode mode);
 
     void tokenFinished();
 

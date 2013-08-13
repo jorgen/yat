@@ -187,6 +187,15 @@ void ScreenData::moveLine(int from, int to)
     }
 }
 
+void ScreenData::fill(const QChar &character)
+{
+    for (int i = 0; i < m_screen_lines.size(); i++) {
+        Line *line = m_screen_lines[i];
+        QString fill_str(width(), character);
+        line->replaceAtPos(0, fill_str, m_screen->currentTextStyle());
+    }
+}
+
 void ScreenData::updateIndexes(int from, int to)
 {
     if (to < 0) {
