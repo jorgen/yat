@@ -34,6 +34,7 @@ Parser::Parser(Screen *screen)
     , m_currrent_position(0)
     , m_intermediate_char(QChar())
     , m_parameters(10)
+    , m_dec_mode(false)
     , m_screen(screen)
 {
 }
@@ -238,9 +239,15 @@ void Parser::decodeParameters(uchar character)
     case 0x3c:
     case 0x3d:
     case 0x3e:
-    case 0x3f:
         appendParameter();
         m_parameters.append(-character);
+        break;
+    case 0x3f:
+        if (m_parameters.size() == 0 && m_parameter_string.size() == 0) {
+            m_dec_mode = true;
+        } else {
+            qDebug() << "unknown parameter state";
+        }
         break;
     default:
         //this is undefined for now
@@ -498,42 +505,16 @@ void Parser::decodeCSI(uchar character)
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::SM:
-                        if (m_parameters.size() && m_parameters.at(0) == -'?') {
-                            if (m_parameters.size() > 1) {
-                                switch (m_parameters.at(1)) {
-                                case 0:
-                                    qDebug() << "Invalid Set Mode" << m_parameters.at(1);
-                                    break;
-                                case 1:
-                                    m_screen->setApplicationCursorKeysMode(true);
-                                    break;
-                                case 4:
-                                    qDebug() << "Insertion mode";
-                                    break;
-                                case 7:
-                                    qDebug() << "MODE 7";
-                                    break;
-                                case 12:
-                                    m_screen->setCursorBlinking(true);
-                                    break;
-                                case 25:
-                                    m_screen->setCursorVisible(true);
-                                    break;
-                                case 1034:
-                                    //I don't know what this sequence is
-                                    break;
-                                case 1049:
-                                    m_screen->saveCursor();
-                                    m_screen->saveScreenData();
-                                    break;
-                                default:
-                                    qDebug() << "unhandled CSI FinalBytesNoIntermediate::SM ? with parameter:" << m_parameters.at(1);
-                                }
+                        if (!m_parameters.size()) {
+                            qDebug() << FinalBytesNoIntermediate::SM << "called without parameter";
+                            break;
+                        }
+                        for (int i = 0; i < m_parameters.size(); i++) {
+                            if (m_dec_mode) {
+                                setDecMode(m_parameters.at(i));
                             } else {
-                                qDebug() << "unhandled CSI FinalBytesNoIntermediate::SM ?";
+                                setMode(m_parameters.at(i));
                             }
-                        } else {
-                            qDebug() << "unhandled CSI FinalBytesNoIntermediate::SM";
                         }
                         tokenFinished();
                         break;
@@ -544,39 +525,18 @@ void Parser::decodeCSI(uchar character)
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::RM:
-                        if (m_parameters.size()) {
-                            switch(m_parameters.at(0)) {
-                            case -'?':
-                                if (m_parameters.size() > 1) {
-                                    switch(m_parameters.at(1)) {
-                                    case 1:
-                                        qDebug() << "Normal cursor keys";
-                                        break;
-                                    case 12:
-                                        m_screen->setCursorBlinking(false);
-                                        break;
-                                    case 25:
-                                        m_screen->setCursorVisible(false);
-                                        break;
-                                    case 1049:
-                                        m_screen->restoreCursor();
-                                        m_screen->restoreScreenData();
-                                        break;
-                                    default:
-                                        qDebug() << "unhandled CSI FinalBytesNoIntermediate::RM? with "
-                                                    "parameter " << m_parameters.at(1);
-                                    }
-                                } else {
-                                    qDebug() << "unhandled CSI FinalBytesNoIntermediate::RM";
-                                }
-                                break;
-                            case 4:
-                                m_screen->setInsertMode(Screen::Replace);
-                            default:
-                                qDebug() << "unhandled CSI FinalBytesNoIntermediate::RM";
-                                break;
+                        if (!m_parameters.size()) {
+                            qDebug() << FinalBytesNoIntermediate::RM << "called without parameter";
+                            break;
+                        }
+                        for (int i = 0; i < m_parameters.size(); i++) {
+                            if (m_dec_mode) {
+                                resetDecMode(m_parameters.at(i));
+                            } else {
+                                resetMode(m_parameters.at(i));
                             }
                         }
+
                         tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::SGR: {
@@ -805,13 +765,188 @@ void Parser::decodeFontSize(uchar character)
     tokenFinished();
 }
 
-void Parser::setMode(DecMode::DecMode mode)
+void Parser::setMode(int mode)
 {
-
+    switch(mode) {
+        case 4:
+            m_screen->setInsertMode(Screen::Insert);
+            break;
+        default:
+            qDebug() << "Unhandeled setMode" << mode;
+            break;
+    }
 }
-void Parser::resetMode(DecMode::DecMode mode)
-{
 
+void Parser::setDecMode(int mode)
+{
+//taken from http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+    switch (mode) {
+//1 -> Application Cursor Keys (DECCKM).
+    case 1:
+        m_screen->setApplicationCursorKeysMode(true);
+        break;
+//2 -> Designate USASCII for character sets G0-G3 (DECANM), and set VT100 mode.
+//3 -> 132 Column Mode (DECCOLM).
+//4 -> Smooth (Slow) Scroll (DECSCLM).
+//5 -> Reverse Video (DECSCNM).
+//6 -> Origin Mode (DECOM).
+//7 -> Wraparound Mode (DECAWM).
+//8 -> Auto-repeat Keys (DECARM).
+//9 -> Send Mouse X & Y on button press. See the section Mouse Tracking.
+//10 -> Show toolbar (rxvt).
+//12 -> Start Blinking Cursor (att610).
+    case 12:
+        m_screen->setCursorBlinking(true);
+        break;
+//18 -> Print form feed (DECPFF).
+//19 -> Set print extent to full screen (DECPEX).
+//25 -> Show Cursor (DECTCEM).
+    case 25:
+        m_screen->setCursorVisible(true);
+        break;
+//30 -> Show scrollbar (rxvt).
+//35 -> Enable font-shifting functions (rxvt).
+//38 -> Enter Tektronix Mode (DECTEK).
+//40 -> Allow 80 → 132 Mode.
+//41 -> more(1) fix (see curses resource).
+//42 -> Enable Nation Replacement Character sets (DECNRCM).
+//44 -> Turn On Margin Bell.
+//45 -> Reverse-wraparound Mode.
+//46 -> Start Logging. This is normally disabled by a compile-time option.
+//47 -> Use Alternate Screen Buffer. (This may be disabled by the titeInhibit resource).
+//66 -> Application keypad (DECNKM).
+//67 -> Backarrow key sends backspace (DECBKM).
+//69 -> Enable left and right margin mode (DECLRMM), VT420 and up.
+//95 -> Do not clear screen when DECCOLM is set/reset (DECNCSM), VT510 and up.
+//1000 → Send Mouse X & Y on button press and release. See the section Mouse Tracking.
+//1001 -> Use Hilite Mouse Tracking.
+//1002 -> Use Cell Motion Mouse Tracking.
+//1003 -> Use All Motion Mouse Tracking.
+//1004 -> Send FocusIn/FocusOut events.
+//1005 -> Enable UTF-8 Mouse Mode.
+//1006 -> Enable SGR Mouse Mode.
+//1007 -> Enable Alternate Scroll Mode.
+//1010 -> Scroll to bottom on tty output (rxvt).
+//1015 -> Enable urxvt Mouse Mode.
+//1011 -> Scroll to bottom on key press (rxvt).
+//1034 -> Interpret "meta" key, sets eighth bit. (enables the eightBitInput resource).
+//1035 -> Enable special modifiers for Alt and NumLock keys. (This enables the numLock resource).
+//1036 -> Send ESC when Meta modifies a key. (This enables the metaSendsEscape resource).
+//1037 -> Send DEL from the editing-keypad Delete key.
+//1039 -> Send ESC when Alt modifies a key. (This enables the altSendsEscape resource).
+//1040 -> Keep selection even if not highlighted. (This enables the keepSelection resource).
+//1041 -> Use the CLIPBOARD selection. (This enables the selectToClipboard resource).
+//1042 -> Enable Urgency window manager hint when Control-G is received. (This enables the bellIsUrgent resource).
+//1043 -> Enable raising of the window when Control-G is received. (enables the popOnBell resource).
+//1047 -> Use Alternate Screen Buffer. (This may be disabled by the titeInhibit resource).
+//1048 -> Save cursor as in DECSC. (This may be disabled by the titeInhibit resource).
+//1049 -> Save cursor as in DECSC and use Alternate Screen Buffer, clearing it first. (This may be disabled by the titeInhibit resource). This combines the effects of the 1047 and 1048 modes. Use this with terminfo-based applications rather than the 47 mode.
+    case 1049:
+        m_screen->saveCursor();
+        m_screen->saveScreenData();
+        break;
+//1050 -> Set terminfo/termcap function-key mode.
+//1051 -> Set Sun function-key mode.
+//1052 -> Set HP function-key mode.
+//1053 -> Set SCO function-key mode.
+//1060 -> Set legacy keyboard emulation (X11R6).
+//1061 -> Set VT220 keyboard emulation.
+//2004 -> Set bracketed paste mode
+    default:
+        qDebug() << "Unhandeled setDecMode" << mode;
+    }
+}
+
+void Parser::resetMode(int mode)
+{
+    switch(mode) {
+        case 4:
+            m_screen->setInsertMode(Screen::Replace);
+            break;
+        default:
+            qDebug() << "Unhandeled resetMode" << mode;
+            break;
+    }
+}
+
+void Parser::resetDecMode(int mode)
+{
+    switch(mode) {
+//taken from http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+//1 -> Normal Cursor Keys (DECCKM).
+        case 1:
+            qDebug() << "Normal cursor keys";
+            break;
+//2 -> Designate VT52 mode (DECANM).
+//3 -> 80 Column Mode (DECCOLM).
+//4 -> Jump (Fast) Scroll (DECSCLM).
+//5 -> Normal Video (DECSCNM).
+//6 -> Normal Cursor Mode (DECOM).
+//7 -> No Wraparound Mode (DECAWM).
+//8 -> No Auto-repeat Keys (DECARM).
+//9 -> Don’t send Mouse X & Y on button press.
+//10 -> Hide toolbar (rxvt).
+//12 -> Stop Blinking Cursor (att610).
+        case 12:
+            m_screen->setCursorBlinking(false);
+            break;
+//18 -> Don’t print form feed (DECPFF).
+//19 -> Limit print to scrolling region (DECPEX).
+//25 -> Hide Cursor (DECTCEM).
+        case 25:
+            m_screen->setCursorVisible(false);
+            break;
+//30 -> Don’t show scrollbar (rxvt).
+//35 -> Disable font-shifting functions (rxvt).
+//40 -> Disallow 80 → 132 Mode.
+//41 -> No more(1) fix (see curses resource).
+//42 -> Disable Nation Replacement Character sets (DECNRCM).
+//44 -> Turn Off Margin Bell.
+//45 -> No Reverse-wraparound Mode.
+//46 -> Stop Logging. (This is normally disabled by a compile-time option).
+//47 -> Use Normal Screen Buffer.
+//66 -> Numeric keypad (DECNKM).
+//67 -> Backarrow key sends delete (DECBKM).
+//69 -> Disable left and right margin mode (DECLRMM), VT420 and up.
+//95 -> Clear screen when DECCOLM is set/reset (DECNCSM), VT510 and up.
+//1000 -> Don’t send Mouse X & Y on button press and release. See the section Mouse Tracking.
+//1001 -> Don’t use Hilite Mouse Tracking.
+//1002 -> Don’t use Cell Motion Mouse Tracking.
+//1003 -> Don’t use All Motion Mouse Tracking.
+//1004 -> Don’t send FocusIn/FocusOut events.
+//1005 -> Disable UTF-8 Mouse Mode.
+//1006 -> Disable SGR Mouse Mode.
+//1007 -> Disable Alternate Scroll Mode.
+//1010 -> Don’t scroll to bottom on tty output (rxvt).
+//1015 -> Disable urxvt Mouse Mode.
+//1011 -> Don’t scroll to bottom on key press (rxvt).
+//1034 -> Don’t interpret "meta" key. (This disables the eightBitInput resource).
+//1035 -> Disable special modifiers for Alt and NumLock keys. (This disables the numLock resource).
+//1036 -> Don’t send ESC when Meta modifies a key. (This disables the metaSendsEscape resource).
+//1037 -> Send VT220 Remove from the editing-keypad Delete key.
+//1039 -> Don’t send ESC when Alt modifies a key. (This disables the altSendsEscape resource).
+//1040 -> Do not keep selection when not highlighted. (This disables the keepSelection resource).
+//1041 -> Use the PRIMARY selection. (This disables the selectToClipboard resource).
+//1042 -> Disable Urgency window manager hint when Control-G is received. (This disables the bellIsUrgent resource).
+//1043 -> Disable raising of the window when Control-G is received. (This disables the popOnBell resource).
+//1047 -> Use Normal Screen Buffer, clearing screen first if in the Alternate Screen. (This may be disabled by the titeInhibit resource).
+//1048 -> Restore cursor as in DECRC. (This may be disabled by the titeInhibit resource).
+//1049 -> Use Normal Screen Buffer and restore cursor as in DECRC. (This may be disabled by the titeInhibit resource). This combines the effects of the 1047 and 1048 modes. Use this with terminfo-based applications rather than the 47 mode.
+    case 1049:
+            m_screen->restoreCursor();
+            m_screen->restoreScreenData();
+            break;
+//1050 -> Reset terminfo/termcap function-key mode.
+//1051 -> Reset Sun function-key mode.
+//1052 -> Reset HP function-key mode.
+//1053 -> Reset SCO function-key mode.
+//1060 -> Reset legacy keyboard emulation (X11R6).
+//1061 -> Reset keyboard emulation to Sun/PC style.
+//2004 -> Reset bracketed paste mode
+    default:
+        qDebug() << "Unhandeled resetDecMode" << mode;
+        break;
+    }
 }
 
 void Parser::tokenFinished()
@@ -824,6 +959,8 @@ void Parser::tokenFinished()
 
     m_current_token_start = m_currrent_position + 1;
     m_intermediate_char = 0;
+
+    m_dec_mode = false;
 }
 
 void Parser::appendParameter()

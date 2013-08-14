@@ -286,20 +286,4 @@ enum FinalBytesSingleIntermediate {
 QDebug operator<<(QDebug debug, FinalBytesSingleIntermediate character);
 }
 
-namespace DecMode {
-    enum DecMode {
-        DECCKM = 1,
-        DECANM = 2,
-        DECCOLM = 3,
-        DECSCLM = 4,
-        DECSCNM = 5,
-        DECOM = 6,
-        DECAWM = 7,
-        DECARM = 8,
-        DECINLM = 9,
-        LNM = 20
-    };
-QDebug operator<<(QDebug debug, DecMode mode);
-}
-
 #endif // CONTROLL_CHARS_H

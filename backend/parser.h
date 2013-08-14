@@ -63,8 +63,10 @@ private:
     void decodeOtherEscape(uchar character);
     void decodeFontSize(uchar character);
 
-    void setMode(DecMode::DecMode mode);
-    void resetMode(DecMode::DecMode mode);
+    void setMode(int mode);
+    void setDecMode(int mode);
+    void resetMode(int mode);
+    void resetDecMode(int mode);
 
     void tokenFinished();
 
@@ -82,6 +84,7 @@ private:
 
     QByteArray m_parameter_string;
     QVector<int> m_parameters;
+    bool m_dec_mode;
 
     Screen *m_screen;
 };
