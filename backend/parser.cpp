@@ -28,6 +28,18 @@
 
 static bool yat_parser_debug = qEnvironmentVariableIsSet("YAT_PARSER_DEBUG");
 
+
+static void printParameters(const QVector<int> &parameters, QDebug &debug)
+{
+    for (int i = 0; i < parameters.size(); i++) {
+        if (i == 0)
+            debug << " ";
+        else
+            debug << ";";
+        debug << parameters.at(i);
+    }
+}
+
 Parser::Parser(Screen *screen)
     : m_decode_state(PlainText)
     , m_current_token_start(0)
@@ -96,8 +108,9 @@ void Parser::addData(const QByteArray &data)
 
 void Parser::decodeC0(uchar character)
 {
-    if (yat_parser_debug)
+    if (yat_parser_debug) {
         qDebug() << C0::C0(character);
+    }
     switch (character) {
     case C0::NUL:
     case C0::SOH:
@@ -170,8 +183,9 @@ void Parser::decodeC0(uchar character)
 
 void Parser::decodeC1_7bit(uchar character)
 {
-    if (yat_parser_debug)
+    if (yat_parser_debug) {
         qDebug() << C1_7bit::C1_7bit(character);
+    }
     switch(character) {
     case C1_7bit::IND:
         m_screen->moveCursorDown();
@@ -217,6 +231,7 @@ void Parser::decodeC1_7bit(uchar character)
 
 void Parser::decodeParameters(uchar character)
 {
+    qDebug() << char(character);
     switch (character) {
     case 0x30:
     case 0x31:
@@ -240,12 +255,14 @@ void Parser::decodeParameters(uchar character)
     case 0x3d:
     case 0x3e:
         appendParameter();
+        qDebug() << "INVALID RANGE" << char(character);
         m_parameters.append(-character);
         break;
     case 0x3f:
         if (m_parameters.size() == 0 && m_parameter_string.size() == 0) {
             m_dec_mode = true;
         } else {
+            appendParameter();
             qDebug() << "unknown parameter state";
         }
         break;
@@ -268,8 +285,11 @@ void Parser::decodeCSI(uchar character)
                 m_intermediate_char = character;
             } else if (character >= 0x40 && character <= 0x7d) {
                 if (m_intermediate_char.unicode()) {
-                    if (yat_parser_debug)
-                        qDebug() << FinalBytesSingleIntermediate::FinalBytesSingleIntermediate(character);
+                    if (yat_parser_debug) {
+                        QDebug debug = qDebug();
+                        debug << FinalBytesSingleIntermediate::FinalBytesSingleIntermediate(character);
+                        printParameters(m_parameters, debug);
+                    }
                     switch (character) {
                     case FinalBytesSingleIntermediate::SL:
                     case FinalBytesSingleIntermediate::SR:
@@ -314,55 +334,51 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesSingleIntermediate::SCP:
                     default:
                         qDebug() << "unhandled CSI" << FinalBytesSingleIntermediate::FinalBytesSingleIntermediate(character);
-                        tokenFinished();
                         break;
                     }
+                    tokenFinished();
                 } else {
-                    if (yat_parser_debug)
-                        qDebug() << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
+                    if (yat_parser_debug) {
+                        QDebug debug = qDebug();
+                        debug << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
+                        printParameters(m_parameters, debug);
+                    }
                     switch (character) {
                     case FinalBytesNoIntermediate::ICH: {
                         int n_chars = m_parameters.size() ? m_parameters.at(0) : 1;
                         m_screen->insertEmptyCharsAtCursor(n_chars);
-                        tokenFinished();
                     }
                         break;
                     case FinalBytesNoIntermediate::CUU: {
                         Q_ASSERT(m_parameters.size() < 2);
                         int move_up = m_parameters.size() ? m_parameters.at(0) : 1;
                         m_screen->moveCursorUp(move_up);
-                        tokenFinished();
                     }
                         break;
                     case FinalBytesNoIntermediate::CUD:
-                        tokenFinished();
                         qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         break;
                     case FinalBytesNoIntermediate::CUF:{
                         Q_ASSERT(m_parameters.size() < 2);
                         int move_right = m_parameters.size() ? m_parameters.at(0) : 1;
                         m_screen->moveCursorRight(move_right);
-                        tokenFinished();
                     }
                         break;
                     case FinalBytesNoIntermediate::CUB: {
                         Q_ASSERT(m_parameters.size() < 2);
                         int move_left = m_parameters.size() ? m_parameters.at(0) : 1;
                         m_screen->moveCursorLeft(move_left);
-                        tokenFinished();
                     }
                         break;
                     case FinalBytesNoIntermediate::CNL:
                     case FinalBytesNoIntermediate::CPL:
                         qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
-                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::CHA: {
                         Q_ASSERT(m_parameters.size() < 2);
                         int move_to_pos_on_line = m_parameters.size() ? m_parameters.at(0) : 1;
                         m_screen->moveCursorToCharacter(move_to_pos_on_line);
                     }
-                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::CUP:
                         if (!m_parameters.size()) {
@@ -373,10 +389,8 @@ void Parser::decodeCSI(uchar character)
                         } else {
                             qDebug() << "OHOHOHOH";
                         }
-                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::CHT:
-                        tokenFinished();
                         qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         break;
                     case FinalBytesNoIntermediate::ED:
@@ -398,7 +412,6 @@ void Parser::decodeCSI(uchar character)
                             }
                         }
 
-                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::EL:
                         if (!m_parameters.size() || m_parameters.at(0) == 0) {
@@ -410,7 +423,6 @@ void Parser::decodeCSI(uchar character)
                         } else{
                             qDebug() << "Fault when processing FinalBytesNoIntermediate::EL";
                         }
-                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::IL: {
                         int count = 1;
@@ -418,7 +430,6 @@ void Parser::decodeCSI(uchar character)
                             count = m_parameters.at(0);
                         }
                         m_screen->insertLines(count);
-                        tokenFinished();
                     }
                         break;
                     case FinalBytesNoIntermediate::DL: {
@@ -427,20 +438,17 @@ void Parser::decodeCSI(uchar character)
                             count = m_parameters.at(0);
                         }
                         m_screen->deleteLines(count);
-                        tokenFinished();
                     }
                         break;
                     case FinalBytesNoIntermediate::EF:
                     case FinalBytesNoIntermediate::EA:
                         qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
-                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::DCH:{
                         Q_ASSERT(m_parameters.size() < 2);
                         int n_chars = m_parameters.size() ? m_parameters.at(0) : 1;
                         m_screen->deleteCharacters(n_chars);
                     }
-                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::SSE:
                     case FinalBytesNoIntermediate::CPR:
@@ -460,7 +468,6 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::HPR:
                     case FinalBytesNoIntermediate::REP:
                         qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
-                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::DA:
                         if (m_parameters.size()) {
@@ -478,18 +485,15 @@ void Parser::decodeCSI(uchar character)
                         } else {
                             m_screen->sendPrimaryDA();
                         }
-                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::VPA: {
                         Q_ASSERT(m_parameters.size() < 2);
                         int move_to_line = m_parameters.size() ? m_parameters.at(0) : 1;
                         m_screen->moveCursorToLine(move_to_line);
                     }
-                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::VPR:
                         qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
-                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::HVP: {
                         Q_ASSERT(m_parameters.size() == 2);
@@ -497,12 +501,10 @@ void Parser::decodeCSI(uchar character)
                         int cursor_x = m_parameters.at(1) - 1;
                         m_screen->moveCursor(cursor_x, cursor_y);
 
-                        tokenFinished();
                         break;
                     }
                     case FinalBytesNoIntermediate::TBC:
                         qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
-                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::SM:
                         if (!m_parameters.size()) {
@@ -516,13 +518,11 @@ void Parser::decodeCSI(uchar character)
                                 setMode(m_parameters.at(i));
                             }
                         }
-                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::MC:
                     case FinalBytesNoIntermediate::HPB:
                     case FinalBytesNoIntermediate::VPB:
                         qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
-                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::RM:
                         if (!m_parameters.size()) {
@@ -537,78 +537,11 @@ void Parser::decodeCSI(uchar character)
                             }
                         }
 
-                        tokenFinished();
                         break;
-                    case FinalBytesNoIntermediate::SGR: {
+                    case FinalBytesNoIntermediate::SGR:
                         if (!m_parameters.size())
                             m_parameters << 0;
-
-                        for (int i = 0; i < m_parameters.size();i++) {
-                            switch(m_parameters.at(i)) {
-                            case 0:
-                                //                                    m_screen->setTextStyle(TextStyle::Normal);
-                                m_screen->resetStyle();
-                                break;
-                            case 1:
-                                m_screen->setTextStyle(TextStyle::Bold);
-                                break;
-                            case 5:
-                                m_screen->setTextStyle(TextStyle::Blinking);
-                                break;
-                            case 7:
-                                m_screen->setTextStyle(TextStyle::Inverse);
-                                break;
-                            case 8:
-                                qDebug() << "SGR: Hidden text not supported";
-                                break;
-                            case 22:
-                                m_screen->setTextStyle(TextStyle::Normal);
-                                break;
-                            case 24:
-                                m_screen->setTextStyle(TextStyle::Underlined, false);
-                                break;
-                            case 25:
-                                m_screen->setTextStyle(TextStyle::Blinking, false);
-                                break;
-                            case 27:
-                                m_screen->setTextStyle(TextStyle::Inverse, false);
-                                break;
-                            case 28:
-                                qDebug() << "SGR: Visible text is allways on";
-                                break;
-                            case 30:
-                            case 31:
-                            case 32:
-                            case 33:
-                            case 34:
-                            case 35:
-                            case 36:
-                            case 37:
-                                //                                case 38:
-                            case 39:
-                            case 40:
-                            case 41:
-                            case 42:
-                            case 43:
-                            case 44:
-                            case 45:
-                            case 46:
-                            case 47:
-                                //                                case 38:
-                            case 49:
-                                m_screen->setTextStyleColor(m_parameters.at(i));
-                                break;
-
-
-
-
-                            default:
-                                qDebug() << "Unknown SGR" << m_parameters.at(i);
-                            }
-                        }
-
-                        tokenFinished();
-                    }
+                        handleSGR();
                         break;
                     case FinalBytesNoIntermediate::DSR:
                         qDebug() << "report";
@@ -616,7 +549,6 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::Reserved0:
                     case FinalBytesNoIntermediate::Reserved1:
                         qDebug() << "Unhandeled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
-                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::Reserved2:
                         if (m_parameters.size() == 2) {
@@ -628,7 +560,6 @@ void Parser::decodeCSI(uchar character)
                         } else {
                             qDebug() << "Unknown parameterset for scrollRegion";
                         }
-                        tokenFinished();
                         break;
                     case FinalBytesNoIntermediate::Reserved3:
                     case FinalBytesNoIntermediate::Reserved4:
@@ -645,9 +576,9 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::Reservedf:
                     default:
                         qDebug() << "Unhandeled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
-                        tokenFinished();
                         break;
                     }
+                    tokenFinished();
                 }
             }
         }
@@ -946,6 +877,71 @@ void Parser::resetDecMode(int mode)
     default:
         qDebug() << "Unhandeled resetDecMode" << mode;
         break;
+    }
+}
+
+void Parser::handleSGR()
+{
+    for (int i = 0; i < m_parameters.size();i++) {
+        switch(m_parameters.at(i)) {
+            case 0:
+                //                                    m_screen->setTextStyle(TextStyle::Normal);
+                m_screen->resetStyle();
+                break;
+            case 1:
+                m_screen->setTextStyle(TextStyle::Bold);
+                break;
+            case 5:
+                m_screen->setTextStyle(TextStyle::Blinking);
+                break;
+            case 7:
+                m_screen->setTextStyle(TextStyle::Inverse);
+                break;
+            case 8:
+                qDebug() << "SGR: Hidden text not supported";
+                break;
+            case 22:
+                m_screen->setTextStyle(TextStyle::Normal);
+                break;
+            case 24:
+                m_screen->setTextStyle(TextStyle::Underlined, false);
+                break;
+            case 25:
+                m_screen->setTextStyle(TextStyle::Blinking, false);
+                break;
+            case 27:
+                m_screen->setTextStyle(TextStyle::Inverse, false);
+                break;
+            case 28:
+                qDebug() << "SGR: Visible text is allways on";
+                break;
+            case 30:
+            case 31:
+            case 32:
+            case 33:
+            case 34:
+            case 35:
+            case 36:
+            case 37:
+                //                                case 38:
+            case 39:
+            case 40:
+            case 41:
+            case 42:
+            case 43:
+            case 44:
+            case 45:
+            case 46:
+            case 47:
+                //                                case 38:
+            case 49:
+                m_screen->setTextStyleColor(m_parameters.at(i));
+                break;
+            default:
+                qDebug() << "Unknown SGR" << m_parameters.at(i);
+                break;
+        }
+
     }
 }
 

@@ -68,6 +68,8 @@ private:
     void resetMode(int mode);
     void resetDecMode(int mode);
 
+    void handleSGR();
+
     void tokenFinished();
 
     void appendParameter();

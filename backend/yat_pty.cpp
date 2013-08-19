@@ -42,7 +42,7 @@
 #include <QtCore/QDebug>
 
 static char env_variables[][255] = {
-    "TERM=xterm-256color",
+    "TERM=xterm-color",
     "COLORTERM=xterm",
     "COLORFGBG=15;0",
     "LINES",
