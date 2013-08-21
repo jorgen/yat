@@ -519,8 +519,8 @@ QDebug operator<<(QDebug debug, FinalBytesNoIntermediate character) {
         case Reserved1:
             debug << "Reserved1";
             break;
-        case Reserved2:
-            debug << "Reserved2";
+        case DECSTBM:
+            debug << "DECSTBM";
             break;
         case Reserved3:
             debug << "Reserved3";

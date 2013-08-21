@@ -199,7 +199,7 @@ enum FinalBytesNoIntermediate {
     DAQ = 0x6f,
     Reserved0 = 0x70,
     Reserved1 = 0x71,
-    Reserved2 = 0x72,
+    DECSTBM = 0x72,
     Reserved3 = 0x73,
     Reserved4 = 0x74,
     Reserved5 = 0x75,

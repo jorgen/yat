@@ -1,7 +1,8 @@
 #include "color_palette.h"
 
-ColorPalette::ColorPalette()
-    : m_normalColors(numberOfColors)
+ColorPalette::ColorPalette(QObject *parent)
+    : QObject(parent)
+    , m_normalColors(numberOfColors)
     , m_lightColors(numberOfColors)
     , m_intenseColors(numberOfColors)
 {

@@ -192,15 +192,38 @@ void Line::deleteCharacters(int from, int to)
 
 void Line::setWidth(int width)
 {
-    bool emit_changed = m_text_line.size() != width;
-    if (m_text_line.size() > width) {
-        m_text_line.chop(m_text_line.size() - width);
+    int old_size = m_text_line.size();
+    bool emit_changed = old_size != width;
+    if (old_size > width) {
+        m_text_line.chop(old_size - width);
+        for (int i = 0; i < m_style_list.size(); i++) {
+            TextStyleLine &style_line = m_style_list[i];
+            if (style_line.end_index >= width) {
+                if (style_line.start_index > width) {
+                    releaseTextSegment(style_line.text_segment);
+                    m_style_list.remove(i);
+                    i--;
+                } else {
+                    style_line.end_index = width -1;
+                    style_line.text_dirty = true;
+                }
+            }
+        }
     } else if (m_text_line.size() < width) {
         m_text_line.append(QString(width - m_text_line.size(), QChar(' ')));
+        TextStyleLine &style_line = m_style_list.last();
+        if (style_line.isCompatible(m_screen->defaultTextStyle())) {
+            style_line.end_index = width - 1;
+        } else {
+            TextStyleLine new_style_line(m_screen->defaultTextStyle(), style_line.end_index + 1, width - 1);
+            m_style_list.append(new_style_line);
+        }
     }
 
-    if (emit_changed)
+    if (emit_changed) {
+        m_changed = true;
         emit widthChanged();
+    }
 }
 
 int Line::width() const
@@ -409,12 +432,12 @@ QVector<TextStyleLine> Line::style_list()
 
 Text *Line::createTextSegment(const TextStyleLine &style_line)
 {
+    Q_UNUSED(style_line);
     Text *to_return;
     if (m_to_delete.size()) {
         to_return = m_to_delete.takeLast();
     } else {
-        to_return = new Text(screen());
-        to_return->setLine(this);
+        to_return = new Text(this);
         emit textCreated(to_return);
     }
 
@@ -425,6 +448,8 @@ Text *Line::createTextSegment(const TextStyleLine &style_line)
 
 void Line::releaseTextSegment(Text *text)
 {
+    if (!text)
+        return;
     text->setVisible(false);
     m_to_delete.append(text);
 }

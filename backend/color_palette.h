@@ -5,11 +5,11 @@
 
 #include <QtGui/QColor>
 
-class ColorPalette
+class ColorPalette : public QObject
 {
+Q_OBJECT
 public:
-    ColorPalette();
-
+    ColorPalette(QObject *parent = 0);
 
     enum Color {
         Black,
@@ -29,6 +29,8 @@ public:
     QColor normalColor(Color color) const;
     QColor lightColor(Color color) const;
 
+signals:
+    void changed();
 private:
     QVector<QColor> m_normalColors;
     QVector<QColor> m_lightColors;

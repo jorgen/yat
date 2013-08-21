@@ -147,7 +147,7 @@ void Parser::decodeC0(uchar character)
         tokenFinished();
         break;
     case C0::CR:
-        m_screen->moveCursorHome();
+        m_screen->moveCursorStartOfLine();
         tokenFinished();
         //next should be a linefeed;
         break;
@@ -193,7 +193,7 @@ void Parser::decodeC1_7bit(uchar character)
         break;
     case C1_7bit::NEL:
         m_screen->moveCursorDown();
-        m_screen->moveCursorHome();
+        m_screen->moveCursorStartOfLine();
         tokenFinished();
         break;
     case C1_7bit::CSI:
@@ -211,7 +211,6 @@ void Parser::decodeC1_7bit(uchar character)
         break;
     case '%':
     case '(':
-        qDebug() << character;
         m_parameters.append(-character);
         m_decode_state = DecodeOtherEscape;
         break;
@@ -231,7 +230,6 @@ void Parser::decodeC1_7bit(uchar character)
 
 void Parser::decodeParameters(uchar character)
 {
-    qDebug() << char(character);
     switch (character) {
     case 0x30:
     case 0x31:
@@ -355,8 +353,12 @@ void Parser::decodeCSI(uchar character)
                         m_screen->moveCursorUp(move_up);
                     }
                         break;
-                    case FinalBytesNoIntermediate::CUD:
-                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
+                    case FinalBytesNoIntermediate::CUD: {
+                        int move_down = m_parameters.size() ? m_parameters.at(0) : 1;
+                        if (move_down == 0)
+                            move_down = 1;
+                        m_screen->moveCursorDown(move_down);
+                    }
                         break;
                     case FinalBytesNoIntermediate::CUF:{
                         Q_ASSERT(m_parameters.size() < 2);
@@ -382,7 +384,6 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::CUP:
                         if (!m_parameters.size()) {
-                            m_screen->moveCursorTop();
                             m_screen->moveCursorHome();
                         } else if (m_parameters.size() == 2){
                                 m_screen->moveCursor(m_parameters.at(1), m_parameters.at(0));
@@ -550,16 +551,17 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::Reserved1:
                         qDebug() << "Unhandeled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         break;
-                    case FinalBytesNoIntermediate::Reserved2:
+                    case FinalBytesNoIntermediate::DECSTBM:
                         if (m_parameters.size() == 2) {
                             if (m_parameters.at(0) >= 0) {
                                 m_screen->setScrollArea(m_parameters.at(0),m_parameters.at(1));
                             } else {
-                                qDebug() << "Unknown value for scrollRegion";
+                                qDebug() << "Unknown value for scrollRegion" << m_parameters.at(0);
                             }
                         } else {
-                            qDebug() << "Unknown parameterset for scrollRegion";
+                            m_screen->setScrollArea(1,m_screen->height());
                         }
+                        m_screen->moveCursorHome();
                         break;
                     case FinalBytesNoIntermediate::Reserved3:
                     case FinalBytesNoIntermediate::Reserved4:
@@ -718,9 +720,17 @@ void Parser::setDecMode(int mode)
         break;
 //2 -> Designate USASCII for character sets G0-G3 (DECANM), and set VT100 mode.
 //3 -> 132 Column Mode (DECCOLM).
+    case 3:
+        m_screen->setWidth(132, true);
+        m_screen->setHeight(24, true);
+        break;
 //4 -> Smooth (Slow) Scroll (DECSCLM).
+    case 4:
+        m_screen->setFastScroll(false);
+        break;
 //5 -> Reverse Video (DECSCNM).
 //6 -> Origin Mode (DECOM).
+
 //7 -> Wraparound Mode (DECAWM).
 //8 -> Auto-repeat Keys (DECARM).
 //9 -> Send Mouse X & Y on button press. See the section Mouse Tracking.
@@ -806,11 +816,18 @@ void Parser::resetDecMode(int mode)
 //taken from http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
 //1 -> Normal Cursor Keys (DECCKM).
         case 1:
-            qDebug() << "Normal cursor keys";
+            m_screen->setApplicationCursorKeysMode(false);
             break;
 //2 -> Designate VT52 mode (DECANM).
 //3 -> 80 Column Mode (DECCOLM).
+        case 3:
+            m_screen->setWidth(80, true);
+            m_screen->setHeight(24, true);
+            break;
 //4 -> Jump (Fast) Scroll (DECSCLM).
+        case 4:
+            m_screen->setFastScroll(true);
+            break;
 //5 -> Normal Video (DECSCNM).
 //6 -> Normal Cursor Mode (DECOM).
 //7 -> No Wraparound Mode (DECAWM).

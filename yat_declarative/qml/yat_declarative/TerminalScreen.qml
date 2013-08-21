@@ -54,6 +54,14 @@ TerminalScreen {
                     "fontHeight" : screenItem.fontHeight,
                 })
         }
+
+        onHeightChanged: {
+            screenItem.height = terminal.screen.height * screenItem.fontHeight;
+        }
+
+        onWidthChanged: {
+            screenItem.width = terminal.screen.width * screenItem.fontWidth;
+        }
     }
 
     onFontChanged: {

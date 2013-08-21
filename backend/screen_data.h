@@ -78,6 +78,7 @@ private:
     int m_scroll_start;
     int m_scroll_end;
     bool m_scroll_area_set;
+    int m_lines_moved;
 };
 
 #endif // SCREENDATA_H

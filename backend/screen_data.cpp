@@ -33,6 +33,7 @@ ScreenData::ScreenData(Screen *screen)
     , m_scroll_start(0)
     , m_scroll_end(0)
     , m_scroll_area_set(false)
+    , m_lines_moved(0)
 {
 }
 
@@ -172,6 +173,7 @@ void ScreenData::moveLine(int from, int to)
 
     if (from < to) {
         int lines_to_shift = to - from;
+        m_lines_moved += lines_to_shift;
         Line *from_line = m_screen_lines.at(from);
         Line **from_line_ptr = m_screen_lines.data() + from;
         memmove(from_line_ptr, from_line_ptr+1, sizeof(from_line_ptr) * lines_to_shift);
@@ -179,12 +181,15 @@ void ScreenData::moveLine(int from, int to)
         m_screen_lines.replace(to,from_line);
     } else {
         int lines_to_shift = from - to;
+        m_lines_moved += lines_to_shift;
         Line *from_line = m_screen_lines.at(from);
         Line **to_line_ptr = const_cast<Line **>(m_screen_lines.constData() + to);
         memmove(to_line_ptr + 1, to_line_ptr, sizeof(to_line_ptr) * lines_to_shift);
         from_line->clear();
         m_screen_lines.replace(to,from_line);
     }
+    if (!m_screen->fastScroll() && m_lines_moved > 6)
+        m_screen->dispatchChanges();
 }
 
 void ScreenData::fill(const QChar &character)
@@ -304,6 +309,7 @@ void ScreenData::dispatchLineEvents()
     for (int i = 0; i < m_screen_lines.size(); i++) {
         m_screen_lines.at(i)->dispatchEvents();
     }
+    m_lines_moved = 0;
 }
 
 void ScreenData::printScreen() const

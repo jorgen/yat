@@ -51,6 +51,7 @@ Screen::Screen(QObject *parent)
     , m_cursor_changed(false)
     , m_reset(false)
     , m_application_cursor_key_mode(false)
+    , m_fast_scroll(true)
 {
     connect(&m_pty, &YatPty::readyRead, this, &Screen::readData);
 
@@ -91,9 +92,17 @@ QColor Screen::defaultBackgroundColor() const
 
 void Screen::setHeight(int height)
 {
+    return setHeight(height, false);
+}
+
+void Screen::setHeight(int height, bool emitChanged)
+{
     if (!m_screen_stack.size()) {
             m_screen_stack << new ScreenData(this);
     }
+
+    if (height == m_pty.size().height())
+        return;
 
     ScreenData *data = current_screen_data();
     int size_difference = data->height() - height;
@@ -109,17 +118,34 @@ void Screen::setHeight(int height)
     }
 
     m_pty.setHeight(height, height * 10);
+
+    if (emitChanged)
+        emit heightChanged();
     dispatchChanges();
 }
 
 void Screen::setWidth(int width)
 {
+    return setWidth(width, false);
+}
+
+void Screen::setWidth(int width, bool emitChanged)
+{
     if (!m_screen_stack.size())
         m_screen_stack << new ScreenData(this);
 
+    if (width == m_pty.size().width())
+        return;
     current_screen_data()->setWidth(width);
     m_pty.setWidth(width, width * 10);
 
+    if (current_cursor_x() >= width) {
+        current_cursor_pos().rx() = width - 1;
+        m_cursor_changed = true;
+    }
+
+    if (emitChanged)
+        emit widthChanged();
 }
 
 int Screen::width() const
@@ -209,6 +235,13 @@ QPoint Screen::cursorPosition() const
 void Screen::moveCursorHome()
 {
     current_cursor_pos().setX(0);
+    current_cursor_pos().setY(0);
+    m_cursor_changed = true;
+}
+
+void Screen::moveCursorStartOfLine()
+{
+    current_cursor_pos().setX(0);
     m_cursor_changed = true;
 }
 
@@ -220,61 +253,101 @@ void Screen::moveCursorTop()
 
 void Screen::moveCursorUp(int n_positions)
 {
-    if (!current_cursor_pos().y())
+    if (!current_cursor_pos().y() || !n_positions)
         return;
 
-    if (n_positions <= current_cursor_pos().y()) {
+    if (n_positions < current_cursor_pos().y()) {
         current_cursor_pos().ry() -= n_positions;
     } else {
         current_cursor_pos().ry() = 0;
     }
-        m_cursor_changed = true;
+    m_cursor_changed = true;
 }
 
-void Screen::moveCursorDown()
+void Screen::moveCursorDown(int n_positions)
 {
-    current_cursor_pos().ry() += 1;
+    int height = this->height();
+    if (current_cursor_pos().y() == height -1 || !n_positions)
+        return;
+
+    if (current_cursor_pos().y() + n_positions < height) {
+        current_cursor_pos().ry() += n_positions;
+    } else {
+        current_cursor_pos().ry() = height - 1;
+    }
     m_cursor_changed = true;
 }
 
 void Screen::moveCursorLeft(int n_positions)
 {
-    current_cursor_pos().rx() -= n_positions;
+    if (!current_cursor_x() || !n_positions)
+        return;
+    if (n_positions < current_cursor_x()) {
+        current_cursor_pos().rx() -= n_positions;
+    } else {
+        current_cursor_pos().rx() = 0;
+    }
     m_cursor_changed = true;
 }
 
 void Screen::moveCursorRight(int n_positions)
 {
-    current_cursor_pos().rx() += n_positions;
+    int width = this->width();
+    if (current_cursor_x() == width -1 || !n_positions)
+        return;
+    if (n_positions < width - current_cursor_x()) {
+        current_cursor_pos().rx() += n_positions;
+    } else {
+        current_cursor_pos().rx() = width - 1;
+    }
     m_cursor_changed = true;
 }
 
 void Screen::moveCursor(int x, int y)
 {
-    if (x != 0)
-        x--;
-    if (y != 0)
-        y--;
-    current_cursor_pos().setX(x);
-    int height = this->height();
-    if (y >= height) {
-        current_cursor_pos().setY(height-1);
-    } else {
-        current_cursor_pos().setY(y);
+    if (x < 1) {
+        x = 1;
+    } else if (x > width()) {
+        x = width();
     }
-    m_cursor_changed = true;
+
+    if (y < 1) {
+        y = 1;
+    } else if (y > height()) {
+        y = height();
+    }
+
+    if (current_cursor_y() != y-1 || current_cursor_x() != x-1) {
+        current_cursor_pos().setX(x-1);
+        current_cursor_pos().setY(y-1);
+        m_cursor_changed = true;
+    }
 }
 
 void Screen::moveCursorToLine(int line)
 {
-    current_cursor_pos().setY(line-1);
-    m_cursor_changed = true;
+    if (line < 1) {
+        line = 1;
+    } else if (line > height()) {
+        line = height();
+    }
+    if (line != current_cursor_y()) {
+        current_cursor_pos().setY(line-1);
+        m_cursor_changed = true;
+    }
 }
 
 void Screen::moveCursorToCharacter(int character)
 {
-    current_cursor_pos().setX(character-1);
-    m_cursor_changed = true;
+    if (character < 1) {
+        character = 1;
+    } else if (character > width()) {
+        character = width();
+    }
+    if (character != current_cursor_x()) {
+        current_cursor_pos().setX(character-1);
+        m_cursor_changed = true;
+    }
 }
 
 void Screen::deleteCharacters(int characters)
@@ -485,6 +558,16 @@ void Screen::setScrollArea(int from, int to)
     from--;
     to--;
     current_screen_data()->setScrollArea(from,to);
+}
+
+void Screen::setFastScroll(bool fast)
+{
+    m_fast_scroll = fast;
+}
+
+bool Screen::fastScroll() const
+{
+    return m_fast_scroll;
 }
 
 QPointF Screen::selectionAreaStart() const

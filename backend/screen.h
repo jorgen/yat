@@ -44,8 +44,8 @@ class Screen : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(int height READ height WRITE setHeight)
-    Q_PROPERTY(int width READ width WRITE setWidth)
+    Q_PROPERTY(int height READ height WRITE setHeight NOTIFY heightChanged)
+    Q_PROPERTY(int width READ width WRITE setWidth NOTIFY widthChanged)
     Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY screenTitleChanged)
     Q_PROPERTY(bool cursorVisible READ cursorVisible NOTIFY cursorVisibleChanged)
     Q_PROPERTY(bool cursorBlinking READ cursorBlinking NOTIFY cursorBlinkingChanged)
@@ -62,8 +62,10 @@ public:
     explicit Screen(QObject *parent = 0);
     ~Screen();
 
+    void setHeight(int height, bool emitChanged);
     void setHeight(int height);
     int height() const;
+    void setWidth(int width, bool emitChanged);
     void setWidth(int width);
     int width() const;
 
@@ -87,9 +89,10 @@ public:
     QPoint cursorPosition() const;
 
     void moveCursorHome();
+    void moveCursorStartOfLine();
     void moveCursorTop();
     void moveCursorUp(int n_positions = 1);
-    void moveCursorDown();
+    void moveCursorDown(int n_positions = 1);
     void moveCursorLeft(int n_positions);
     void moveCursorRight(int n_positions);
     void moveCursor(int x, int y);
@@ -127,6 +130,8 @@ public:
     void fill(const QChar character);
 
     void setScrollArea(int from, int to);
+    void setFastScroll(bool fast);
+    bool fastScroll() const;
 
     QPointF selectionAreaStart() const;
     void setSelectionAreaStart(const QPointF &start);
@@ -192,6 +197,9 @@ signals:
     void cursorBlinkingChanged();
 
     void lineCreated(Line *line);
+
+    void heightChanged();
+    void widthChanged();
 protected:
     void timerEvent(QTimerEvent *);
 
@@ -238,6 +246,7 @@ private:
     bool m_cursor_changed;
     bool m_reset;
     bool m_application_cursor_key_mode;
+    bool m_fast_scroll;
 
     friend class ScreenData;
 };
