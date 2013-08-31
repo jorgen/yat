@@ -46,6 +46,7 @@ public:
 
     void clearToEndOfLine(int row, int from_char);
     void clearToEndOfScreen(int row);
+    void clearToBeginningOfLine(int row, int from_char);
     void clearToBeginningOfScreen(int row);
     void clearLine(int index);
     void clear();
@@ -70,6 +71,9 @@ public:
     void printScreen() const;
 
     void printStyleInformation() const;
+
+    Screen *screen() const;
+
 private:
     Screen *m_screen;
     int m_width;

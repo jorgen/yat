@@ -86,6 +86,7 @@ private:
 
     QByteArray m_parameter_string;
     QVector<int> m_parameters;
+    bool m_expecting_more_parameters;
     bool m_dec_mode;
 
     Screen *m_screen;

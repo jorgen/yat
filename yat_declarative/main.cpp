@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 
     QQuickView view(QUrl("qrc:/qml/yat_declarative/main.qml"));
 
-    view.setResizeMode(QQuickView::SizeRootObjectToView);
+    view.setResizeMode(QQuickView::SizeViewToRootObject);
     view.show();
     return app.exec();
 }

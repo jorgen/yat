@@ -10,8 +10,9 @@ TerminalScreen {
     property real fontHeight: fontMetricText.paintedHeight
 
     property var lineComponent : Qt.createComponent("TerminalLine.qml")
+    property var cursorComponent : Qt.createComponent("TerminalCursor.qml")
 
-    font.family: "courier"
+    font.family: "menlo"
 
     Text {
         id: fontMetricText
@@ -36,11 +37,6 @@ TerminalScreen {
             flashAnimation.start()
         }
 
-        onCursorPositionChanged: {
-            cursor.x = x * fontWidth;
-            cursor.y = y * fontHeight;
-        }
-
         onReset: {
             resetScreenItems();
         }
@@ -50,6 +46,15 @@ TerminalScreen {
                 {
                     "objectHandle" : line,
                     "font": screenItem.font,
+                    "fontWidth" : screenItem.fontWidth,
+                    "fontHeight" : screenItem.fontHeight,
+                })
+        }
+
+        onCursorCreated: {
+            var cursorVariable = cursorComponent.createObject(screenItem,
+                {
+                    "objectHandle" : cursor,
                     "fontWidth" : screenItem.fontWidth,
                     "fontHeight" : screenItem.fontHeight,
                 })

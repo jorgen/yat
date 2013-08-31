@@ -88,9 +88,8 @@ public:
     void releaseTextObjects();
 
     void clear();
-    void clearToEndOfLine(int index);
     void clearCharacters(int from, int to);
-    void deleteCharacters(int from, int to);
+    void deleteCharacters(int from, int to, int margin = -1);
 
     void setWidth(int width);
     int width() const;
@@ -125,7 +124,7 @@ private:
     QString m_text_line;
     QVector<TextStyleLine> m_style_list;
     int m_index;
-    int m_old_index;
+    int m_new_index;
 
     bool m_visible;
     QVector<Text *> m_to_delete;

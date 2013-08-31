@@ -35,6 +35,10 @@ ScreenData::ScreenData(Screen *screen)
     , m_scroll_area_set(false)
     , m_lines_moved(0)
 {
+    std::function<void(int)> set_width_function = std::bind(&ScreenData::setWidth, this, std::placeholders::_1);
+    std::function<void(int)> set_height_function = std::bind(&ScreenData::setHeight, this, std::placeholders::_1);
+    QObject::connect(screen, &Screen::widthAboutToChange, set_width_function);
+    QObject::connect(screen, &Screen::heightAboutToChange, set_height_function);
 }
 
 ScreenData::~ScreenData()
@@ -115,7 +119,8 @@ Line *ScreenData::at(int index) const
 
 void ScreenData::clearToEndOfLine(int row, int from_char)
 {
-    m_screen_lines.at(row)->clearToEndOfLine(from_char);
+    Line *line = m_screen_lines.at(row);
+    line->clearCharacters(from_char, line->width() -1);
 }
 
 void ScreenData::clearToEndOfScreen(int row)
@@ -126,6 +131,10 @@ void ScreenData::clearToEndOfScreen(int row)
     }
 }
 
+void ScreenData::clearToBeginningOfLine(int row, int from_char)
+{
+    m_screen_lines.at(row)->clearCharacters(0,from_char);
+}
 void ScreenData::clearToBeginningOfScreen(int row)
 {
     for (int i = row; i >= 0; i--) {
@@ -197,7 +206,7 @@ void ScreenData::fill(const QChar &character)
     for (int i = 0; i < m_screen_lines.size(); i++) {
         Line *line = m_screen_lines[i];
         QString fill_str(width(), character);
-        line->replaceAtPos(0, fill_str, m_screen->currentTextStyle());
+        line->replaceAtPos(0, fill_str, m_screen->defaultTextStyle());
     }
 }
 
@@ -207,7 +216,6 @@ void ScreenData::updateIndexes(int from, int to)
         to = m_screen_lines.size() -1;
     }
     for (int i = from; i <= to; i++) {
-        m_screen_lines.at(i)->setIndex(i);
     }
 }
 
@@ -307,6 +315,7 @@ void ScreenData::dispatchLineEvents()
     m_new_lines.clear();
 
     for (int i = 0; i < m_screen_lines.size(); i++) {
+        m_screen_lines.at(i)->setIndex(i);
         m_screen_lines.at(i)->dispatchEvents();
     }
     m_lines_moved = 0;
@@ -334,4 +343,9 @@ void ScreenData::printStyleInformation() const
             index++;
         }
     }
+}
+
+Screen *ScreenData::screen() const
+{
+    return m_screen;
 }

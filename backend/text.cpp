@@ -96,6 +96,7 @@ Screen *Text::screen() const
 
 void Text::dispatchEvents()
 {
+    QString new_text = m_line->textLine()->mid(m_start_index, m_end_index + 1 - m_start_index);
     if (m_style_dirty) {
         m_style_dirty = false;
 

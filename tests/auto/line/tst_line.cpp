@@ -8,9 +8,9 @@ class LineHandler
 {
 public:
     LineHandler() {
-        screen.setHeight(50);
+        screen.setHeight(5);
         screen.setWidth(100);
-        screen.line_at_cursor()->clear();
+        screen.at(0)->clear();
         QCOMPARE(line()->style_list().size(), 1);
         default_style = line()->style_list().at(0);
         default_text_style = default_style.style;
@@ -18,7 +18,7 @@ public:
 
     Line *line() const
     {
-        return screen.line_at_cursor();
+        return screen.at(0);
     }
 
     TextStyle default_style;
@@ -346,7 +346,7 @@ void tst_Line::clearToEndOfLine1Segment()
     line->replaceAtPos(0, replace_text, style);
 
     int before_clear_size = line->textLine()->size();
-    line->clearToEndOfLine(5);
+    line->clearCharacters(5, line->width() -1);
 
     int after_clear_size = line->textLine()->size();
     QCOMPARE(after_clear_size, before_clear_size);
@@ -378,7 +378,7 @@ void tst_Line::clearToEndOfLine3Segment()
     style.style = TextStyle::Bold;
     line ->replaceAtPos(replace_text.size(), replace_text2, style);
 
-    line->clearToEndOfLine(replace_text.size());
+    line->clearCharacters(replace_text.size(), line->width() - 1);
 
     QVector<TextStyleLine> style_list = line->style_list();
     QCOMPARE(style_list.size(), 2);
@@ -406,7 +406,7 @@ void tst_Line::clearToEndOfLineMiddle3Segment()
     style.style = TextStyle::Bold;
     line ->replaceAtPos(replace_text.size(), replace_text2, style);
 
-    line->clearToEndOfLine(replace_text.size() + 3);
+    line->clearCharacters(replace_text.size() + 3, line->width() - 1);
 
     QVector<TextStyleLine> style_list = line->style_list();
     QCOMPARE(style_list.size(), 3);

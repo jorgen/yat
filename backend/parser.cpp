@@ -22,6 +22,7 @@
 
 #include "controll_chars.h"
 #include "screen.h"
+#include "cursor.h"
 
 #include <QtCore/QDebug>
 
@@ -46,6 +47,7 @@ Parser::Parser(Screen *screen)
     , m_currrent_position(0)
     , m_intermediate_char(QChar())
     , m_parameters(10)
+    , m_expecting_more_parameters(false)
     , m_dec_mode(false)
     , m_screen(screen)
 {
@@ -66,8 +68,11 @@ void Parser::addData(const QByteArray &data)
                     (character >= C1_8bit::C1_8bit_Start &&
                      character <= C1_8bit::C1_8bit_Stop)) {
                 if (m_currrent_position != m_current_token_start) {
-                    m_screen->replaceAtCursor(QString::fromUtf8(data.mid(m_current_token_start,
-                                                                        m_currrent_position - m_current_token_start)));
+                    QString to_insert = QString::fromUtf8(data.mid(m_current_token_start,
+                                m_currrent_position - m_current_token_start));
+                    if (yat_parser_debug)
+                        qDebug() << "Parser Insert text:" << to_insert;
+                    m_screen->currentCursor()->replaceAtCursor(to_insert);
                     tokenFinished();
                     m_current_token_start--;
                 }
@@ -99,7 +104,10 @@ void Parser::addData(const QByteArray &data)
     if (m_decode_state == PlainText) {
         QByteArray text = data.mid(m_current_token_start);
         if (text.size()) {
-            m_screen->replaceAtCursor(QString::fromUtf8(text));
+            QString to_insert = QString::fromUtf8(text);
+            if (yat_parser_debug)
+                qDebug() << "Parser Insert text:" << to_insert;
+            m_screen->currentCursor()->replaceAtCursor(to_insert);
             tokenFinished();
         }
     }
@@ -127,18 +135,21 @@ void Parser::decodeC0(uchar character)
         tokenFinished();
         break;
     case C0::BS:
-        m_screen->backspace();
+        m_screen->currentCursor()->moveLeft();
         tokenFinished();
         break;
     case C0::HT: {
-        int x = m_screen->cursorPosition().x();
+        int x = m_screen->currentCursor()->rawPosition().x();
         int spaces = 8 - (x % 8);
-        m_screen->replaceAtCursor(QString(spaces,' '));
+        QString spaces_to_insert(spaces, QChar(' '));
+        if (yat_parser_debug)
+            qDebug() << "Inserting tab spaces:" << spaces_to_insert;
+        m_screen->currentCursor()->replaceAtCursor(spaces_to_insert);
     }
         tokenFinished();
         break;
     case C0::LF:
-        m_screen->lineFeed();
+        m_screen->currentCursor()->lineFeed();
         tokenFinished();
         break;
     case C0::VT:
@@ -147,9 +158,8 @@ void Parser::decodeC0(uchar character)
         tokenFinished();
         break;
     case C0::CR:
-        m_screen->moveCursorStartOfLine();
+        m_screen->currentCursor()->moveBeginningOfLine();
         tokenFinished();
-        //next should be a linefeed;
         break;
     case C0::SOorLS1:
     case C0::SIorLS0:
@@ -188,12 +198,12 @@ void Parser::decodeC1_7bit(uchar character)
     }
     switch(character) {
     case C1_7bit::IND:
-        m_screen->moveCursorDown();
+        m_screen->currentCursor()->moveDown();
         tokenFinished();
         break;
     case C1_7bit::NEL:
-        m_screen->moveCursorDown();
-        m_screen->moveCursorStartOfLine();
+        m_screen->currentCursor()->moveBeginningOfLine();
+        m_screen->currentCursor()->lineFeed();
         tokenFinished();
         break;
     case C1_7bit::CSI:
@@ -203,7 +213,7 @@ void Parser::decodeC1_7bit(uchar character)
         m_decode_state = DecodeOSC;
         break;
     case C1_7bit::RI:
-        m_screen->reverseLineFeed();
+        m_screen->currentCursor()->reverseLineFeed();
         tokenFinished();
         break;
     case '#':
@@ -247,7 +257,12 @@ void Parser::decodeParameters(uchar character)
         qDebug() << "Encountered special delimiter in parameterbyte";
         break;
     case 0x3b:
-        appendParameter();
+        if (!m_parameter_string.size()) {
+            m_parameters.append(1);
+        } else {
+            appendParameter();
+        }
+        m_expecting_more_parameters = true;
         break;
     case 0x3c:
     case 0x3d:
@@ -277,6 +292,10 @@ void Parser::decodeCSI(uchar character)
             decodeParameters(character);
         } else {
             appendParameter();
+            if (m_expecting_more_parameters) {
+                m_parameters.append(1);
+                m_expecting_more_parameters = false;
+            }
             if (character >= 0x20 && character <= 0x2f) {
                 if (m_intermediate_char.unicode())
                     qDebug() << "Warning!: double intermediate bytes found in CSI";
@@ -344,32 +363,31 @@ void Parser::decodeCSI(uchar character)
                     switch (character) {
                     case FinalBytesNoIntermediate::ICH: {
                         int n_chars = m_parameters.size() ? m_parameters.at(0) : 1;
-                        m_screen->insertEmptyCharsAtCursor(n_chars);
+                        QString empty(n_chars, QChar(' '));
+                        m_screen->currentCursor()->insertAtCursor(empty);
                     }
                         break;
                     case FinalBytesNoIntermediate::CUU: {
                         Q_ASSERT(m_parameters.size() < 2);
                         int move_up = m_parameters.size() ? m_parameters.at(0) : 1;
-                        m_screen->moveCursorUp(move_up);
+                        m_screen->currentCursor()->moveUp(move_up);
                     }
                         break;
                     case FinalBytesNoIntermediate::CUD: {
                         int move_down = m_parameters.size() ? m_parameters.at(0) : 1;
-                        if (move_down == 0)
-                            move_down = 1;
-                        m_screen->moveCursorDown(move_down);
+                        m_screen->currentCursor()->moveDown(move_down);
                     }
                         break;
                     case FinalBytesNoIntermediate::CUF:{
                         Q_ASSERT(m_parameters.size() < 2);
                         int move_right = m_parameters.size() ? m_parameters.at(0) : 1;
-                        m_screen->moveCursorRight(move_right);
+                        m_screen->currentCursor()->moveRight(move_right);
                     }
                         break;
                     case FinalBytesNoIntermediate::CUB: {
                         Q_ASSERT(m_parameters.size() < 2);
                         int move_left = m_parameters.size() ? m_parameters.at(0) : 1;
-                        m_screen->moveCursorLeft(move_left);
+                        m_screen->currentCursor()->moveLeft(move_left);
                     }
                         break;
                     case FinalBytesNoIntermediate::CNL:
@@ -379,16 +397,16 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::CHA: {
                         Q_ASSERT(m_parameters.size() < 2);
                         int move_to_pos_on_line = m_parameters.size() ? m_parameters.at(0) : 1;
-                        m_screen->moveCursorToCharacter(move_to_pos_on_line);
+                        m_screen->currentCursor()->moveToCharacter(move_to_pos_on_line - 1);
                     }
                         break;
                     case FinalBytesNoIntermediate::CUP:
                         if (!m_parameters.size()) {
-                            m_screen->moveCursorHome();
+                            m_screen->currentCursor()->moveOrigin();
                         } else if (m_parameters.size() == 2){
-                                m_screen->moveCursor(m_parameters.at(1), m_parameters.at(0));
-                        } else {
-                            qDebug() << "OHOHOHOH";
+                                m_screen->currentCursor()->move(m_parameters.at(1) - 1, m_parameters.at(0) - 1);
+                        } else if (m_parameters.size() == 1){
+                                m_screen->currentCursor()->move(m_parameters.at(0) - 1, 0);
                         }
                         break;
                     case FinalBytesNoIntermediate::CHT:
@@ -396,17 +414,18 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::ED:
                         if (!m_parameters.size()) {
-                            m_screen->eraseFromCurrentLineToEndOfScreen();
+                            m_screen->currentCursor()->clearToEndOfScreen();
                         } else {
                             int param = m_parameters.size() ? m_parameters.at(0) : 0;
                             switch (param) {
                             case 0:
-                                m_screen->eraseFromCurrentLineToEndOfScreen();
+                                m_screen->currentCursor()->clearToEndOfScreen();
+                                break;
                             case 1:
-                                m_screen->eraseFromCurrentLineToBeginningOfScreen();
+                                m_screen->currentCursor()->clearToBeginningOfScreen();
                                 break;
                             case 2:
-                                m_screen->eraseScreen();
+                                m_screen->clearScreen();
                                 break;
                             default:
                                 qDebug() << "Invalid parameter value for FinalBytesNoIntermediate::ED";
@@ -416,11 +435,11 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::EL:
                         if (!m_parameters.size() || m_parameters.at(0) == 0) {
-                            m_screen->eraseFromCursorPositionToEndOfLine();
+                            m_screen->currentCursor()->clearToEndOfLine();
                         } else if (m_parameters.at(0) == 1) {
-                            m_screen->eraseToCursorPosition();
+                            m_screen->currentCursor()->clearToBeginningOfLine();
                         } else if (m_parameters.at(0) == 2) {
-                            m_screen->eraseLine();
+                            m_screen->currentCursor()->clearLine();
                         } else{
                             qDebug() << "Fault when processing FinalBytesNoIntermediate::EL";
                         }
@@ -430,7 +449,7 @@ void Parser::decodeCSI(uchar character)
                         if (m_parameters.size()) {
                             count = m_parameters.at(0);
                         }
-                        m_screen->insertLines(count);
+                        m_screen->currentCursor()->scrollUp(count);
                     }
                         break;
                     case FinalBytesNoIntermediate::DL: {
@@ -438,7 +457,7 @@ void Parser::decodeCSI(uchar character)
                         if (m_parameters.size()) {
                             count = m_parameters.at(0);
                         }
-                        m_screen->deleteLines(count);
+                        m_screen->currentCursor()->scrollDown(count);
                     }
                         break;
                     case FinalBytesNoIntermediate::EF:
@@ -448,7 +467,7 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::DCH:{
                         Q_ASSERT(m_parameters.size() < 2);
                         int n_chars = m_parameters.size() ? m_parameters.at(0) : 1;
-                        m_screen->deleteCharacters(n_chars);
+                        m_screen->currentCursor()->deleteCharacters(n_chars);
                     }
                         break;
                     case FinalBytesNoIntermediate::SSE:
@@ -489,19 +508,22 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::VPA: {
                         Q_ASSERT(m_parameters.size() < 2);
-                        int move_to_line = m_parameters.size() ? m_parameters.at(0) : 1;
-                        m_screen->moveCursorToLine(move_to_line);
+                        int move_to_line = m_parameters.size() ? m_parameters.at(0) -1 : 0;
+                        m_screen->currentCursor()->moveToLine(move_to_line);
                     }
                         break;
                     case FinalBytesNoIntermediate::VPR:
                         qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         break;
                     case FinalBytesNoIntermediate::HVP: {
-                        Q_ASSERT(m_parameters.size() == 2);
-                        int cursor_y = m_parameters.at(0) - 1;
-                        int cursor_x = m_parameters.at(1) - 1;
-                        m_screen->moveCursor(cursor_x, cursor_y);
-
+                        Q_ASSERT(m_parameters.size() <= 2);
+                        if (!m_parameters.size()) {
+                            m_screen->currentCursor()->moveOrigin();
+                        } else if (m_parameters.size() == 2){
+                                m_screen->currentCursor()->move(m_parameters.at(1) - 1, m_parameters.at(0) - 1);
+                        } else if (m_parameters.size() == 1){
+                                m_screen->currentCursor()->move(m_parameters.at(0) - 1, 0);
+                        }
                         break;
                     }
                     case FinalBytesNoIntermediate::TBC:
@@ -554,14 +576,14 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::DECSTBM:
                         if (m_parameters.size() == 2) {
                             if (m_parameters.at(0) >= 0) {
-                                m_screen->setScrollArea(m_parameters.at(0),m_parameters.at(1));
+                                m_screen->currentCursor()->setScrollArea(m_parameters.at(0) - 1,m_parameters.at(1) - 1);
                             } else {
                                 qDebug() << "Unknown value for scrollRegion" << m_parameters.at(0);
                             }
                         } else {
-                            m_screen->setScrollArea(1,m_screen->height());
+                            m_screen->currentCursor()->resetScrollArea();
                         }
-                        m_screen->moveCursorHome();
+                        m_screen->currentCursor()->moveOrigin();
                         break;
                     case FinalBytesNoIntermediate::Reserved3:
                     case FinalBytesNoIntermediate::Reserved4:
@@ -689,6 +711,8 @@ void Parser::decodeFontSize(uchar character)
 {
     switch(character) {
         case '8':
+            if (yat_parser_debug)
+                qDebug() << "Filling screen with 'E'";
             m_screen->fill(QChar('E'));
             break;
         default:
@@ -723,27 +747,34 @@ void Parser::setDecMode(int mode)
     case 3:
         m_screen->setWidth(132, true);
         m_screen->setHeight(24, true);
+        m_screen->clear();
+        m_screen->currentCursor()->moveOrigin();
+        m_screen->currentCursor()->resetScrollArea();
         break;
 //4 -> Smooth (Slow) Scroll (DECSCLM).
     case 4:
         m_screen->setFastScroll(false);
         break;
 //5 -> Reverse Video (DECSCNM).
+    case 5:
+        m_screen->colorPalette()->setInverseDefaultColors(true);
+        break;
 //6 -> Origin Mode (DECOM).
 
 //7 -> Wraparound Mode (DECAWM).
+
 //8 -> Auto-repeat Keys (DECARM).
 //9 -> Send Mouse X & Y on button press. See the section Mouse Tracking.
 //10 -> Show toolbar (rxvt).
 //12 -> Start Blinking Cursor (att610).
     case 12:
-        m_screen->setCursorBlinking(true);
+        m_screen->currentCursor()->setBlinking(true);
         break;
 //18 -> Print form feed (DECPFF).
 //19 -> Set print extent to full screen (DECPEX).
 //25 -> Show Cursor (DECTCEM).
     case 25:
-        m_screen->setCursorVisible(true);
+        m_screen->currentCursor()->setVisible(true);
         break;
 //30 -> Show scrollbar (rxvt).
 //35 -> Enable font-shifting functions (rxvt).
@@ -823,26 +854,35 @@ void Parser::resetDecMode(int mode)
         case 3:
             m_screen->setWidth(80, true);
             m_screen->setHeight(24, true);
+            m_screen->clear();
+            m_screen->currentCursor()->moveOrigin();
+            m_screen->currentCursor()->resetScrollArea();
             break;
 //4 -> Jump (Fast) Scroll (DECSCLM).
         case 4:
             m_screen->setFastScroll(true);
             break;
 //5 -> Normal Video (DECSCNM).
+        case 5:
+            m_screen->colorPalette()->setInverseDefaultColors(false);
+            break;
 //6 -> Normal Cursor Mode (DECOM).
+        case 6:
+            m_screen->currentCursor()->moveOrigin();
+            break;
 //7 -> No Wraparound Mode (DECAWM).
 //8 -> No Auto-repeat Keys (DECARM).
 //9 -> Don’t send Mouse X & Y on button press.
 //10 -> Hide toolbar (rxvt).
 //12 -> Stop Blinking Cursor (att610).
         case 12:
-            m_screen->setCursorBlinking(false);
+            m_screen->currentCursor()->setBlinking(false);
             break;
 //18 -> Don’t print form feed (DECPFF).
 //19 -> Limit print to scrolling region (DECPEX).
 //25 -> Hide Cursor (DECTCEM).
         case 25:
-            m_screen->setCursorVisible(false);
+            m_screen->currentCursor()->setVisible(false);
             break;
 //30 -> Don’t show scrollbar (rxvt).
 //35 -> Disable font-shifting functions (rxvt).
@@ -903,31 +943,31 @@ void Parser::handleSGR()
         switch(m_parameters.at(i)) {
             case 0:
                 //                                    m_screen->setTextStyle(TextStyle::Normal);
-                m_screen->resetStyle();
+                m_screen->currentCursor()->resetStyle();
                 break;
             case 1:
-                m_screen->setTextStyle(TextStyle::Bold);
+                m_screen->currentCursor()->setTextStyle(TextStyle::Bold);
                 break;
             case 5:
-                m_screen->setTextStyle(TextStyle::Blinking);
+                m_screen->currentCursor()->setTextStyle(TextStyle::Blinking);
                 break;
             case 7:
-                m_screen->setTextStyle(TextStyle::Inverse);
+                m_screen->currentCursor()->setTextStyle(TextStyle::Inverse);
                 break;
             case 8:
                 qDebug() << "SGR: Hidden text not supported";
                 break;
             case 22:
-                m_screen->setTextStyle(TextStyle::Normal);
+                m_screen->currentCursor()->setTextStyle(TextStyle::Normal);
                 break;
             case 24:
-                m_screen->setTextStyle(TextStyle::Underlined, false);
+                m_screen->currentCursor()->setTextStyle(TextStyle::Underlined, false);
                 break;
             case 25:
-                m_screen->setTextStyle(TextStyle::Blinking, false);
+                m_screen->currentCursor()->setTextStyle(TextStyle::Blinking, false);
                 break;
             case 27:
-                m_screen->setTextStyle(TextStyle::Inverse, false);
+                m_screen->currentCursor()->setTextStyle(TextStyle::Inverse, false);
                 break;
             case 28:
                 qDebug() << "SGR: Visible text is allways on";
@@ -952,7 +992,7 @@ void Parser::handleSGR()
             case 47:
                 //                                case 38:
             case 49:
-                m_screen->setTextStyleColor(m_parameters.at(i));
+                m_screen->currentCursor()->setTextStyleColor(m_parameters.at(i));
                 break;
             default:
                 qDebug() << "Unknown SGR" << m_parameters.at(i);
@@ -973,6 +1013,7 @@ void Parser::tokenFinished()
     m_current_token_start = m_currrent_position + 1;
     m_intermediate_char = 0;
 
+    m_expecting_more_parameters = false;
     m_dec_mode = false;
 }
 
@@ -981,6 +1022,7 @@ void Parser::appendParameter()
     if (m_parameter_string.size()) {
         m_parameters.append(m_parameter_string.toUShort());
         m_parameter_string.clear();
+        m_expecting_more_parameters = false;
     }
 }
 

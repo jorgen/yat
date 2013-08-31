@@ -27,7 +27,6 @@
 #include "color_palette.h"
 #include "parser.h"
 #include "yat_pty.h"
-#include "update_action.h"
 #include "screen_data.h"
 
 #include <QtCore/QPoint>
@@ -36,6 +35,7 @@
 #include <QtCore/QElapsedTimer>
 
 class Line;
+class Cursor;
 class QQuickItem;
 class QQmlEngine;
 class QQmlComponent;
@@ -47,8 +47,6 @@ class Screen : public QObject
     Q_PROPERTY(int height READ height WRITE setHeight NOTIFY heightChanged)
     Q_PROPERTY(int width READ width WRITE setWidth NOTIFY widthChanged)
     Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY screenTitleChanged)
-    Q_PROPERTY(bool cursorVisible READ cursorVisible NOTIFY cursorVisibleChanged)
-    Q_PROPERTY(bool cursorBlinking READ cursorBlinking NOTIFY cursorBlinkingChanged)
     Q_PROPERTY(bool selectionEnabled READ selectionEnabled NOTIFY selectionEnabledChanged)
     Q_PROPERTY(QPointF selectionAreaStart READ selectionAreaStart WRITE setSelectionAreaStart NOTIFY selectionAreaStartChanged)
     Q_PROPERTY(QPointF selectionAreaEnd READ selectionAreaEnd WRITE setSelectionAreaEnd NOTIFY selectionAreaEndChanged)
@@ -69,67 +67,29 @@ public:
     void setWidth(int width);
     int width() const;
 
+    ScreenData *currentScreenData() const { return m_screen_stack.last(); }
     void saveScreenData();
     void restoreScreenData();
+    Line *at(int i) const;
 
-    void setInsertMode(InsertMode mode);
-
-    void setTextStyle(TextStyle::Style style, bool add = true);
-    void resetStyle();
-    TextStyle currentTextStyle() const;
-    TextStyle defaultTextStyle() const;
-
-    Q_INVOKABLE QColor screenBackground();
-    QColor defaultForgroundColor() const;
-    QColor defaultBackgroundColor() const;
-
-    void setTextStyleColor(ushort color);
-    const ColorPalette *colorPalette() const;
-
-    QPoint cursorPosition() const;
-
-    void moveCursorHome();
-    void moveCursorStartOfLine();
-    void moveCursorTop();
-    void moveCursorUp(int n_positions = 1);
-    void moveCursorDown(int n_positions = 1);
-    void moveCursorLeft(int n_positions);
-    void moveCursorRight(int n_positions);
-    void moveCursor(int x, int y);
-    void moveCursorToLine(int line);
-    void moveCursorToCharacter(int character);
-
-    void deleteCharacters(int characters);
-
-    void setCursorVisible(bool visible);
-    bool cursorVisible();
-    void setCursorBlinking(bool blinking);
-    bool cursorBlinking();
+    Cursor *currentCursor() const { return  m_cursor_stack.last(); }
     void saveCursor();
     void restoreCursor();
 
-    void replaceAtCursor(const QString &text);
+    void setInsertMode(InsertMode mode);
 
-    void insertEmptyCharsAtCursor(int len);
+    TextStyle defaultTextStyle() const;
 
-    void backspace();
+    QColor defaultForgroundColor() const;
+    QColor defaultBackgroundColor() const;
 
-    void eraseLine();
-    void eraseFromCursorPositionToEndOfLine();
-    void eraseFromCursorPosition(int n_chars);
-    void eraseFromCurrentLineToEndOfScreen();
-    void eraseFromCurrentLineToBeginningOfScreen();
-    void eraseToCursorPosition();
-    void eraseScreen();
+    ColorPalette *colorPalette() const;
 
-    void lineFeed();
-    void reverseLineFeed();
-    void insertLines(int count);
-    void deleteLines(int count);
+    void clearScreen();
 
     void fill(const QChar character);
+    void clear();
 
-    void setScrollArea(int from, int to);
     void setFastScroll(bool fast);
     bool fastScroll() const;
 
@@ -139,8 +99,8 @@ public:
     void setSelectionAreaEnd(const QPointF &end);
 
     bool selectionEnabled() const;
-    Q_INVOKABLE void setSelectionEnabled(bool enabled);
 
+    Q_INVOKABLE void setSelectionEnabled(bool enabled);
     Q_INVOKABLE void sendSelectionToClipboard() const;
     Q_INVOKABLE void sendSelectionToSelection() const;
     Q_INVOKABLE void pasteFromSelection();
@@ -153,10 +113,9 @@ public:
 
     void scheduleFlash();
 
-    Q_INVOKABLE Line *at(int i) const;
-
     Q_INVOKABLE void printScreen() const;
 
+    void scheduleEventDispatch();
     void dispatchChanges();
 
     void sendPrimaryDA();
@@ -171,14 +130,10 @@ public:
 
     YatPty *pty();
 
-    //For tests
-    Line *line_at_cursor() const;
 public slots:
     void readData(const QByteArray &data);
 
 signals:
-    void moveLines(int from_line, int to_line, int count);
-
     void reset();
 
     void flash();
@@ -192,44 +147,33 @@ signals:
 
     void screenTitleChanged();
 
-    void cursorPositionChanged(int x, int y);
-    void cursorVisibleChanged();
-    void cursorBlinkingChanged();
-
     void lineCreated(Line *line);
+    void cursorCreated(Cursor *cursor);
 
+    void heightAboutToChange(int height);
     void heightChanged();
+    void widthAboutToChange(int width);
     void widthChanged();
+
 protected:
     void timerEvent(QTimerEvent *);
 
 private:
-    void moveLine(qint16 from, qint16 to);
-    void scheduleMoveSignal(qint16 from, qint16 to);
-
-    ScreenData *current_screen_data() const { return m_screen_stack[m_screen_stack.size()-1]; }
-    QPoint &current_cursor_pos() { return m_cursor_stack[m_cursor_stack.size()-1]; }
-    int current_cursor_x() const { return m_cursor_stack.at(m_cursor_stack.size()-1).x(); }
-    int current_cursor_y() const { return m_cursor_stack.at(m_cursor_stack.size()-1).y(); }
-
     void setSelectionValidity();
 
-    ColorPalette m_palette;
+    ColorPalette *m_palette;
     YatPty m_pty;
     Parser m_parser;
     QElapsedTimer m_time_since_parsed;
 
     int m_timer_event_id;
+    int m_width;
+    int m_height;
 
     QVector<ScreenData *> m_screen_stack;
-    QVector<QPoint> m_cursor_stack;
+    QVector<Cursor *> m_cursor_stack;
+    QVector<Cursor *> m_new_cursors;
 
-    bool m_cursor_visible;
-    bool m_cursor_visible_changed;
-    bool m_cursor_blinking;
-    bool m_cursor_blinking_changed;
-
-    TextStyle m_current_text_style;
     QString m_title;
 
     InsertMode m_insert_mode;
@@ -241,10 +185,8 @@ private:
 
     QString m_character_map;
 
-    QList<UpdateAction> m_update_actions;
     bool m_flash;
     bool m_cursor_changed;
-    bool m_reset;
     bool m_application_cursor_key_mode;
     bool m_fast_scroll;
 

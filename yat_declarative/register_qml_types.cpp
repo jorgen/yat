@@ -7,6 +7,7 @@
 #include "screen.h"
 #include "text.h"
 #include "line.h"
+#include "cursor.h"
 
 void register_qml_types()
 {
@@ -15,4 +16,5 @@ void register_qml_types()
     qmlRegisterType<Screen>();
     qmlRegisterType<Text>();
     qmlRegisterType<Line>();
+    qmlRegisterType<Cursor>();
 }

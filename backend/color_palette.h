@@ -29,12 +29,15 @@ public:
     QColor normalColor(Color color) const;
     QColor lightColor(Color color) const;
 
+    void setInverseDefaultColors(bool inverse);
 signals:
     void changed();
 private:
     QVector<QColor> m_normalColors;
     QVector<QColor> m_lightColors;
     QVector<QColor> m_intenseColors;
+
+    bool m_inverse_default;
 };
 
 #endif // COLOR_PALETTE_H

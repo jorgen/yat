@@ -1,10 +1,12 @@
 #include "color_palette.h"
 
+#include <QDebug>
 ColorPalette::ColorPalette(QObject *parent)
     : QObject(parent)
     , m_normalColors(numberOfColors)
     , m_lightColors(numberOfColors)
     , m_intenseColors(numberOfColors)
+    , m_inverse_default(false)
 {
     m_normalColors[0].setRgb(0,0,0);
     m_normalColors[1].setRgb(194,54,33);
@@ -15,7 +17,7 @@ ColorPalette::ColorPalette(QObject *parent)
     m_normalColors[6].setRgb(51,187,199);
     m_normalColors[7].setRgb(229,229,229);
     m_normalColors[8].setRgb(178,178,178);
-    m_normalColors[9].setAlpha(0);
+    m_normalColors[9].setRgb(0,0,0);
 
     m_lightColors[0].setRgb(129,131,131);
     m_lightColors[1].setRgb(252,57,31);
@@ -32,6 +34,12 @@ ColorPalette::ColorPalette(QObject *parent)
 
 QColor ColorPalette::color(ColorPalette::Color color, bool bold) const
 {
+    if (m_inverse_default) {
+        if (color == DefaultForground)
+            color = DefaultBackground;
+        else if (color == DefaultBackground)
+            color = DefaultForground;
+    }
     if (bold)
         return m_lightColors.at(color);
 
@@ -40,11 +48,19 @@ QColor ColorPalette::color(ColorPalette::Color color, bool bold) const
 
 QColor ColorPalette::normalColor(ColorPalette::Color color) const
 {
-    return m_normalColors.at(color);
+    return this->color(color, false);
 }
 
 QColor ColorPalette::lightColor(ColorPalette::Color color) const
 {
-    return m_lightColors.at(color);
+    return this->color(color,true);
 }
 
+void ColorPalette::setInverseDefaultColors(bool inverse)
+{
+    bool emit_changed = inverse != m_inverse_default;
+    if (emit_changed) {
+        m_inverse_default = inverse;
+        emit changed();
+    }
+}

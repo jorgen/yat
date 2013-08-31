@@ -1,7 +1,9 @@
 DEPENDPATH += $$PWD
 INCLUDEPATH += $$PWD
 
-LIBS += -lutil -L/home/jlind/install/lib
+LIBS += -lutil
+
+CONFIG += c++11
 
 MOC_DIR = .moc
 OBJECTS_DIR = .obj
@@ -15,8 +17,8 @@ HEADERS += \
            $$PWD/line.h \
            $$PWD/color_palette.h \
            $$PWD/text_style.h \
-           $$PWD/update_action.h \
-           $$PWD/screen_data.h
+           $$PWD/screen_data.h \
+           $$PWD/cursor.h
 
 SOURCES += \
            $$PWD/yat_pty.cpp \
@@ -27,5 +29,5 @@ SOURCES += \
            $$PWD/line.cpp \
            $$PWD/color_palette.cpp \
            $$PWD/text_style.cpp \
-           $$PWD/update_action.cpp \
-           $$PWD/screen_data.cpp
+           $$PWD/screen_data.cpp \
+           $$PWD/cursor.cpp

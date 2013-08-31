@@ -1,22 +1,25 @@
-/**************************************************************************************************
+/******************************************************************************
 * Copyright (c) 2012 Jørgen Lind
 *
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-* associated documentation files (the "Software"), to deal in the Software without restriction,
-* including without limitation the rights to use, copy, modify, merge, publish, distribute,
-* sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
 *
-* The above copyright notice and this permission notice shall be included in all copies or
-* substantial portions of the Software.
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
 *
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-* NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-* DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-* OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
 *
-***************************************************************************************************/
+*******************************************************************************/
 
 #include "line.h"
 
@@ -40,7 +43,7 @@ Line::Line(Screen *screen)
     : QObject(screen)
     , m_screen(screen)
     , m_index(0)
-    , m_old_index(-1)
+    , m_new_index(-1)
     , m_visible(true)
     , m_changed(true)
 {
@@ -87,43 +90,6 @@ void Line::clear()
     m_changed = true;
 }
 
-void Line::clearToEndOfLine(int index)
-{
-    m_changed = true;
-
-    QString empty(m_text_line.size() - index, QChar(' '));
-    m_text_line.replace(index, m_text_line.size()-index,empty);
-    bool found = false;
-    for (int i = 0; i < m_style_list.size(); i++) {
-        const TextStyleLine current_style = m_style_list.at(i);
-        if (found) {
-            if (current_style.text_segment)
-                releaseTextSegment(current_style.text_segment);
-            m_style_list.remove(i);
-            i--;
-        } else {
-            if (index <= current_style.end_index) {
-                found = true;
-                if (current_style.start_index == index) {
-                    if (current_style.text_segment)
-                        releaseTextSegment(current_style.text_segment);
-                    m_style_list.remove(i);
-                    i--;
-                } else {
-                    m_style_list[i].end_index = index - 1;
-                    m_style_list[i].text_dirty = true;
-                }
-            }
-        }
-    }
-
-    if (m_style_list.size() && m_style_list.last().isCompatible(m_screen->defaultTextStyle())) {
-        m_style_list.last().end_index = m_text_line.size() -1;
-    } else {
-        m_style_list.append(TextStyleLine(m_screen->defaultTextStyle(),index, m_text_line.size() -1));
-    }
-}
-
 void Line::clearCharacters(int from, int to)
 {
     QString empty(to-from, QChar(' '));
@@ -131,16 +97,24 @@ void Line::clearCharacters(int from, int to)
     replaceAtPos(from, empty, defaultTextStyle);
 }
 
-void Line::deleteCharacters(int from, int to)
+void Line::deleteCharacters(int from, int to, int margin)
 {
     m_changed = true;
 
+    if (margin < 0)
+        margin = m_text_line.size() -1;
+
     int removed = 0;
-    const int size = (to + 1) - from;
+    const int size = (std::min(to,margin) + 1) - from;
     bool found = false;
+
+    int last_index = -1;
 
     for (int i = 0; i < m_style_list.size(); i++) {
         TextStyleLine &current_style = m_style_list[i];
+        if (current_style.start_index > margin)
+            break;
+        last_index = i;
         if (found) {
             current_style.start_index -= removed;
             current_style.end_index -= removed;
@@ -176,18 +150,21 @@ void Line::deleteCharacters(int from, int to)
         }
     }
 
-    TextStyle defaultStyle = m_screen->defaultTextStyle();
-    if (m_style_list.last().isCompatible(defaultStyle)) {
-        m_style_list.last().end_index += size;
-        m_style_list.last().text_dirty = true;
-    } else {
-        m_style_list.append(TextStyleLine(defaultStyle, m_style_list.last().end_index + 1,
-                    m_style_list.last().end_index + size));
+    if (last_index >= 0) {
+        TextStyleLine &last_modified = m_style_list[last_index];
+        TextStyle defaultStyle = m_screen->defaultTextStyle();
+        if (last_modified.isCompatible(defaultStyle)) {
+            last_modified.end_index += size;
+            last_modified.text_dirty = true;
+        } else {
+            m_style_list.insert(last_index + 1, TextStyleLine(defaultStyle,
+                        last_modified.end_index + 1, last_modified.end_index + size));
+        }
     }
 
     m_text_line.remove(from, size);
     QString empty(size,' ');
-    m_text_line.append(empty);
+    m_text_line.insert(margin - empty.size(),empty);
 }
 
 void Line::setWidth(int width)
@@ -228,7 +205,7 @@ void Line::setWidth(int width)
 
 int Line::width() const
 {
-    return m_style_list.size();
+    return m_text_line.size();
 }
 
 void Line::replaceAtPos(int pos, const QString &text, const TextStyle &style)
@@ -263,6 +240,8 @@ void Line::replaceAtPos(int pos, const QString &text, const TextStyle &style)
                 } else {
                     if (current_style.start_index == pos && current_style.end_index == pos + text.size() - 1) {
                         current_style.setStyle(style);
+                        current_style.text_dirty = true;
+                        current_style.style_dirty = true;
                     } else if (current_style.start_index == pos) {
                         current_style.start_index = pos + text.size();
                         current_style.text_dirty = true;
@@ -364,7 +343,7 @@ int Line::index() const
 
 void Line::setIndex(int index)
 {
-    m_index = index;
+    m_new_index = index;
 }
 
 QString *Line::textLine()
@@ -387,8 +366,8 @@ bool Line::visible() const
 
 void Line::dispatchEvents()
 {
-    if (m_index != m_old_index) {
-        m_old_index = m_index;
+    if (m_index != m_new_index) {
+        m_index = m_new_index;
         emit indexChanged();
     }
 
@@ -456,7 +435,9 @@ void Line::releaseTextSegment(Text *text)
 
 void Line::printStyleList() const
 {
-    qDebug() << "Line: " << this;
+    QString text_line = m_text_line;
+    text_line.remove(QRegExp("\\s+$"));
+    qDebug() << "Line: " << this << text_line;
     QDebug debug = qDebug();
     debug << "\t";
     for (int i= 0; i < m_style_list.size(); i++) {

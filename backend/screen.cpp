@@ -21,6 +21,7 @@
 #include "screen.h"
 
 #include "line.h"
+#include "cursor.h"
 
 #include "controll_chars.h"
 
@@ -38,18 +39,16 @@
 
 Screen::Screen(QObject *parent)
     : QObject(parent)
+    , m_palette(new ColorPalette(this))
     , m_parser(this)
     , m_timer_event_id(0)
-    , m_cursor_visible(true)
-    , m_cursor_visible_changed(false)
-    , m_cursor_blinking(true)
-    , m_cursor_blinking_changed(false)
+    , m_width(0)
+    , m_height(0)
     , m_insert_mode(Replace)
     , m_selection_valid(false)
     , m_selection_moved(0)
     , m_flash(false)
     , m_cursor_changed(false)
-    , m_reset(false)
     , m_application_cursor_key_mode(false)
     , m_fast_scroll(true)
 {
@@ -57,11 +56,9 @@ Screen::Screen(QObject *parent)
 
     m_screen_stack.reserve(2);
 
-    m_cursor_stack << QPoint(0,0);
-
-    m_current_text_style.style = TextStyle::Normal;
-    m_current_text_style.forground = ColorPalette::DefaultForground;
-    m_current_text_style.background = ColorPalette::DefaultBackground;
+    Cursor *cursor = new Cursor(this);
+    m_cursor_stack << cursor;
+    m_new_cursors << cursor;
 
     connect(&m_pty, SIGNAL(hangupReceived()),qGuiApp, SLOT(quit()));
 }
@@ -70,24 +67,18 @@ Screen::~Screen()
 {
     for (int i = 0; i < m_screen_stack.size(); i++) {
         delete m_screen_stack.at(i);
-
     }
 }
 
 
-QColor Screen::screenBackground()
-{
-    return QColor(Qt::black);
-}
-
 QColor Screen::defaultForgroundColor() const
 {
-    return m_palette.normalColor(ColorPalette::DefaultForground);
+    return m_palette->normalColor(ColorPalette::DefaultForground);
 }
 
 QColor Screen::defaultBackgroundColor() const
 {
-    return QColor(Qt::transparent);
+    return m_palette->normalColor(ColorPalette::DefaultBackground);
 }
 
 void Screen::setHeight(int height)
@@ -97,31 +88,32 @@ void Screen::setHeight(int height)
 
 void Screen::setHeight(int height, bool emitChanged)
 {
+    if (height == m_height)
+        return;
+
+    m_height = height;
+
     if (!m_screen_stack.size()) {
             m_screen_stack << new ScreenData(this);
     }
 
-    if (height == m_pty.size().height())
-        return;
+    for (int i = 0; i < m_screen_stack.size(); i++) {
+        m_screen_stack[i]->setHeight(height);
+    }
 
-    ScreenData *data = current_screen_data();
-    int size_difference = data->height() - height;
-
-    if (!size_difference)
-        return;
-
-    data->setHeight(height);
-
-    if (size_difference > 0) {
-        if (current_cursor_y() > 0)
-            current_cursor_pos().ry()--;
+    for (int i = 0; i< m_cursor_stack.size(); i++) {
+        m_cursor_stack[i]->setDocumentHeight(height);
     }
 
     m_pty.setHeight(height, height * 10);
 
     if (emitChanged)
         emit heightChanged();
-    dispatchChanges();
+}
+
+int Screen::height() const
+{
+    return m_height;
 }
 
 void Screen::setWidth(int width)
@@ -131,18 +123,17 @@ void Screen::setWidth(int width)
 
 void Screen::setWidth(int width, bool emitChanged)
 {
+    if (width == m_width)
+        return;
+
+    m_width = width;
+
     if (!m_screen_stack.size())
         m_screen_stack << new ScreenData(this);
 
-    if (width == m_pty.size().width())
-        return;
-    current_screen_data()->setWidth(width);
-    m_pty.setWidth(width, width * 10);
+    emit widthAboutToChange(width);
 
-    if (current_cursor_x() >= width) {
-        current_cursor_pos().rx() = width - 1;
-        m_cursor_changed = true;
-    }
+    m_pty.setWidth(width, width * 10);
 
     if (emitChanged)
         emit widthChanged();
@@ -150,7 +141,7 @@ void Screen::setWidth(int width, bool emitChanged)
 
 int Screen::width() const
 {
-    return m_pty.size().width();
+    return m_width;
 }
 
 void Screen::saveScreenData()
@@ -161,7 +152,7 @@ void Screen::saveScreenData()
     new_data->setWidth(pty_size.width());
 
     for (int i = 0; i < new_data->height(); i++) {
-        current_screen_data()->at(i)->setVisible(false);
+        currentScreenData()->at(i)->setVisible(false);
     }
 
     m_screen_stack << new_data;
@@ -172,24 +163,15 @@ void Screen::saveScreenData()
 
 void Screen::restoreScreenData()
 {
-    ScreenData *data = current_screen_data();
+    ScreenData *data = currentScreenData();
     m_screen_stack.remove(m_screen_stack.size()-1);
     delete data;
 
-    QSize pty_size = m_pty.size();
-    current_screen_data()->setHeight(pty_size.height());
-    current_screen_data()->setWidth(pty_size.width());
-
-    for (int i = 0; i < current_screen_data()->height(); i++) {
-        current_screen_data()->at(i)->setVisible(true);
+    for (int i = 0; i < currentScreenData()->height(); i++) {
+        currentScreenData()->at(i)->setVisible(true);
     }
 
     setSelectionEnabled(false);
-}
-
-int Screen::height() const
-{
-    return current_screen_data()->height();
 }
 
 void Screen::setInsertMode(InsertMode mode)
@@ -197,26 +179,7 @@ void Screen::setInsertMode(InsertMode mode)
     m_insert_mode = mode;
 }
 
-void Screen::setTextStyle(TextStyle::Style style, bool add)
-{
-    if (add) {
-        m_current_text_style.style |= style;
-    } else {
-        m_current_text_style.style &= !style;
-    }
-}
 
-void Screen::resetStyle()
-{
-    m_current_text_style.background = ColorPalette::DefaultBackground;
-    m_current_text_style.forground = ColorPalette::DefaultForground;
-    m_current_text_style.style = TextStyle::Normal;
-}
-
-TextStyle Screen::currentTextStyle() const
-{
-    return m_current_text_style;
-}
 
 TextStyle Screen::defaultTextStyle() const
 {
@@ -227,169 +190,13 @@ TextStyle Screen::defaultTextStyle() const
     return style;
 }
 
-QPoint Screen::cursorPosition() const
-{
-    return QPoint(current_cursor_x(),current_cursor_y());
-}
-
-void Screen::moveCursorHome()
-{
-    current_cursor_pos().setX(0);
-    current_cursor_pos().setY(0);
-    m_cursor_changed = true;
-}
-
-void Screen::moveCursorStartOfLine()
-{
-    current_cursor_pos().setX(0);
-    m_cursor_changed = true;
-}
-
-void Screen::moveCursorTop()
-{
-    current_cursor_pos().setY(0);
-    m_cursor_changed = true;
-}
-
-void Screen::moveCursorUp(int n_positions)
-{
-    if (!current_cursor_pos().y() || !n_positions)
-        return;
-
-    if (n_positions < current_cursor_pos().y()) {
-        current_cursor_pos().ry() -= n_positions;
-    } else {
-        current_cursor_pos().ry() = 0;
-    }
-    m_cursor_changed = true;
-}
-
-void Screen::moveCursorDown(int n_positions)
-{
-    int height = this->height();
-    if (current_cursor_pos().y() == height -1 || !n_positions)
-        return;
-
-    if (current_cursor_pos().y() + n_positions < height) {
-        current_cursor_pos().ry() += n_positions;
-    } else {
-        current_cursor_pos().ry() = height - 1;
-    }
-    m_cursor_changed = true;
-}
-
-void Screen::moveCursorLeft(int n_positions)
-{
-    if (!current_cursor_x() || !n_positions)
-        return;
-    if (n_positions < current_cursor_x()) {
-        current_cursor_pos().rx() -= n_positions;
-    } else {
-        current_cursor_pos().rx() = 0;
-    }
-    m_cursor_changed = true;
-}
-
-void Screen::moveCursorRight(int n_positions)
-{
-    int width = this->width();
-    if (current_cursor_x() == width -1 || !n_positions)
-        return;
-    if (n_positions < width - current_cursor_x()) {
-        current_cursor_pos().rx() += n_positions;
-    } else {
-        current_cursor_pos().rx() = width - 1;
-    }
-    m_cursor_changed = true;
-}
-
-void Screen::moveCursor(int x, int y)
-{
-    if (x < 1) {
-        x = 1;
-    } else if (x > width()) {
-        x = width();
-    }
-
-    if (y < 1) {
-        y = 1;
-    } else if (y > height()) {
-        y = height();
-    }
-
-    if (current_cursor_y() != y-1 || current_cursor_x() != x-1) {
-        current_cursor_pos().setX(x-1);
-        current_cursor_pos().setY(y-1);
-        m_cursor_changed = true;
-    }
-}
-
-void Screen::moveCursorToLine(int line)
-{
-    if (line < 1) {
-        line = 1;
-    } else if (line > height()) {
-        line = height();
-    }
-    if (line != current_cursor_y()) {
-        current_cursor_pos().setY(line-1);
-        m_cursor_changed = true;
-    }
-}
-
-void Screen::moveCursorToCharacter(int character)
-{
-    if (character < 1) {
-        character = 1;
-    } else if (character > width()) {
-        character = width();
-    }
-    if (character != current_cursor_x()) {
-        current_cursor_pos().setX(character-1);
-        m_cursor_changed = true;
-    }
-}
-
-void Screen::deleteCharacters(int characters)
-{
-    switch (m_insert_mode) {
-        case Insert:
-            current_screen_data()->clearCharacters(current_cursor_y(), current_cursor_x(), current_cursor_x() + characters -1);
-            break;
-        case Replace:
-            current_screen_data()->deleteCharacters(current_cursor_y(), current_cursor_x(), current_cursor_x() + characters -1);
-            break;
-        default:
-            break;
-    }
-}
-
-void Screen::setCursorVisible(bool visible)
-{
-    m_cursor_visible = visible;
-    m_cursor_visible_changed = true;
-}
-
-bool Screen::cursorVisible()
-{
-    return m_cursor_visible;
-}
-
-void Screen::setCursorBlinking(bool blinking)
-{
-    m_cursor_blinking = blinking;
-    m_cursor_blinking_changed = true;
-}
-
-bool Screen::cursorBlinking()
-{
-    return m_cursor_blinking;
-}
-
 void Screen::saveCursor()
 {
-    QPoint point = current_cursor_pos();
-    m_cursor_stack << point;
+    Cursor *new_cursor = new Cursor(this);
+    if (m_cursor_stack.size())
+        m_cursor_stack.last()->setVisible(false);
+    m_cursor_stack << new_cursor;
+    m_new_cursors << new_cursor;
 }
 
 void Screen::restoreCursor()
@@ -397,167 +204,30 @@ void Screen::restoreCursor()
     if (m_cursor_stack.size() <= 1)
         return;
 
-    m_cursor_stack.remove(m_screen_stack.size()-1);
+    Cursor *to_be_deleted = m_cursor_stack.takeLast();
+    delete to_be_deleted;
+    m_cursor_stack.last()->setVisible(true);
 }
 
-void Screen::replaceAtCursor(const QString &text)
+void Screen::clearScreen()
 {
-    if (m_selection_valid ) {
-        if (current_cursor_y() >= m_selection_start.y() && current_cursor_y() <= m_selection_end.y())
-            //don't need to schedule as event since it will only happen once
-            setSelectionEnabled(false);
-    }
-
-    if (current_cursor_x() + text.size() <= width()) {
-        Line *line = current_screen_data()->at(current_cursor_y());
-        line->replaceAtPos(current_cursor_x(), text, m_current_text_style);
-        current_cursor_pos().rx() += text.size();
-    } else {
-        for (int i = 0; i < text.size();) {
-            if (current_cursor_x() == width()) {
-                current_cursor_pos().setX(0);
-                lineFeed();
-            }
-            QString toLine = text.mid(i,current_screen_data()->width() - current_cursor_x());
-            Line *line = current_screen_data()->at(current_cursor_y());
-            line->replaceAtPos(current_cursor_x(),toLine, m_current_text_style);
-            i+= toLine.size();
-            current_cursor_pos().rx() += toLine.size();
-        }
-    }
-
-    m_cursor_changed = true;
+    currentScreenData()->clear();
 }
 
-void Screen::insertEmptyCharsAtCursor(int len)
+
+ColorPalette *Screen::colorPalette() const
 {
-    if (m_selection_valid) {
-        if (current_cursor_y() >= m_selection_start.y() && current_cursor_y() <= m_selection_end.y())
-            //don't need to schedule as event since it will only happen once
-            setSelectionEnabled(false);
-    }
-
-    Line *line = current_screen_data()->at(current_cursor_y());
-    QString empty(len, QChar(' '));
-    line->insertAtPos(current_cursor_x(), empty, defaultTextStyle());
-}
-
-void Screen::backspace()
-{
-    current_cursor_pos().rx()--;
-    m_cursor_changed = true;
-}
-
-void Screen::eraseLine()
-{
-    current_screen_data()->clearLine(current_cursor_y());
-}
-
-void Screen::eraseFromCursorPositionToEndOfLine()
-{
-    current_screen_data()->clearToEndOfLine(current_cursor_y(), current_cursor_x());
-}
-
-void Screen::eraseFromCursorPosition(int n_chars)
-{
-    current_screen_data()->clearCharacters(current_cursor_y(), current_cursor_x(), current_cursor_x() + n_chars - 1);
-}
-
-void Screen::eraseFromCurrentLineToEndOfScreen()
-{
-    current_screen_data()->clearToEndOfScreen(current_cursor_y());
-}
-
-void Screen::eraseFromCurrentLineToBeginningOfScreen()
-{
-    current_screen_data()->clearToBeginningOfScreen(current_cursor_y());
-
-}
-
-void Screen::eraseToCursorPosition()
-{
-    current_screen_data()->clearCharacters(current_cursor_y(), 0,current_cursor_x());
-}
-
-void Screen::eraseScreen()
-{
-    current_screen_data()->clear();
-}
-
-void Screen::setTextStyleColor(ushort color)
-{
-    Q_ASSERT(color >= 30 && color < 50);
-    if (color < 38) {
-        m_current_text_style.forground = ColorPalette::Color(color - 30);
-    } else if (color == 39) {
-        m_current_text_style.forground = ColorPalette::DefaultForground;
-    } else if (color >= 40 && color < 48) {
-        m_current_text_style.background = ColorPalette::Color(color - 40);
-    } else if (color == 49) {
-        m_current_text_style.background = ColorPalette::DefaultBackground;
-    } else {
-        qDebug() << "Failed to set color";
-    }
-}
-
-const ColorPalette *Screen::colorPalette() const
-{
-    return &m_palette;
-}
-
-void Screen::lineFeed()
-{
-    int cursor_y = current_cursor_y();
-    if(cursor_y == current_screen_data()->scrollAreaEnd()) {
-        m_selection_start.ry()--;
-        m_selection_end.ry()--;
-        m_selection_moved = true;
-        moveLine(current_screen_data()->scrollAreaStart(),cursor_y);
-    } else {
-        current_cursor_pos().ry()++;
-        m_cursor_changed = true;
-    }
-}
-
-void Screen::reverseLineFeed()
-{
-    int cursor_y = current_cursor_y();
-    if (cursor_y == current_screen_data()->scrollAreaStart()) {
-        m_selection_start.ry()++;
-        m_selection_end.ry()++;
-        m_selection_moved = true;
-        moveLine(current_screen_data()->scrollAreaEnd(), cursor_y);
-    } else {
-        current_cursor_pos().ry()--;
-        m_cursor_changed = true;
-    }
-}
-
-void Screen::insertLines(int count)
-{
-    for (int i = 0; i < count; i++) {
-        moveLine(current_screen_data()->scrollAreaEnd(),current_cursor_y());
-    }
-}
-
-void Screen::deleteLines(int count)
-{
-    for (int i = 0; i < count; i++) {
-        moveLine(current_cursor_y(),current_screen_data()->scrollAreaEnd());
-    }
-
+    return m_palette;
 }
 
 void Screen::fill(const QChar character)
 {
-    current_screen_data()->fill(character);
+    currentScreenData()->fill(character);
 }
 
-void Screen::setScrollArea(int from, int to)
+void Screen::clear()
 {
-    from--;
-    to--;
-    current_screen_data()->setScrollArea(from,to);
+    fill(QChar(' '));
 }
 
 void Screen::setFastScroll(bool fast)
@@ -613,12 +283,12 @@ void Screen::setSelectionEnabled(bool enabled)
 
 void Screen::sendSelectionToClipboard() const
 {
-    current_screen_data()->sendSelectionToClipboard(m_selection_start, m_selection_end, QClipboard::Clipboard);
+    currentScreenData()->sendSelectionToClipboard(m_selection_start, m_selection_end, QClipboard::Clipboard);
 }
 
 void Screen::sendSelectionToSelection() const
 {
-    current_screen_data()->sendSelectionToClipboard(m_selection_start, m_selection_end, QClipboard::Selection);
+    currentScreenData()->sendSelectionToClipboard(m_selection_start, m_selection_end, QClipboard::Selection);
 }
 
 void Screen::pasteFromSelection()
@@ -634,7 +304,7 @@ void Screen::pasteFromClipboard()
 void Screen::doubleClicked(const QPointF &clicked)
 {
     int start, end;
-    current_screen_data()->getDoubleClickSelectionArea(clicked, &start, &end);
+    currentScreenData()->getDoubleClickSelectionArea(clicked, &start, &end);
     setSelectionAreaStart(QPointF(start,clicked.y()));
     setSelectionAreaEnd(QPointF(end,clicked.y()));
 }
@@ -657,86 +327,50 @@ void Screen::scheduleFlash()
 
 Line *Screen::at(int i) const
 {
-    return current_screen_data()->at(i);
+    return currentScreenData()->at(i);
 }
 
 void Screen::printScreen() const
 {
-    current_screen_data()->printStyleInformation();
+    currentScreenData()->printStyleInformation();
+}
+
+void Screen::scheduleEventDispatch()
+{
+    if (!m_timer_event_id)
+        m_timer_event_id = startTimer(3);
+
+    m_time_since_parsed.restart();
 }
 
 void Screen::dispatchChanges()
 {
-    if (m_reset) {
-        emit reset();
-        m_update_actions.clear();
-        m_reset = false;
-    } else {
-        qint16 begin_move = -1;
-        qint16 end_move = -1;
-        for (int i = 0; i < m_update_actions.size(); i++) {
-            UpdateAction action = m_update_actions.at(i);
-            switch(action.action) {
-            case UpdateAction::MoveLine: {
-                if (begin_move < 0) {
-                    begin_move = qMin(action.to_line, action.from_line);
-                    end_move = qMax(action.to_line, action.from_line);
-                } else
-                    if (action.from_line > action.to_line) {
-                        begin_move = qMin(action.to_line, begin_move);
-                        end_move = qMax(action.from_line, end_move);
-                    } else {
-                        begin_move = qMin(action.from_line, begin_move);
-                        end_move = qMax(action.to_line, end_move);
-                    }
-            }
-                break;
-            default:
-                qDebug() << "unhandeled UpdatAction in TerminalScreen";
-                break;
-            }
-        }
-
-        if (begin_move >= 0) {
-            current_screen_data()->updateIndexes(begin_move, end_move);
-        }
-
-        current_screen_data()->dispatchLineEvents();
-        emit dispatchTextSegmentChanges();
-    }
+    currentScreenData()->dispatchLineEvents();
+    emit dispatchTextSegmentChanges();
 
     if (m_flash) {
         m_flash = false;
         emit flash();
     }
 
-    if (m_cursor_changed) {
-        m_cursor_changed = false;
-        emit cursorPositionChanged(current_cursor_x(), current_cursor_y());
+    for (int i = 0; i < m_new_cursors.size(); i++) {
+        emit cursorCreated(m_new_cursors.at(i));
     }
+    m_new_cursors.clear();
 
-    if (m_cursor_visible_changed) {
-        m_cursor_visible_changed = false;
-        emit cursorVisibleChanged();
-    }
-
-    if (m_cursor_blinking_changed) {
-        m_cursor_blinking_changed = false;
-        emit cursorBlinkingChanged();
-
+    for (int i = 0; i < m_cursor_stack.size(); i++) {
+        m_cursor_stack[i]->dispatchEvents();
     }
 
     if (m_selection_valid && m_selection_moved) {
         if (m_selection_start.y() < 0 ||
-                m_selection_end.y() >= current_screen_data()->height()) {
+                m_selection_end.y() >= currentScreenData()->height()) {
             setSelectionEnabled(false);
         } else {
             emit selectionAreaStartChanged();
             emit selectionAreaEndChanged();
         }
     }
-
-    m_update_actions.clear();
 }
 
 void Screen::sendPrimaryDA()
@@ -991,38 +625,12 @@ YatPty *Screen::pty()
     return &m_pty;
 }
 
-Line *Screen::line_at_cursor() const
-{
-    return current_screen_data()->at(current_cursor_y());
-}
-
 void Screen::readData(const QByteArray &data)
 {
     m_parser.addData(data);
 
-    if (!m_timer_event_id)
-        m_timer_event_id = startTimer(3);
-    m_time_since_parsed.restart();
+    scheduleEventDispatch();
 }
-
-void Screen::moveLine(qint16 from, qint16 to)
-{
-    current_screen_data()->moveLine(from,to);
-    scheduleMoveSignal(from,to);
-}
-
-void Screen::scheduleMoveSignal(qint16 from, qint16 to)
-{
-    if (m_update_actions.size() &&
-            m_update_actions.last().action == UpdateAction::MoveLine &&
-            m_update_actions.last().from_line == from &&
-            m_update_actions.last().to_line == to) {
-        m_update_actions.last().count++;
-    } else {
-        m_update_actions << UpdateAction(UpdateAction::MoveLine, from, to, 1);
-    }
-}
-
 
 void Screen::setSelectionValidity()
 {
@@ -1038,7 +646,7 @@ void Screen::setSelectionValidity()
 
 void Screen::timerEvent(QTimerEvent *)
 {
-    if (m_timer_event_id && m_time_since_parsed.elapsed() > 3) {
+    if (m_timer_event_id && m_time_since_parsed.elapsed() > 2) {
         killTimer(m_timer_event_id);
         m_timer_event_id = 0;
         dispatchChanges();
