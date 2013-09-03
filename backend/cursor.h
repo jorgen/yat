@@ -59,7 +59,8 @@ public:
     QPoint position() const;
     int x() const;
     int y() const;
-    QPoint rawPosition() const;
+    int new_x() const { return m_new_position.x(); }
+    int new_y() const { return m_new_position.y(); };
 
     void moveOrigin();
     void moveBeginningOfLine();
@@ -70,6 +71,10 @@ public:
     void move(int new_x, int new_y);
     void moveToLine(int line);
     void moveToCharacter(int character);
+
+    void moveToNextTab();
+    void setTabStop();
+    void clearTabStops();
 
     void clearToBeginningOfLine();
     void clearToEndOfLine();
@@ -85,6 +90,7 @@ public:
     void lineFeed();
     void reverseLineFeed();
 
+    void setOriginAtMargin(bool atMargin);
     void setScrollArea(int from, int to);
     void resetScrollArea();
 
@@ -102,10 +108,14 @@ signals:
 
 private:
     ScreenData *screen_data() const { return m_screen->currentScreenData(); }
-    int new_x() const { return m_new_position.x(); }
     int &new_rx() { return m_new_position.rx(); }
-    int new_y() const { return m_new_position.y(); };
     int &new_ry() { return m_new_position.ry(); }
+    int adjusted_new_x() const { return m_origin_at_margin ?
+        m_new_position.x() - m_top_margin : m_new_position.x(); }
+    int adjusted_new_y() const { return m_origin_at_margin ?
+        m_new_position.y() - m_top_margin : m_new_position.y(); }
+    int adjusted_top() const { return m_origin_at_margin ? m_top_margin : 0; }
+    int adjusted_bottom() const { return m_origin_at_margin ? m_bottom_margin : m_document_height - 1; }
     Screen *m_screen;
     TextStyle m_current_text_style;
     QPoint m_position;
@@ -117,6 +127,9 @@ private:
     int m_top_margin;
     int m_bottom_margin;
     bool m_scroll_margins_set;
+    bool m_origin_at_margin;
+
+    QVector<int> m_tab_stops;
 
     bool m_notified;
     bool m_visible;

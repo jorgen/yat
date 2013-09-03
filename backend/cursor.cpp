@@ -34,6 +34,8 @@ Cursor::Cursor(Screen* screen)
     , m_document_height(0)
     , m_top_margin(-1)
     , m_bottom_margin(-1)
+    , m_scroll_margins_set(false)
+    , m_origin_at_margin(false)
     , m_notified(false)
     , m_visible(true)
     , m_new_visibillity(true)
@@ -153,14 +155,9 @@ int Cursor::y() const
     return m_position.y();
 }
 
-QPoint Cursor::rawPosition() const
-{
-    return m_new_position;
-}
-
 void Cursor::moveOrigin()
 {
-    m_new_position = QPoint(0,0);
+    m_new_position = QPoint(0,adjusted_top());
     notifyChanged();
 }
 
@@ -172,27 +169,28 @@ void Cursor::moveBeginningOfLine()
 
 void Cursor::moveUp(int lines)
 {
-    if (!new_y() || !lines)
+    int adjusted_new_y = this->adjusted_new_y();
+    if (!adjusted_new_y || !lines)
         return;
 
-    if (lines < new_y()) {
+    if (lines < adjusted_new_y) {
         new_ry() -= lines;
     } else {
-        new_ry() = 0;
+        new_ry() = adjusted_top();
     }
     notifyChanged();
 }
 
 void Cursor::moveDown(int lines)
 {
-    int height = m_screen->height();
-    if (new_y() == height -1 || !lines)
+    int bottom = adjusted_bottom();
+    if (new_y() == bottom || !lines)
         return;
 
-    if (new_y() + lines < height) {
+    if (new_y() + lines <= bottom) {
         new_ry() += lines;
     } else {
-        new_ry() = height - 1;
+        new_ry() = bottom;
     }
     notifyChanged();
 }
@@ -226,7 +224,10 @@ void Cursor::moveRight(int positions)
 void Cursor::move(int new_x, int new_y)
 {
     int width = m_screen->width();
-    int height = m_screen->height();
+
+    if (m_origin_at_margin) {
+        new_y += m_top_margin;
+    }
 
     if (new_x < 0) {
         new_x = 0;
@@ -234,10 +235,10 @@ void Cursor::move(int new_x, int new_y)
         new_x = width - 1;
     }
 
-    if (new_y < 0) {
-        new_y = 0;
-    } else if (new_y >= height) {
-        new_y = height - 1;
+    if (new_y < adjusted_top()) {
+        new_y = adjusted_top();
+    } else if (new_y > adjusted_bottom()) {
+        new_y = adjusted_bottom();
     }
 
     if (this->new_y() != new_y || this->new_x() != new_x) {
@@ -249,9 +250,9 @@ void Cursor::move(int new_x, int new_y)
 void Cursor::moveToLine(int line)
 {
     const int height = m_screen->height();
-    if (line < 0) {
+    if (line < adjusted_top()) {
         line = 0;
-    } else if (line >= m_screen->height()) {
+    } else if (line > adjusted_bottom()) {
         line = height -1;
     }
 
@@ -273,6 +274,36 @@ void Cursor::moveToCharacter(int character)
         new_rx() = character;
         notifyChanged();
     }
+}
+
+void Cursor::moveToNextTab()
+{
+    for (int i = 0; i < m_tab_stops.size(); i++) {
+        if (new_x() > m_tab_stops.at(i)) {
+            if (m_tab_stops.size() < i + 1) {
+                moveToCharacter(m_tab_stops.at(i+1));
+            } else {
+                moveToCharacter(m_document_width - 1);
+            }
+            return;
+        }
+    }
+    moveToCharacter(m_document_width - 1);
+}
+
+void Cursor::setTabStop()
+{
+    for (int i = 0; i < m_tab_stops.size(); i++) {
+        if (new_x() > m_tab_stops.at(i)) {
+            m_tab_stops.insert(i+1,new_x());
+            return;
+        }
+    }
+    m_tab_stops.append(new_x());
+}
+void Cursor::clearTabStops()
+{
+    m_tab_stops.clear();
 }
 
 void Cursor::clearToBeginningOfLine()
@@ -332,14 +363,15 @@ void Cursor::replaceAtCursor(const QString &text)
         new_rx() += text.size();
     } else {
         for (int i = 0; i < text.size();) {
-            if (new_x() == m_screen->width()) {
+            if (new_x() >= m_screen->width()) {
                 new_rx() = 0;
                 lineFeed();
             }
-            QString toLine = text.mid(i,screen_data()->width() - new_x());
+            const int size = screen_data()->width() - new_x(); 
+            QString toLine = text.mid(i,size).trimmed();
+            i+= size;
             Line *line = screen_data()->at(new_y());
             line->replaceAtPos(new_x(),toLine, m_current_text_style);
-            i+= toLine.size();
             new_rx() += toLine.size();
         }
     }
@@ -390,6 +422,12 @@ void Cursor::reverseLineFeed()
     }
 }
 
+void Cursor::setOriginAtMargin(bool atMargin)
+{
+    m_origin_at_margin = atMargin;
+    m_new_position = QPoint(0, adjusted_top());
+    notifyChanged();
+}
 void Cursor::setScrollArea(int from, int to)
 {
     m_top_margin = from;

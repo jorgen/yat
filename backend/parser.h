@@ -88,6 +88,8 @@ private:
     QVector<int> m_parameters;
     bool m_expecting_more_parameters;
     bool m_dec_mode;
+    bool m_looking_for_start;
+    bool m_lnm_mode_set;
 
     Screen *m_screen;
 };

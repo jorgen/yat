@@ -30,8 +30,10 @@
 static bool yat_parser_debug = qEnvironmentVariableIsSet("YAT_PARSER_DEBUG");
 
 
-static void printParameters(const QVector<int> &parameters, QDebug &debug)
+static void printParameters(const QVector<int> &parameters, QDebug &debug, bool dec_private = false)
 {
+    if (dec_private)
+        debug << "?";
     for (int i = 0; i < parameters.size(); i++) {
         if (i == 0)
             debug << " ";
@@ -49,6 +51,8 @@ Parser::Parser(Screen *screen)
     , m_parameters(10)
     , m_expecting_more_parameters(false)
     , m_dec_mode(false)
+    , m_looking_for_start(true)
+    , m_lnm_mode_set(false)
     , m_screen(screen)
 {
 }
@@ -59,6 +63,15 @@ void Parser::addData(const QByteArray &data)
     m_current_data = data;
     for (m_currrent_position = 0; m_currrent_position < data.size(); m_currrent_position++) {
         uchar character = data.at(m_currrent_position);
+        if (m_looking_for_start) {
+            if (!character)
+                continue;
+            if (character == ' ') {
+                continue;
+            } else {
+                m_looking_for_start = false;
+            }
+        }
         switch (m_decode_state) {
         case PlainText:
             //UTF-8
@@ -128,38 +141,37 @@ void Parser::decodeC0(uchar character)
     case C0::ENQ:
     case C0::ACK:
         qDebug() << "Unhandled" << C0::C0(character);
-        tokenFinished();
+        if (m_decode_state == DecodeC0)
+            tokenFinished();
         break;
     case C0::BEL:
         m_screen->scheduleFlash();
-        tokenFinished();
+        if (m_decode_state == DecodeC0)
+            tokenFinished();
         break;
     case C0::BS:
         m_screen->currentCursor()->moveLeft();
-        tokenFinished();
+        if (m_decode_state == DecodeC0)
+            tokenFinished();
         break;
-    case C0::HT: {
-        int x = m_screen->currentCursor()->rawPosition().x();
-        int spaces = 8 - (x % 8);
-        QString spaces_to_insert(spaces, QChar(' '));
-        if (yat_parser_debug)
-            qDebug() << "Inserting tab spaces:" << spaces_to_insert;
-        m_screen->currentCursor()->replaceAtCursor(spaces_to_insert);
-    }
-        tokenFinished();
+    case C0::HT:
+        m_screen->currentCursor()->moveToNextTab();
+        if (m_decode_state == DecodeC0)
+            tokenFinished();
         break;
     case C0::LF:
-        m_screen->currentCursor()->lineFeed();
-        tokenFinished();
-        break;
     case C0::VT:
     case C0::FF:
-        qDebug() << "Unhandled" << C0::C0(character);
-        tokenFinished();
+        if (m_lnm_mode_set)
+            m_screen->currentCursor()->moveBeginningOfLine();
+        m_screen->currentCursor()->lineFeed();
+        if (m_decode_state == DecodeC0)
+            tokenFinished();
         break;
     case C0::CR:
         m_screen->currentCursor()->moveBeginningOfLine();
-        tokenFinished();
+        if (m_decode_state == DecodeC0)
+            tokenFinished();
         break;
     case C0::SOorLS1:
     case C0::SIorLS0:
@@ -175,9 +187,12 @@ void Parser::decodeC0(uchar character)
     case C0::EM:
     case C0::SUB:
         qDebug() << "Unhandled" << C0::C0(character);
-        tokenFinished();
+        if (m_decode_state == DecodeC0)
+            tokenFinished();
         break;
     case C0::ESC:
+        if (m_decode_state != DecodeC0)
+            qDebug() << "Unexpected" << C0::ESC << "when parsing";
         m_decode_state = DecodeC1_7bit;
         break;
     case C0::IS4:
@@ -186,7 +201,8 @@ void Parser::decodeC0(uchar character)
     case C0::IS1:
     default:
         qDebug() << "Unhandled" << C0::C0(character);
-        tokenFinished();
+        if (m_decode_state == DecodeC0)
+            tokenFinished();
         break;
     }
 }
@@ -288,6 +304,11 @@ void Parser::decodeParameters(uchar character)
 
 void Parser::decodeCSI(uchar character)
 {
+        if (character < C0::C0_END) {
+            decodeC0(character);
+            return;
+        }
+
         if (character >= 0x30 && character <= 0x3f) {
             decodeParameters(character);
         } else {
@@ -305,7 +326,7 @@ void Parser::decodeCSI(uchar character)
                     if (yat_parser_debug) {
                         QDebug debug = qDebug();
                         debug << FinalBytesSingleIntermediate::FinalBytesSingleIntermediate(character);
-                        printParameters(m_parameters, debug);
+                        printParameters(m_parameters, debug, m_dec_mode);
                     }
                     switch (character) {
                     case FinalBytesSingleIntermediate::SL:
@@ -358,7 +379,7 @@ void Parser::decodeCSI(uchar character)
                     if (yat_parser_debug) {
                         QDebug debug = qDebug();
                         debug << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
-                        printParameters(m_parameters, debug);
+                        printParameters(m_parameters, debug, m_dec_mode);
                     }
                     switch (character) {
                     case FinalBytesNoIntermediate::ICH: {
@@ -370,24 +391,24 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::CUU: {
                         Q_ASSERT(m_parameters.size() < 2);
                         int move_up = m_parameters.size() ? m_parameters.at(0) : 1;
-                        m_screen->currentCursor()->moveUp(move_up);
+                        m_screen->currentCursor()->moveUp(move_up ? move_up : 1);
                     }
                         break;
                     case FinalBytesNoIntermediate::CUD: {
                         int move_down = m_parameters.size() ? m_parameters.at(0) : 1;
-                        m_screen->currentCursor()->moveDown(move_down);
+                        m_screen->currentCursor()->moveDown(move_down ? move_down : 1);
                     }
                         break;
                     case FinalBytesNoIntermediate::CUF:{
                         Q_ASSERT(m_parameters.size() < 2);
                         int move_right = m_parameters.size() ? m_parameters.at(0) : 1;
-                        m_screen->currentCursor()->moveRight(move_right);
+                        m_screen->currentCursor()->moveRight(move_right ? move_right : 1);
                     }
                         break;
                     case FinalBytesNoIntermediate::CUB: {
                         Q_ASSERT(m_parameters.size() < 2);
                         int move_left = m_parameters.size() ? m_parameters.at(0) : 1;
-                        m_screen->currentCursor()->moveLeft(move_left);
+                        m_screen->currentCursor()->moveLeft(move_left ? move_left : 1);
                     }
                         break;
                     case FinalBytesNoIntermediate::CNL:
@@ -725,8 +746,29 @@ void Parser::decodeFontSize(uchar character)
 void Parser::setMode(int mode)
 {
     switch(mode) {
+//Guarded area transfer           GATM*   1
+//Keyboard action                 KAM     2
+//Control representation          CRM†    3
+//Insert/replace                  IRM     4
         case 4:
+            qDebug() << "INSERT MODE";
             m_screen->setInsertMode(Screen::Insert);
+            break;
+//Status reporting transfer       SRTM*   5
+//Vertical editing                VEM*    7
+//Horizontal editing              HEM*    10
+//Positioning unit                PUM*    11
+//Send/receive                    SRM     12
+//Format effector action          FEAM*   13
+//Format effector transfer        FETM*   14
+//Multiple area transfer          MATM*   15
+//Transfer termination            TTM*    16
+//Selected area transfer          SATM*   17
+//Tabulation stop                 TSM*    18
+//Editing boundary                EBM*    19
+//Line feed/new line              LNM     20
+        case 20:
+            m_lnm_mode_set = true;
             break;
         default:
             qDebug() << "Unhandeled setMode" << mode;
@@ -760,8 +802,13 @@ void Parser::setDecMode(int mode)
         m_screen->colorPalette()->setInverseDefaultColors(true);
         break;
 //6 -> Origin Mode (DECOM).
-
+    case 6:
+        m_screen->currentCursor()->setOriginAtMargin(true);
+        break;
 //7 -> Wraparound Mode (DECAWM).
+    case 7:
+        qDebug() << "WRAPAROUND MODE";
+        break;
 
 //8 -> Auto-repeat Keys (DECARM).
 //9 -> Send Mouse X & Y on button press. See the section Mouse Tracking.
@@ -832,8 +879,29 @@ void Parser::setDecMode(int mode)
 void Parser::resetMode(int mode)
 {
     switch(mode) {
+//Guarded area transfer           GATM*   1
+//Keyboard action                 KAM     2
+//Control representation          CRM†    3
+//Insert/replace                  IRM     4
         case 4:
+            qDebug() << "REPLACE MODE";
             m_screen->setInsertMode(Screen::Replace);
+            break;
+//Status reporting transfer       SRTM*   5
+//Vertical editing                VEM*    7
+//Horizontal editing              HEM*    10
+//Positioning unit                PUM*    11
+//Send/receive                    SRM     12
+//Format effector action          FEAM*   13
+//Format effector transfer        FETM*   14
+//Multiple area transfer          MATM*   15
+//Transfer termination            TTM*    16
+//Selected area transfer          SATM*   17
+//Tabulation stop                 TSM*    18
+//Editing boundary                EBM*    19
+//Line feed/new line              LNM     20
+        case 20:
+            m_lnm_mode_set = false;
             break;
         default:
             qDebug() << "Unhandeled resetMode" << mode;
@@ -868,9 +936,12 @@ void Parser::resetDecMode(int mode)
             break;
 //6 -> Normal Cursor Mode (DECOM).
         case 6:
-            m_screen->currentCursor()->moveOrigin();
+            m_screen->currentCursor()->setOriginAtMargin(false);
             break;
 //7 -> No Wraparound Mode (DECAWM).
+        case 7:
+            qDebug() << "NO WRAPAROUND MODE";
+            break;
 //8 -> No Auto-repeat Keys (DECARM).
 //9 -> Don’t send Mouse X & Y on button press.
 //10 -> Hide toolbar (rxvt).
@@ -1015,6 +1086,7 @@ void Parser::tokenFinished()
 
     m_expecting_more_parameters = false;
     m_dec_mode = false;
+    m_looking_for_start = true;
 }
 
 void Parser::appendParameter()
