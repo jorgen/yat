@@ -54,6 +54,12 @@ Cursor::Cursor(Screen* screen)
 
     m_gl_text_codec = QTextCodec::codecForName("utf-8")->makeDecoder();
     m_gr_text_codec = QTextCodec::codecForName("utf-8")->makeDecoder();
+
+    for (int i = 0; i < m_document_width; i++) {
+        if (i % 8 == 0) {
+            m_tab_stops.append(i);
+        }
+    }
 }
 
 Cursor::~Cursor()
@@ -61,6 +67,13 @@ Cursor::~Cursor()
 }
 void Cursor::setDocumentWidth(int width)
 {
+    if (width > m_document_width) {
+        for (int i = m_document_width -1; i < width; i++) {
+            if (i % 8 == 0) {
+                m_tab_stops.append(i);
+            }
+        }
+    }
     m_document_width = width;
     if (new_x() >= width) {
         new_rx() = width - 1;
@@ -309,7 +322,7 @@ void Cursor::moveToNextTab()
 {
     for (int i = 0; i < m_tab_stops.size(); i++) {
         if (new_x() < m_tab_stops.at(i)) {
-            moveToCharacter(m_tab_stops.at(i));
+            moveToCharacter(std::min(m_tab_stops.at(i), m_document_width -1));
             return;
         }
     }

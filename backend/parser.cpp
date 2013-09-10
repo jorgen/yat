@@ -707,8 +707,6 @@ void Parser::decodeCSI(uchar character)
                             m_screen->currentCursor()->removeTabStop();
                         } else if (m_parameters.at(0) == 3) {
                             m_screen->currentCursor()->clearTabStops();
-                        } else {
-                            qDebug() << "Unknwon" << FinalBytesNoIntermediate::TBC << "parameter";
                         }
                         break;
                     case FinalBytesNoIntermediate::SM:
