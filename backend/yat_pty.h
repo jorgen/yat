@@ -53,7 +53,7 @@ private:
     int m_master_fd;
     char m_slave_file_name[PATH_MAX];
     struct winsize *m_winsize;
-    char m_data_buffer[4096];
+    char m_data_buffer[1024];
 };
 
 #endif //YAT_PTY_H

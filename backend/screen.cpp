@@ -24,6 +24,7 @@
 #include "cursor.h"
 
 #include "controll_chars.h"
+#include "character_sets.h"
 
 #include <QtCore/QTimer>
 #include <QtCore/QSocketNotifier>
@@ -42,9 +43,8 @@ Screen::Screen(QObject *parent)
     , m_palette(new ColorPalette(this))
     , m_parser(this)
     , m_timer_event_id(0)
-    , m_width(0)
-    , m_height(0)
-    , m_insert_mode(Replace)
+    , m_width(1)
+    , m_height(1)
     , m_selection_valid(false)
     , m_selection_moved(0)
     , m_flash(false)
@@ -52,15 +52,17 @@ Screen::Screen(QObject *parent)
     , m_application_cursor_key_mode(false)
     , m_fast_scroll(true)
 {
-    connect(&m_pty, &YatPty::readyRead, this, &Screen::readData);
-
     m_screen_stack.reserve(2);
+
+    setHeight(25);
+    setWidth(80);
+
+    connect(&m_pty, &YatPty::readyRead, this, &Screen::readData);
+    connect(&m_pty, SIGNAL(hangupReceived()),qGuiApp, SLOT(quit()));
 
     Cursor *cursor = new Cursor(this);
     m_cursor_stack << cursor;
     m_new_cursors << cursor;
-
-    connect(&m_pty, SIGNAL(hangupReceived()),qGuiApp, SLOT(quit()));
 }
 
 Screen::~Screen()
@@ -81,12 +83,12 @@ QColor Screen::defaultBackgroundColor() const
     return m_palette->normalColor(ColorPalette::DefaultBackground);
 }
 
-void Screen::setHeight(int height)
+void Screen::emitRequestHeight(int newHeight)
 {
-    return setHeight(height, false);
+    emit requestHeightChange(newHeight);
 }
 
-void Screen::setHeight(int height, bool emitChanged)
+void Screen::setHeight(int height)
 {
     if (height == m_height)
         return;
@@ -107,8 +109,7 @@ void Screen::setHeight(int height, bool emitChanged)
 
     m_pty.setHeight(height, height * 10);
 
-    if (emitChanged)
-        emit heightChanged();
+    emit heightChanged();
 }
 
 int Screen::height() const
@@ -116,12 +117,12 @@ int Screen::height() const
     return m_height;
 }
 
-void Screen::setWidth(int width)
+void Screen::emitRequestWidth(int newWidth)
 {
-    return setWidth(width, false);
+    emit requestWidthChange(newWidth);
 }
 
-void Screen::setWidth(int width, bool emitChanged)
+void Screen::setWidth(int width)
 {
     if (width == m_width)
         return;
@@ -135,8 +136,7 @@ void Screen::setWidth(int width, bool emitChanged)
 
     m_pty.setWidth(width, width * 10);
 
-    if (emitChanged)
-        emit widthChanged();
+    emit widthChanged();
 }
 
 int Screen::width() const
@@ -174,13 +174,6 @@ void Screen::restoreScreenData()
     setSelectionEnabled(false);
 }
 
-void Screen::setInsertMode(InsertMode mode)
-{
-    m_insert_mode = mode;
-}
-
-
-
 TextStyle Screen::defaultTextStyle() const
 {
     TextStyle style;
@@ -204,8 +197,7 @@ void Screen::restoreCursor()
     if (m_cursor_stack.size() <= 1)
         return;
 
-    Cursor *to_be_deleted = m_cursor_stack.takeLast();
-    delete to_be_deleted;
+    m_delete_cursors.append(m_cursor_stack.takeLast());
     m_cursor_stack.last()->setVisible(true);
 }
 
@@ -353,6 +345,14 @@ void Screen::dispatchChanges()
         emit flash();
     }
 
+    for (int i = 0; i < m_delete_cursors.size(); i++) {
+        int new_index = m_new_cursors.indexOf(m_delete_cursors.at(i));
+        if (new_index >= 0)
+            m_new_cursors.remove(new_index);
+        delete m_delete_cursors.at(i);
+    }
+    m_delete_cursors.clear();
+
     for (int i = 0; i < m_new_cursors.size(); i++) {
         emit cursorCreated(m_new_cursors.at(i));
     }
@@ -382,16 +382,6 @@ void Screen::sendPrimaryDA()
 void Screen::sendSecondaryDA()
 {
     m_pty.write(QByteArrayLiteral("\033[>1;95;0c"));
-}
-
-void Screen::setCharacterMap(const QString &string)
-{
-    m_character_map = string;
-}
-
-QString Screen::characterMap() const
-{
-    return m_character_map;
 }
 
 void Screen::setApplicationCursorKeysMode(bool enable)

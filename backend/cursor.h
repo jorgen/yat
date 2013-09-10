@@ -38,10 +38,13 @@ class Cursor : public QObject
     Q_PROPERTY(int x READ x NOTIFY xChanged)
     Q_PROPERTY(int y READ y NOTIFY yChanged)
 public:
-    Cursor(Screen *screen);
+    enum InsertMode {
+        Insert,
+        Replace
+    };
 
-    void setDocumentWidth(int width);
-    void setDocumentHeight(int height);
+    Cursor(Screen *screen);
+    ~Cursor();
 
     bool visible() const;
     void setVisible(bool visible);
@@ -74,6 +77,7 @@ public:
 
     void moveToNextTab();
     void setTabStop();
+    void removeTabStop();
     void clearTabStops();
 
     void clearToBeginningOfLine();
@@ -84,8 +88,10 @@ public:
 
     void deleteCharacters(int characters);
 
-    void replaceAtCursor(const QString &text);
-    void insertAtCursor(const QString &text);
+    void setWrapAround(bool wrap);
+    void addAtCursor(const QByteArray &text);
+    void insertAtCursor(const QByteArray &text);
+    void replaceAtCursor(const QByteArray &text);
 
     void lineFeed();
     void reverseLineFeed();
@@ -97,8 +103,16 @@ public:
     void scrollUp(int lines);
     void scrollDown(int lines);
 
+    void setTextCodec(QTextCodec *codec);
+
+    void setInsertMode(InsertMode mode);
+
     inline void notifyChanged();
     void dispatchEvents();
+
+public slots:
+    void setDocumentWidth(int width);
+    void setDocumentHeight(int height);
 
 signals:
     void xChanged();
@@ -136,7 +150,12 @@ private:
     bool m_new_visibillity;
     bool m_blinking;
     bool m_new_blinking;
-    bool m_insert_mode;
+    bool m_wrap_around;
+
+    QTextDecoder *m_gl_text_codec;
+    QTextDecoder *m_gr_text_codec;
+
+    InsertMode m_insert_mode;
 };
 
 void Cursor::notifyChanged()

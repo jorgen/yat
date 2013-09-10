@@ -85,8 +85,6 @@ public:
 
     Q_INVOKABLE Screen *screen() const;
 
-    void releaseTextObjects();
-
     void clear();
     void clearCharacters(int from, int to);
     void deleteCharacters(int from, int to, int margin = -1);

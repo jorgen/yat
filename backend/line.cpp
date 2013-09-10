@@ -55,7 +55,9 @@ Line::Line(Screen *screen)
 
 Line::~Line()
 {
-    releaseTextObjects();
+    for (int i = 0; i < m_style_list.size(); i++) {
+        releaseTextSegment(m_style_list.at(i).text_segment);
+    }
 }
 
 Screen *Line::screen() const
@@ -63,25 +65,12 @@ Screen *Line::screen() const
     return m_screen;
 }
 
-void Line::releaseTextObjects()
-{
-    m_changed = true;
-    for (int i = 0; i < m_style_list.size(); i++) {
-        if (m_style_list.at(i).text_segment) {
-            m_style_list.at(i).text_segment->setVisible(false);
-            delete m_style_list.at(i).text_segment;
-            m_style_list[i].text_segment = 0;
-        }
-    }
-}
-
 void Line::clear()
 {
     m_text_line.fill(QChar(' '));
 
     for (int i = 0; i < m_style_list.size(); i++) {
-        if (m_style_list.at(i).text_segment)
-            releaseTextSegment(m_style_list.at(i).text_segment);
+        releaseTextSegment(m_style_list.at(i).text_segment);
     }
 
     m_style_list.clear();
@@ -164,7 +153,7 @@ void Line::deleteCharacters(int from, int to, int margin)
 
     m_text_line.remove(from, size);
     QString empty(size,' ');
-    m_text_line.insert(margin - empty.size(),empty);
+    m_text_line.insert(margin + 1 - empty.size(),empty);
 }
 
 void Line::setWidth(int width)
@@ -413,7 +402,7 @@ Text *Line::createTextSegment(const TextStyleLine &style_line)
 {
     Q_UNUSED(style_line);
     Text *to_return;
-    if (m_to_delete.size()) {
+    if (false && m_to_delete.size()) {
         to_return = m_to_delete.takeLast();
     } else {
         to_return = new Text(this);

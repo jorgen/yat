@@ -23,21 +23,23 @@
 
 #include <QtCore/QVector>
 #include <QtCore/QPoint>
+#include <QtCore/QObject>
 #include <QtGui/QClipboard>
+
+#include <functional>
 
 class Line;
 class Screen;
 
-class ScreenData
+class ScreenData : public QObject
 {
+Q_OBJECT
 public:
     ScreenData(Screen *screen);
     ~ScreenData();
 
     int width() const;
-    void setWidth(int width);
     int height() const;
-    void setHeight(int height);
 
     int scrollAreaStart() const;
     int scrollAreaEnd() const;
@@ -74,6 +76,10 @@ public:
 
     Screen *screen() const;
 
+public slots:
+    void setWidth(int width);
+    void setHeight(int height);
+
 private:
     Screen *m_screen;
     int m_width;
@@ -83,6 +89,8 @@ private:
     int m_scroll_end;
     bool m_scroll_area_set;
     int m_lines_moved;
+    std::function<void(int)> m_set_width_function;
+    std::function<void(int)> m_set_height_function;
 };
 
 #endif // SCREENDATA_H

@@ -60,12 +60,14 @@ TerminalScreen {
                 })
         }
 
-        onHeightChanged: {
-            screenItem.height = terminal.screen.height * screenItem.fontHeight;
+        onRequestHeightChange: {
+            terminalWindow.height = newHeight * screenItem.fontHeight;
+            terminalWindow.contentItem.height = newHeight * screenItem.fontHeight;
         }
 
-        onWidthChanged: {
-            screenItem.width = terminal.screen.width * screenItem.fontWidth;
+        onRequestWidthChange: {
+            terminalWindow.width = newWidth * screenItem.fontWidth;
+            terminalWindow.contentItem.width = newWidth * screenItem.fontWidth;
         }
     }
 

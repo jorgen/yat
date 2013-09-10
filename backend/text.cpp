@@ -41,7 +41,6 @@ Text::Text(Line *line)
 
 Text::~Text()
 {
-    emit aboutToBeDestroyed();
 }
 
 int Text::index() const
@@ -89,9 +88,29 @@ void Text::setTextStyle(const TextStyle &style)
     m_style_dirty = true;
 }
 
+bool Text::bold() const
+{
+    return m_style.style & TextStyle::Bold;
+}
+
+bool Text::blinking() const
+{
+    return m_style.style & TextStyle::Blinking;
+}
+
+bool Text::underline() const
+{
+    return m_style.style & TextStyle::Underlined;
+}
+
 Screen *Text::screen() const
 {
     return m_line->screen();
+}
+
+static bool differentStyle(TextStyle::Styles a, TextStyle::Styles b, TextStyle::Style style)
+{
+    return (a & style) != (b & style);
 }
 
 void Text::dispatchEvents()
@@ -102,17 +121,45 @@ void Text::dispatchEvents()
 
         bool emit_forground = m_new_style.forground != m_style.forground;
         bool emit_background = m_new_style.background != m_style.background;
-        bool emit_text_style = m_new_style.style != m_style.style;
+        TextStyle::Styles new_style = m_new_style.style;
+        TextStyle::Styles old_style = m_style.style;
+
+        bool emit_bold = false;
+        bool emit_blink = false;
+        bool emit_underline = false;
+        bool emit_inverse = false;
+        if (new_style != old_style) {
+            emit_bold = differentStyle(new_style, old_style, TextStyle::Bold);
+            emit_blink = differentStyle(new_style, old_style, TextStyle::Blinking);
+            emit_underline = differentStyle(new_style, old_style, TextStyle::Underlined);
+            emit_inverse = differentStyle(new_style, old_style, TextStyle::Inverse);
+        }
 
         m_style = m_new_style;
-        if (emit_forground) {
+        if (emit_inverse) {
             setForgroundColor();
-        }
-        if (emit_background) {
             setBackgroundColor();
+        } else {
+            if (emit_forground || emit_bold) {
+                setForgroundColor();
+            }
+            if (emit_background) {
+                setBackgroundColor();
+            }
         }
-        if (emit_text_style)
-            emit textStyleChanged();
+
+        if (emit_bold) {
+            emit boldChanged();
+        }
+
+        if (emit_blink) {
+            emit blinkingChanged();
+        }
+
+        if (emit_underline) {
+            emit underlineChanged();
+        }
+
     }
 
     if (m_old_start_index != m_start_index

@@ -142,6 +142,24 @@ QDebug operator<<(QDebug debug, C1_7bit character) {
     debug.setAutoInsertSpaces(false);
     debug << "C1_7bit::";
     switch(character) {
+        case SCS_G0:
+            debug << "SCS_G0";
+            break;
+        case SCS_G1:
+            debug << "SCS_G1";
+            break;
+        case SCS_G2:
+            debug << "SCS_G2";
+            break;
+        case SCS_G3:
+            debug << "SCS_G3";
+            break;
+        case DECSC:
+            debug << "DECSC";
+            break;
+        case DECRC:
+            debug << "DECRC";
+            break;
         case NOT_DEFINED:
             debug << "NOT_DEFINED";
             break;

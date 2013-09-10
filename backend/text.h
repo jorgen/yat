@@ -40,6 +40,9 @@ class Text : public QObject
     Q_PROPERTY(QString text READ text NOTIFY textChanged)
     Q_PROPERTY(QColor foregroundColor READ foregroundColor NOTIFY forgroundColorChanged)
     Q_PROPERTY(QColor backgroundColor READ backgroundColor NOTIFY backgroundColorChanged)
+    Q_PROPERTY(bool bold READ bold NOTIFY boldChanged)
+    Q_PROPERTY(bool blinking READ blinking NOTIFY blinkingChanged)
+    Q_PROPERTY(bool underline READ underline NOTIFY underlineChanged);
     Q_PROPERTY(Screen *screen READ screen CONSTANT)
 public:
     Text(Line *line);
@@ -57,6 +60,10 @@ public:
     void setStringSegment(int start_index, int end_index, bool textChanged);
     void setTextStyle(const TextStyle &style);
 
+    bool bold() const;
+    bool blinking() const;
+    bool underline() const;
+
     Screen *screen() const;
 
     QObject *item() const;
@@ -70,9 +77,10 @@ signals:
     void textChanged();
     void forgroundColorChanged();
     void backgroundColorChanged();
-    void textStyleChanged();
+    void boldChanged();
+    void blinkingChanged();
+    void underlineChanged();
 
-    void aboutToBeDestroyed();
 private slots:
     void paletteChanged();
 

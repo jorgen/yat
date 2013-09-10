@@ -49,6 +49,7 @@ private slots:
     void deleteCharacters3Segments();
     void deleteCharactersRemoveSegmentEnd();
     void deleteCharactersRemoveSegmentBeginning();
+    void deleteCharactersRemoveMiddle();
     void insertCharacters();
     void insertCharacters2Segments();
     void insertCharacters3Segments();
@@ -586,6 +587,25 @@ void tst_Line::deleteCharactersRemoveSegmentBeginning()
     const TextStyleLine &second_style = style_list.at(1);
     QCOMPARE(second_style.start_index, replace_text.size());
     QCOMPARE(second_style.style, lineHandler.default_text_style);
+}
+
+void tst_Line::deleteCharactersRemoveMiddle()
+{
+    LineHandler lineHandler;
+    Line *line = lineHandler.line();
+
+    QString insert_text('A');
+    int old_width = line->width();
+    QString empty(old_width - 2, ' ');
+    insert_text += empty + 'B';
+    line->replaceAtPos(0, insert_text, lineHandler.default_style);
+
+    Q_ASSERT(old_width == line->width());
+    Q_ASSERT(insert_text == *line->textLine());
+
+    line->deleteCharacters(1, old_width - 2);
+
+    Q_ASSERT(QString("AB") == line->textLine()->trimmed());
 }
 
 void tst_Line::insertCharacters()

@@ -52,18 +52,14 @@ class Screen : public QObject
     Q_PROPERTY(QPointF selectionAreaEnd READ selectionAreaEnd WRITE setSelectionAreaEnd NOTIFY selectionAreaEndChanged)
 
 public:
-    enum InsertMode {
-        Insert,
-        Replace
-    };
-
     explicit Screen(QObject *parent = 0);
     ~Screen();
 
-    void setHeight(int height, bool emitChanged);
+    void emitRequestHeight(int newHeight);
     void setHeight(int height);
     int height() const;
-    void setWidth(int width, bool emitChanged);
+
+    void emitRequestWidth(int newWidth);
     void setWidth(int width);
     int width() const;
 
@@ -75,8 +71,6 @@ public:
     Cursor *currentCursor() const { return  m_cursor_stack.last(); }
     void saveCursor();
     void restoreCursor();
-
-    void setInsertMode(InsertMode mode);
 
     TextStyle defaultTextStyle() const;
 
@@ -121,8 +115,6 @@ public:
     void sendPrimaryDA();
     void sendSecondaryDA();
 
-    void setCharacterMap(const QString &string);
-    QString characterMap() const;
     void setApplicationCursorKeysMode(bool enable);
     bool applicationCursorKeyMode() const;
 
@@ -150,8 +142,11 @@ signals:
     void lineCreated(Line *line);
     void cursorCreated(Cursor *cursor);
 
+    void requestHeightChange(int newHeight);
     void heightAboutToChange(int height);
     void heightChanged();
+
+    void requestWidthChange(int newWidth);
     void widthAboutToChange(int width);
     void widthChanged();
 
@@ -173,17 +168,14 @@ private:
     QVector<ScreenData *> m_screen_stack;
     QVector<Cursor *> m_cursor_stack;
     QVector<Cursor *> m_new_cursors;
+    QVector<Cursor *> m_delete_cursors;
 
     QString m_title;
-
-    InsertMode m_insert_mode;
 
     bool m_selection_valid;
     bool m_selection_moved;
     QPointF m_selection_start;
     QPointF m_selection_end;
-
-    QString m_character_map;
 
     bool m_flash;
     bool m_cursor_changed;

@@ -22,8 +22,7 @@
 #include <QtCore/QResource>
 #include <QtCore/QThread>
 
-#include <QtQuick/QQuickView>
-#include <QtQuick/QQuickItem>
+#include <QQmlEngine>
 
 #include "register_qml_types.h"
 #include "terminal_screen.h"
@@ -35,9 +34,13 @@ int main(int argc, char **argv)
 
     register_qml_types();
 
-    QQuickView view(QUrl("qrc:/qml/yat_declarative/main.qml"));
+    QQmlEngine engine;
+    QQmlComponent component(&engine, QUrl("qrc:/qml/yat_declarative/main.qml"));
+    auto errors = component.errors();
+    for (int i = 0; i < errors.size(); i++) {
+        qDebug() << errors.at(i).toString();
+    }
+    component.create();
 
-    view.setResizeMode(QQuickView::SizeViewToRootObject);
-    view.show();
     return app.exec();
 }

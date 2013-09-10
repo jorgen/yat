@@ -23,13 +23,101 @@
 #include "controll_chars.h"
 #include "screen.h"
 #include "cursor.h"
+#include "nrc_text_codec.h"
 
+#include <QtCore/QTextCodec>
 #include <QtCore/QDebug>
 
 
 static bool yat_parser_debug = qEnvironmentVariableIsSet("YAT_PARSER_DEBUG");
 
+namespace CharacterSet {
+enum CharacterSet {
+    utf_8,
+    ascii,
+    latin_1,
+    dec_special_graphics,
+    nrc_british,
+    nrc_norwegian_danish,
+    nrc_dutch,
+    nrc_finnish,
+    nrc_french,
+    nrc_french_canadian,
+    nrc_german,
+    nrc_italian,
+    nrc_spanish,
+    nrc_swedish,
+    nrc_swiss
+};
+}
 
+QTextCodec *codecForCharacterset(CharacterSet::CharacterSet characterSet) {
+    QTextCodec *codec = 0;
+    switch(characterSet) {
+        case CharacterSet::utf_8:
+            codec = QTextCodec::codecForName("utf-8");
+            break;
+        case CharacterSet::ascii:
+            codec = QTextCodec::codecForName("utf-8");
+            break;
+        case CharacterSet::latin_1:
+            codec = QTextCodec::codecForName("latin-1");
+            break;
+        case CharacterSet::dec_special_graphics:
+            codec = QTextCodec::codecForName("dec_special_graphics");
+            break;
+        case CharacterSet::nrc_british:
+            codec = QTextCodec::codecForName("nrc_british");
+            break;
+        case CharacterSet::nrc_norwegian_danish:
+            codec = QTextCodec::codecForName("nrc_norwegian_danish");
+            break;
+        case CharacterSet::nrc_dutch:
+            codec = QTextCodec::codecForName("nrc_dutch");
+            break;
+        case CharacterSet::nrc_finnish:
+            codec = QTextCodec::codecForName("nrc_finnish");
+            break;
+        case CharacterSet::nrc_french:
+            codec = QTextCodec::codecForName("nrc_french");
+            break;
+        case CharacterSet::nrc_french_canadian:
+            codec = QTextCodec::codecForName("nrc_french_canadian");
+            break;
+        case CharacterSet::nrc_german:
+            codec = QTextCodec::codecForName("nrc_german");
+            break;
+        case CharacterSet::nrc_italian:
+            codec = QTextCodec::codecForName("nrc_italian");
+            break;
+        case CharacterSet::nrc_spanish:
+            codec = QTextCodec::codecForName("nrc_spanish");
+            break;
+        case CharacterSet::nrc_swedish:
+            codec = QTextCodec::codecForName("nrc_swedish");
+            break;
+        case CharacterSet::nrc_swiss:
+            codec = QTextCodec::codecForName("nrc_swiss");
+            break;
+    }
+    if (!codec) {
+        qDebug() << "Failed to find codec for" << characterSet << ". Returning utf-8";
+        return QTextCodec::codecForName("utf-8");
+    }
+    return codec;
+}
+
+
+static const QByteArray getByteArrayMidNoCopy(const QByteArray &array, int start, int length)
+{
+    length = std::min(length, array.size() - start);
+
+    if (start >= array.size() || length < 1)
+        return QByteArray();
+
+    const char *data_at_start = array.data() + start;
+    return QByteArray::fromRawData(data_at_start, length);
+}
 static void printParameters(const QVector<int> &parameters, QDebug &debug, bool dec_private = false)
 {
     if (dec_private)
@@ -46,51 +134,46 @@ static void printParameters(const QVector<int> &parameters, QDebug &debug, bool 
 Parser::Parser(Screen *screen)
     : m_decode_state(PlainText)
     , m_current_token_start(0)
-    , m_currrent_position(0)
+    , m_current_position(0)
     , m_intermediate_char(QChar())
     , m_parameters(10)
-    , m_expecting_more_parameters(false)
+    , m_parameters_expecting_more(false)
     , m_dec_mode(false)
-    , m_looking_for_start(true)
     , m_lnm_mode_set(false)
     , m_screen(screen)
 {
+    for (uint i = 0; i < sizeof(m_graphic_codecs) / sizeof *m_graphic_codecs; i++) {
+        m_graphic_codecs[i] = QTextCodec::codecForName("utf-8");
+    }
+
+    NrcTextCodec::initialize();
 }
 
 void Parser::addData(const QByteArray &data)
 {
     m_current_token_start = 0;
     m_current_data = data;
-    for (m_currrent_position = 0; m_currrent_position < data.size(); m_currrent_position++) {
-        uchar character = data.at(m_currrent_position);
-        if (m_looking_for_start) {
-            if (!character)
-                continue;
-            if (character == ' ') {
-                continue;
-            } else {
-                m_looking_for_start = false;
-            }
-        }
+
+    for (m_current_position = 0; m_current_position < m_current_data.size(); m_current_position++) {
+        uchar character = m_current_data.at(m_current_position);
         switch (m_decode_state) {
         case PlainText:
-            //UTF-8
+            //Not a controll char
             if (character > 127)
                 continue;
             if (character < C0::C0_END ||
                     (character >= C1_8bit::C1_8bit_Start &&
                      character <= C1_8bit::C1_8bit_Stop)) {
-                if (m_currrent_position != m_current_token_start) {
-                    QString to_insert = QString::fromUtf8(data.mid(m_current_token_start,
-                                m_currrent_position - m_current_token_start));
+                if (m_current_position != m_current_token_start) {
+                    const QByteArray to_insert = getByteArrayMidNoCopy(m_current_data, m_current_token_start, m_current_position - m_current_token_start);
                     if (yat_parser_debug)
                         qDebug() << "Parser Insert text:" << to_insert;
-                    m_screen->currentCursor()->replaceAtCursor(to_insert);
+                    m_screen->currentCursor()->addAtCursor(to_insert);
                     tokenFinished();
                     m_current_token_start--;
                 }
                 m_decode_state = DecodeC0;
-                decodeC0(data.at(m_currrent_position));
+                decodeC0(m_current_data.at(m_current_position));
             }
             break;
         case DecodeC0:
@@ -105,8 +188,8 @@ void Parser::addData(const QByteArray &data)
         case DecodeOSC:
             decodeOSC(character);
             break;
-        case DecodeOtherEscape:
-            decodeOtherEscape(character);
+        case DecodeCharacterSet:
+            decodeCharacterSet(character);
             break;
         case DecodeFontSize:
             decodeFontSize(character);
@@ -115,12 +198,11 @@ void Parser::addData(const QByteArray &data)
 
     }
     if (m_decode_state == PlainText) {
-        QByteArray text = data.mid(m_current_token_start);
-        if (text.size()) {
-            QString to_insert = QString::fromUtf8(text);
+        QByteArray to_insert = getByteArrayMidNoCopy(m_current_data, m_current_token_start, m_current_data.size() - m_current_token_start);
+        if (to_insert.size()) {
             if (yat_parser_debug)
                 qDebug() << "Parser Insert text:" << to_insert;
-            m_screen->currentCursor()->replaceAtCursor(to_insert);
+            m_screen->currentCursor()->addAtCursor(to_insert);
             tokenFinished();
         }
     }
@@ -174,7 +256,15 @@ void Parser::decodeC0(uchar character)
             tokenFinished();
         break;
     case C0::SOorLS1:
+        m_screen->currentCursor()->setTextCodec(m_graphic_codecs[1]);
+        if (m_decode_state == DecodeC0)
+            tokenFinished();
+        break;
     case C0::SIorLS0:
+        m_screen->currentCursor()->setTextCodec(m_graphic_codecs[0]);
+        if (m_decode_state == DecodeC0)
+            tokenFinished();
+        break;
     case C0::DLE:
     case C0::DC1:
     case C0::DC2:
@@ -213,32 +303,32 @@ void Parser::decodeC1_7bit(uchar character)
         qDebug() << C1_7bit::C1_7bit(character);
     }
     switch(character) {
-    case C1_7bit::IND:
-        m_screen->currentCursor()->moveDown();
-        tokenFinished();
-        break;
-    case C1_7bit::NEL:
-        m_screen->currentCursor()->moveBeginningOfLine();
-        m_screen->currentCursor()->lineFeed();
-        tokenFinished();
-        break;
-    case C1_7bit::CSI:
-        m_decode_state = DecodeCSI;
-        break;
-    case C1_7bit::OSC:
-        m_decode_state = DecodeOSC;
-        break;
-    case C1_7bit::RI:
-        m_screen->currentCursor()->reverseLineFeed();
-        tokenFinished();
-        break;
     case '#':
         m_decode_state = DecodeFontSize;
         break;
-    case '%':
-    case '(':
-        m_parameters.append(-character);
-        m_decode_state = DecodeOtherEscape;
+    case C1_7bit::SCS_G0:
+        m_decode_state = DecodeCharacterSet;
+        m_decode_graphics_set = 0;
+        break;
+    case C1_7bit::SCS_G1:
+        m_decode_state = DecodeCharacterSet;
+        m_decode_graphics_set = 1;
+        break;
+    case C1_7bit::SCS_G2:
+        m_decode_state = DecodeCharacterSet;
+        m_decode_graphics_set = 2;
+        break;
+    case C1_7bit::SCS_G3:
+        m_decode_state = DecodeCharacterSet;
+        m_decode_graphics_set = 3;
+        break;
+    case C1_7bit::DECSC:
+        m_screen->saveCursor();
+        tokenFinished();
+        break;
+    case C1_7bit::DECRC:
+        m_screen->restoreCursor();
+        tokenFinished();
         break;
     case '=':
         qDebug() << "Application keypad";
@@ -248,9 +338,74 @@ void Parser::decodeC1_7bit(uchar character)
         qDebug() << "Normal keypad mode";
         tokenFinished();
         break;
+    case C1_7bit::NOT_DEFINED:
+    case C1_7bit::NOT_DEFINED1:
+    case C1_7bit::BPH:
+    case C1_7bit::NBH:
+        qDebug() << "Unhandled" << C1_7bit::C1_7bit(character);
+        tokenFinished();
+        break;
+    case C1_7bit::IND:
+        m_screen->currentCursor()->moveDown();
+        tokenFinished();
+        break;
+    case C1_7bit::NEL:
+        m_screen->currentCursor()->moveBeginningOfLine();
+        m_screen->currentCursor()->lineFeed();
+        tokenFinished();
+        break;
+    case C1_7bit::SSA:
+    case C1_7bit::ESA:
+        qDebug() << "Unhandled" << C1_7bit::C1_7bit(character);
+        tokenFinished();
+        break;
+    case C1_7bit::HTS:
+        m_screen->currentCursor()->setTabStop();
+        tokenFinished();
+        break;
+    case C1_7bit::HTJ:
+    case C1_7bit::VTS:
+    case C1_7bit::PLD:
+    case C1_7bit::PLU:
+        qDebug() << "Unhandled" << C1_7bit::C1_7bit(character);
+        tokenFinished();
+        break;
+    case C1_7bit::RI:
+        m_screen->currentCursor()->reverseLineFeed();
+        tokenFinished();
+        break;
+    case C1_7bit::SS2:
+    case C1_7bit::SS3:
+    case C1_7bit::DCS:
+    case C1_7bit::PU1:
+    case C1_7bit::PU2:
+    case C1_7bit::STS:
+    case C1_7bit::CCH:
+    case C1_7bit::MW :
+    case C1_7bit::SPA:
+    case C1_7bit::EPA:
+    case C1_7bit::SOS:
+    case C1_7bit::NOT_DEFINED3:
+    case C1_7bit::SCI:
+        qDebug() << "Unhandled" << C1_7bit::C1_7bit(character);
+        tokenFinished();
+        break;
+    case C1_7bit::CSI:
+        m_decode_state = DecodeCSI;
+        break;
+    case C1_7bit::ST :
+        qDebug() << "Unhandled" << C1_7bit::C1_7bit(character);
+        tokenFinished();
+        break;
+    case C1_7bit::OSC:
+        m_decode_state = DecodeOSC;
+        break;
+    case C1_7bit::PM :
+    case C1_7bit::APC:
     default:
         qDebug() << "Unhandled" << C1_7bit::C1_7bit(character);
         tokenFinished();
+        break;
     }
 }
 
@@ -274,11 +429,11 @@ void Parser::decodeParameters(uchar character)
         break;
     case 0x3b:
         if (!m_parameter_string.size()) {
-            m_parameters.append(1);
+            m_parameters.append(INT_MIN);
         } else {
             appendParameter();
         }
-        m_expecting_more_parameters = true;
+        m_parameters_expecting_more = true;
         break;
     case 0x3c:
     case 0x3d:
@@ -313,10 +468,6 @@ void Parser::decodeCSI(uchar character)
             decodeParameters(character);
         } else {
             appendParameter();
-            if (m_expecting_more_parameters) {
-                m_parameters.append(1);
-                m_expecting_more_parameters = false;
-            }
             if (character >= 0x20 && character <= 0x2f) {
                 if (m_intermediate_char.unicode())
                     qDebug() << "Warning!: double intermediate bytes found in CSI";
@@ -384,7 +535,7 @@ void Parser::decodeCSI(uchar character)
                     switch (character) {
                     case FinalBytesNoIntermediate::ICH: {
                         int n_chars = m_parameters.size() ? m_parameters.at(0) : 1;
-                        QString empty(n_chars, QChar(' '));
+                        QByteArray empty(n_chars, ' ');
                         m_screen->currentCursor()->insertAtCursor(empty);
                     }
                         break;
@@ -417,11 +568,13 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::CHA: {
                         Q_ASSERT(m_parameters.size() < 2);
+                        handleDefaultParameters(1);
                         int move_to_pos_on_line = m_parameters.size() ? m_parameters.at(0) : 1;
                         m_screen->currentCursor()->moveToCharacter(move_to_pos_on_line - 1);
                     }
                         break;
                     case FinalBytesNoIntermediate::CUP:
+                        handleDefaultParameters(1);
                         if (!m_parameters.size()) {
                             m_screen->currentCursor()->moveOrigin();
                         } else if (m_parameters.size() == 2){
@@ -529,6 +682,7 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::VPA: {
                         Q_ASSERT(m_parameters.size() < 2);
+                        handleDefaultParameters(1);
                         int move_to_line = m_parameters.size() ? m_parameters.at(0) -1 : 0;
                         m_screen->currentCursor()->moveToLine(move_to_line);
                     }
@@ -538,6 +692,7 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::HVP: {
                         Q_ASSERT(m_parameters.size() <= 2);
+                        handleDefaultParameters(1);
                         if (!m_parameters.size()) {
                             m_screen->currentCursor()->moveOrigin();
                         } else if (m_parameters.size() == 2){
@@ -548,7 +703,13 @@ void Parser::decodeCSI(uchar character)
                         break;
                     }
                     case FinalBytesNoIntermediate::TBC:
-                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
+                        if (!m_parameters.size() || m_parameters.at(0) == 0) {
+                            m_screen->currentCursor()->removeTabStop();
+                        } else if (m_parameters.at(0) == 3) {
+                            m_screen->currentCursor()->clearTabStops();
+                        } else {
+                            qDebug() << "Unknwon" << FinalBytesNoIntermediate::TBC << "parameter";
+                        }
                         break;
                     case FinalBytesNoIntermediate::SM:
                         if (!m_parameters.size()) {
@@ -583,6 +744,7 @@ void Parser::decodeCSI(uchar character)
 
                         break;
                     case FinalBytesNoIntermediate::SGR:
+                        handleDefaultParameters(0);
                         if (!m_parameters.size())
                             m_parameters << 0;
                         handleSGR();
@@ -661,7 +823,7 @@ void Parser::decodeOSC(uchar character)
                 if (m_decode_osc_state == ChangeWindowAndIconName ||
                         m_decode_osc_state == ChangeWindowTitle) {
                     QString title = QString::fromUtf8(m_current_data.mid(m_current_token_start+4,
-                                m_currrent_position - m_current_token_start -1));
+                                m_current_position - m_current_token_start -1));
                     m_screen->setTitle(title);
                 }
                 tokenFinished();
@@ -670,60 +832,64 @@ void Parser::decodeOSC(uchar character)
     }
 }
 
-void Parser::decodeOtherEscape(uchar character)
+void Parser::decodeCharacterSet(uchar character)
 {
-    Q_ASSERT(m_parameters.size());
-    switch(m_parameters.at(0)) {
-    case -'(':
-        switch(character) {
-        case 0:
-            m_screen->setCharacterMap("DEC Special Character and Line Drawing Set");
-            break;
-        case 'A':
-            m_screen->setCharacterMap("UK");
-            break;
-        case 'B':
-            m_screen->setCharacterMap("USASCII");
+    if (m_decode_graphics_set < 0 || m_decode_graphics_set > (int) (sizeof(m_graphic_codecs) / sizeof(*m_graphic_codecs))) {
+        qDebug() << "Parser state is illigal. m_decode_graphics_set is: " << m_decode_graphics_set << "array size is:" << (sizeof(m_graphic_codecs) / sizeof(*m_graphic_codecs));
+        m_decode_graphics_set = 0;
+        return;
+    }
+    switch(character) {
+        case '0':
+            m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::dec_special_graphics);
             break;
         case '4':
-            m_screen->setCharacterMap("Dutch");
+            m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::nrc_dutch);
+            break;
+        case '5':
+            m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::nrc_finnish);
+            break;
+        case '6':
+            m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::nrc_norwegian_danish);
+            break;
+        case '7':
+            m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::nrc_swedish);
+            break;
+        case 'A':
+            m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::nrc_british);
+            break;
+        case 'B':
+            m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::ascii);
             break;
         case 'C':
-        case '5':
-            m_screen->setCharacterMap("Finnish");
+            m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::nrc_finnish);
             break;
         case 'R':
-            m_screen->setCharacterMap("French");
+            m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::nrc_french);
             break;
         case 'Q':
-            m_screen->setCharacterMap("FrenchCanadian");
+            m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::nrc_french_canadian);
             break;
         case 'K':
-            m_screen->setCharacterMap("German");
+            m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::nrc_german);
             break;
         case 'Y':
-            m_screen->setCharacterMap("Italian");
+            m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::nrc_italian);
             break;
         case 'E':
-        case '6':
-            m_screen->setCharacterMap("NorDan");
+            m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::nrc_norwegian_danish);
             break;
         case 'Z':
-            m_screen->setCharacterMap("Spanish");
+            m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::nrc_spanish);
             break;
         case 'H':
-        case '7':
-            m_screen->setCharacterMap("Sweedish");
+            m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::nrc_swedish);
             break;
         case '=':
-            m_screen->setCharacterMap("Swiss");
+            m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::nrc_swiss);
             break;
         default:
-            qDebug() << "Not supported Character set!";
-        }
-        break;
-    default:
-        qDebug() << "Other Escape sequence not recognized" << m_parameters.at(0);
+            qDebug() << "Not supported Character set!" << character << (char) character;
     }
     tokenFinished();
 }
@@ -751,8 +917,7 @@ void Parser::setMode(int mode)
 //Control representation          CRM†    3
 //Insert/replace                  IRM     4
         case 4:
-            qDebug() << "INSERT MODE";
-            m_screen->setInsertMode(Screen::Insert);
+            m_screen->currentCursor()->setInsertMode(Cursor::Insert);
             break;
 //Status reporting transfer       SRTM*   5
 //Vertical editing                VEM*    7
@@ -787,8 +952,8 @@ void Parser::setDecMode(int mode)
 //2 -> Designate USASCII for character sets G0-G3 (DECANM), and set VT100 mode.
 //3 -> 132 Column Mode (DECCOLM).
     case 3:
-        m_screen->setWidth(132, true);
-        m_screen->setHeight(24, true);
+        m_screen->emitRequestWidth(132);
+        m_screen->emitRequestHeight(24);
         m_screen->clear();
         m_screen->currentCursor()->moveOrigin();
         m_screen->currentCursor()->resetScrollArea();
@@ -807,7 +972,7 @@ void Parser::setDecMode(int mode)
         break;
 //7 -> Wraparound Mode (DECAWM).
     case 7:
-        qDebug() << "WRAPAROUND MODE";
+        m_screen->currentCursor()->setWrapAround(true);
         break;
 
 //8 -> Auto-repeat Keys (DECARM).
@@ -859,6 +1024,9 @@ void Parser::setDecMode(int mode)
 //1043 -> Enable raising of the window when Control-G is received. (enables the popOnBell resource).
 //1047 -> Use Alternate Screen Buffer. (This may be disabled by the titeInhibit resource).
 //1048 -> Save cursor as in DECSC. (This may be disabled by the titeInhibit resource).
+    case 1048:
+        m_screen->saveCursor();
+        break;
 //1049 -> Save cursor as in DECSC and use Alternate Screen Buffer, clearing it first. (This may be disabled by the titeInhibit resource). This combines the effects of the 1047 and 1048 modes. Use this with terminfo-based applications rather than the 47 mode.
     case 1049:
         m_screen->saveCursor();
@@ -884,8 +1052,7 @@ void Parser::resetMode(int mode)
 //Control representation          CRM†    3
 //Insert/replace                  IRM     4
         case 4:
-            qDebug() << "REPLACE MODE";
-            m_screen->setInsertMode(Screen::Replace);
+            m_screen->currentCursor()->setInsertMode(Cursor::Replace);
             break;
 //Status reporting transfer       SRTM*   5
 //Vertical editing                VEM*    7
@@ -920,8 +1087,8 @@ void Parser::resetDecMode(int mode)
 //2 -> Designate VT52 mode (DECANM).
 //3 -> 80 Column Mode (DECCOLM).
         case 3:
-            m_screen->setWidth(80, true);
-            m_screen->setHeight(24, true);
+            m_screen->emitRequestWidth(80);
+            m_screen->emitRequestHeight(24);
             m_screen->clear();
             m_screen->currentCursor()->moveOrigin();
             m_screen->currentCursor()->resetScrollArea();
@@ -940,7 +1107,7 @@ void Parser::resetDecMode(int mode)
             break;
 //7 -> No Wraparound Mode (DECAWM).
         case 7:
-            qDebug() << "NO WRAPAROUND MODE";
+            m_screen->currentCursor()->setWrapAround(false);
             break;
 //8 -> No Auto-repeat Keys (DECARM).
 //9 -> Don’t send Mouse X & Y on button press.
@@ -990,6 +1157,9 @@ void Parser::resetDecMode(int mode)
 //1043 -> Disable raising of the window when Control-G is received. (This disables the popOnBell resource).
 //1047 -> Use Normal Screen Buffer, clearing screen first if in the Alternate Screen. (This may be disabled by the titeInhibit resource).
 //1048 -> Restore cursor as in DECRC. (This may be disabled by the titeInhibit resource).
+    case 1048:
+            m_screen->restoreCursor();
+            break;
 //1049 -> Use Normal Screen Buffer and restore cursor as in DECRC. (This may be disabled by the titeInhibit resource). This combines the effects of the 1047 and 1048 modes. Use this with terminfo-based applications rather than the 47 mode.
     case 1049:
             m_screen->restoreCursor();
@@ -1019,6 +1189,9 @@ void Parser::handleSGR()
             case 1:
                 m_screen->currentCursor()->setTextStyle(TextStyle::Bold);
                 break;
+            case 4:
+                m_screen->currentCursor()->setTextStyle(TextStyle::Underlined);
+                break;
             case 5:
                 m_screen->currentCursor()->setTextStyle(TextStyle::Blinking);
                 break;
@@ -1029,7 +1202,7 @@ void Parser::handleSGR()
                 qDebug() << "SGR: Hidden text not supported";
                 break;
             case 22:
-                m_screen->currentCursor()->setTextStyle(TextStyle::Normal);
+                m_screen->currentCursor()->setTextStyle(TextStyle::Bold, false);
                 break;
             case 24:
                 m_screen->currentCursor()->setTextStyle(TextStyle::Underlined, false);
@@ -1081,12 +1254,11 @@ void Parser::tokenFinished()
     m_parameters.clear();
     m_parameter_string.clear();
 
-    m_current_token_start = m_currrent_position + 1;
+    m_current_token_start = m_current_position + 1;
     m_intermediate_char = 0;
 
-    m_expecting_more_parameters = false;
+    m_parameters_expecting_more = false;
     m_dec_mode = false;
-    m_looking_for_start = true;
 }
 
 void Parser::appendParameter()
@@ -1094,7 +1266,16 @@ void Parser::appendParameter()
     if (m_parameter_string.size()) {
         m_parameters.append(m_parameter_string.toUShort());
         m_parameter_string.clear();
-        m_expecting_more_parameters = false;
+        m_parameters_expecting_more = false;
     }
 }
 
+void Parser::handleDefaultParameters(int defaultValue)
+{
+    for (int i = 0; i < m_parameters.size(); i++) {
+        if (m_parameters.at(i) == INT_MIN)
+            m_parameters.replace(i, defaultValue);
+    }
+    if (m_parameters_expecting_more)
+        m_parameters.append(defaultValue);
+}

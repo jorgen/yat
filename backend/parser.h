@@ -43,7 +43,7 @@ private:
         DecodeC1_7bit,
         DecodeCSI,
         DecodeOSC,
-        DecodeOtherEscape,
+        DecodeCharacterSet,
         DecodeFontSize
     };
 
@@ -60,7 +60,7 @@ private:
     void decodeParameters(uchar character);
     void decodeCSI(uchar character);
     void decodeOSC(uchar character);
-    void decodeOtherEscape(uchar character);
+    void decodeCharacterSet(uchar character);
     void decodeFontSize(uchar character);
 
     void setMode(int mode);
@@ -73,6 +73,7 @@ private:
     void tokenFinished();
 
     void appendParameter();
+    void handleDefaultParameters(int defaultValue);
 
     DecodeState m_decode_state;
     DecodeOSCState m_decode_osc_state;
@@ -80,16 +81,20 @@ private:
     QByteArray m_current_data;
 
     int m_current_token_start;
-    int m_currrent_position;
+    int m_current_position;
 
     QChar m_intermediate_char;
 
     QByteArray m_parameter_string;
     QVector<int> m_parameters;
-    bool m_expecting_more_parameters;
+    bool m_parameters_expecting_more;
     bool m_dec_mode;
-    bool m_looking_for_start;
     bool m_lnm_mode_set;
+
+    //this value does not need to be initialized nor reset
+    //since it is allways set before the state is set to decode charset
+    int m_decode_graphics_set;
+    QTextCodec *m_graphic_codecs[4];
 
     Screen *m_screen;
 };

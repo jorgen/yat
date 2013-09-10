@@ -49,8 +49,27 @@ ObjectDestructItem {
         anchors.fill: parent
         text: objectHandle.text
         color: objectHandle.foregroundColor
-        font: textItem.font
+        font.family: textItem.font.family
+        font.bold: objectHandle.bold
+        font.underline: objectHandle.underline
         textFormat: Text.PlainText
+
+        SequentialAnimation {
+            running: objectHandle.blinking
+            loops: Animation.Infinite
+            NumberAnimation {
+                target: textElement
+                property: "opacity"
+                to: 0
+                duration: 250
+            }
+            NumberAnimation {
+                target: textElement
+                property: "opacity"
+                to: 1
+                duration: 250
+            }
+        }
     }
 
     Connections {
@@ -60,19 +79,4 @@ ObjectDestructItem {
             textItem.x = objectHandle.index *  textItem.fontWidth;
         }
     }
-
-    //Component.onCompleted: {
-    //    //color = randomBg();
-    //}
-    //function randomBg()
-    //{
-    //    var hex1=new Array("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F")
-    //        var hex2=new Array("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F")
-    //        var hex3=new Array("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F")
-    //        var hex4=new Array("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F")
-    //        var hex5=new Array("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F")
-    //        var hex6=new Array("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F")
-    //        var bg="#"+hex1[Math.floor(Math.random()*hex1.length)]+hex2[Math.floor(Math.random()*hex2.length)]+hex3[Math.floor(Math.random()*hex3.length)]+hex4[Math.floor(Math.random()*hex4.length)]+hex5[Math.floor(Math.random()*hex5.length)]+hex6[Math.floor(Math.random()*hex6.length)]
-    //        return bg
-    //}
 }

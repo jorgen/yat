@@ -18,7 +18,8 @@ HEADERS += \
            $$PWD/color_palette.h \
            $$PWD/text_style.h \
            $$PWD/screen_data.h \
-           $$PWD/cursor.h
+           $$PWD/cursor.h \
+           $$PWD/nrc_text_codec.h
 
 SOURCES += \
            $$PWD/yat_pty.cpp \
@@ -30,4 +31,6 @@ SOURCES += \
            $$PWD/color_palette.cpp \
            $$PWD/text_style.cpp \
            $$PWD/screen_data.cpp \
-           $$PWD/cursor.cpp
+           $$PWD/cursor.cpp \
+           $$PWD/nrc_text_codec.cpp
+

@@ -29,16 +29,15 @@
 #include <QtCore/QDebug>
 
 ScreenData::ScreenData(Screen *screen)
-    : m_screen(screen)
+    : QObject(screen)
+    , m_screen(screen)
     , m_scroll_start(0)
     , m_scroll_end(0)
     , m_scroll_area_set(false)
     , m_lines_moved(0)
 {
-    std::function<void(int)> set_width_function = std::bind(&ScreenData::setWidth, this, std::placeholders::_1);
-    std::function<void(int)> set_height_function = std::bind(&ScreenData::setHeight, this, std::placeholders::_1);
-    QObject::connect(screen, &Screen::widthAboutToChange, set_width_function);
-    QObject::connect(screen, &Screen::heightAboutToChange, set_height_function);
+    connect(screen, SIGNAL(widthAboutToChange(int)), this,  SLOT(setWidth(int)));
+    connect(screen, SIGNAL(heightAboutToChange(int)), this, SLOT(setHeight(int)));
 }
 
 ScreenData::~ScreenData()

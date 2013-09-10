@@ -1,7 +1,13 @@
 import QtQuick 2.0
+import QtQuick.Window 2.0
 
-TerminalScreen {
-    id: terminal
+Window {
+    id: terminalWindow
+    TerminalScreen {
+        id: terminal
+        anchors.fill: parent
+        Component.onCompleted: terminalWindow.visible = true
+    }
     width: 800
     height: 600
 }
