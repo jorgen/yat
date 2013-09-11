@@ -47,8 +47,6 @@ Cursor::Cursor(Screen* screen)
     , m_wrap_around(true)
     , m_insert_mode(Replace)
 {
-    std::function<void(int)> set_width_function = std::bind(&Cursor::setDocumentWidth, this, std::placeholders::_1);
-    std::function<void(int)> set_height_function = std::bind(&Cursor::setDocumentHeight, this, std::placeholders::_1);
     connect(screen, SIGNAL(widthAboutToChange(int)), this, SLOT(setDocumentWidth(int)));
     connect(screen, SIGNAL(heightAboutToChange(int)), this, SLOT(setDocumentHeight(int)));
 
@@ -84,9 +82,12 @@ void Cursor::setDocumentWidth(int width)
 void Cursor::setDocumentHeight(int height)
 {
     m_document_height = height;
-    if (new_ry() >= height - 1) {
+    if (new_y() >= height) {
         new_ry() = height - 1;
         notifyChanged();
+    }
+    if (m_bottom_margin >= height) {
+        m_bottom_margin = height - 1;
     }
 }
 
@@ -467,7 +468,7 @@ void Cursor::insertAtCursor(const QByteArray &data)
 void Cursor::lineFeed()
 {
     int bottom = m_scroll_margins_set ? m_bottom_margin : m_document_height - 1;
-    if(new_y() == bottom) {
+    if(new_y() >= bottom) {
         //m_selection_start.new_ry()--;
         //m_selection_end.new_ry()--;
         //m_selection_moved = true;
@@ -504,7 +505,7 @@ void Cursor::setOriginAtMargin(bool atMargin)
 void Cursor::setScrollArea(int from, int to)
 {
     m_top_margin = from;
-    m_bottom_margin = to;
+    m_bottom_margin = std::min(to,m_document_height -1);
     m_scroll_margins_set = true;
 }
 

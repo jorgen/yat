@@ -127,12 +127,12 @@ void Screen::setWidth(int width)
     if (width == m_width)
         return;
 
-    m_width = width;
-
     if (!m_screen_stack.size())
         m_screen_stack << new ScreenData(this);
 
     emit widthAboutToChange(width);
+
+    m_width = width;
 
     m_pty.setWidth(width, width * 10);
 
