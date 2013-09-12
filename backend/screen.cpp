@@ -329,8 +329,10 @@ void Screen::printScreen() const
 
 void Screen::scheduleEventDispatch()
 {
-    if (!m_timer_event_id)
-        m_timer_event_id = startTimer(3);
+    if (!m_timer_event_id) {
+        m_timer_event_id = startTimer(1);
+        m_time_since_initiated.restart();
+    }
 
     m_time_since_parsed.restart();
 }
@@ -636,7 +638,7 @@ void Screen::setSelectionValidity()
 
 void Screen::timerEvent(QTimerEvent *)
 {
-    if (m_timer_event_id && m_time_since_parsed.elapsed() > 2) {
+    if (m_timer_event_id && (m_time_since_parsed.elapsed() > 1 || m_time_since_initiated.elapsed() > 5)) {
         killTimer(m_timer_event_id);
         m_timer_event_id = 0;
         dispatchChanges();

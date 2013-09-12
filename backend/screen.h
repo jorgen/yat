@@ -160,6 +160,7 @@ private:
     YatPty m_pty;
     Parser m_parser;
     QElapsedTimer m_time_since_parsed;
+    QElapsedTimer m_time_since_initiated;
 
     int m_timer_event_id;
     int m_width;

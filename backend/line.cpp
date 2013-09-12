@@ -402,7 +402,7 @@ Text *Line::createTextSegment(const TextStyleLine &style_line)
 {
     Q_UNUSED(style_line);
     Text *to_return;
-    if (false && m_to_delete.size()) {
+    if (m_to_delete.size()) {
         to_return = m_to_delete.takeLast();
     } else {
         to_return = new Text(this);
