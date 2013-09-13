@@ -28,49 +28,6 @@
 class Screen;
 class QQuickItem;
 
-class TextStyleLine : public TextStyle {
-public:
-    TextStyleLine(const TextStyle &style, int start_index, int end_index)
-        : TextStyle(style)
-        , start_index(start_index)
-        , end_index(end_index)
-        , old_index(-1)
-        , text_segment(0)
-        , style_dirty(true)
-        , index_dirty(true)
-        , text_dirty(true)
-    {
-    }
-
-    TextStyleLine()
-        : start_index(0)
-        , end_index(0)
-        , old_index(-1)
-        , text_segment(0)
-        , style_dirty(false)
-        , index_dirty(false)
-        , text_dirty(false)
-    {
-
-    }
-
-    int start_index;
-    int end_index;
-
-    int old_index;
-    Text *text_segment;
-    bool style_dirty;
-    bool index_dirty;
-    bool text_dirty;
-
-    void setStyle(const TextStyle &style) {
-        forground = style.forground;
-        background = style.background;
-        this->style = style.style;
-    }
-};
-QDebug operator<<(QDebug debug, TextStyleLine line);
-
 class Line : public QObject
 {
     Q_OBJECT
@@ -112,12 +69,7 @@ signals:
     void indexChanged();
     void visibleChanged();
     void widthChanged();
-
-    void textCreated(Text *text);
 private:
-    Text *createTextSegment(const TextStyleLine &style_line);
-    void releaseTextSegment(Text *text);
-
     Screen *m_screen;
     QString m_text_line;
     QVector<TextStyleLine> m_style_list;

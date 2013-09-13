@@ -122,6 +122,9 @@ public:
 
     YatPty *pty();
 
+    Text *createTextSegment(const TextStyleLine &style_line);
+    void releaseTextSegment(Text *text);
+
 public slots:
     void readData(const QByteArray &data);
 
@@ -140,6 +143,7 @@ signals:
     void screenTitleChanged();
 
     void lineCreated(Line *line);
+    void textCreated(Text *text);
     void cursorCreated(Cursor *cursor);
 
     void requestHeightChange(int newHeight);
@@ -183,7 +187,10 @@ private:
     bool m_application_cursor_key_mode;
     bool m_fast_scroll;
 
+    QVector<Text *> m_to_delete;
+
     friend class ScreenData;
+    friend class Line;
 };
 
 #endif // TERMINALSCREEN_H

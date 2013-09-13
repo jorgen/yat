@@ -26,17 +26,23 @@
 
 #include <QtCore/QDebug>
 
-Text::Text(Line *line)
-    : QObject(line)
-    , m_line(line)
+Text::Text(Screen *screen)
+    : QObject(screen)
+    , m_screen(screen)
+    , m_start_index(0)
+    , m_old_start_index(0)
+    , m_end_index(0)
+    , m_line(0)
+    , m_new_line(0)
     , m_style_dirty(true)
     , m_text_dirty(true)
     , m_visible(true)
     , m_visible_old(true)
-    , m_forgroundColor(m_line->screen()->defaultForgroundColor())
-    , m_backgroundColor(m_line->screen()->defaultBackgroundColor())
+    , m_forgroundColor(m_screen->defaultForgroundColor())
+    , m_backgroundColor(m_screen->defaultBackgroundColor())
 {
-    connect(screen()->colorPalette(), SIGNAL(changed()), this, SLOT(paletteChanged()));
+    connect(m_screen->colorPalette(), SIGNAL(changed()), this, SLOT(paletteChanged()));
+    connect(m_screen, SIGNAL(dispatchTextSegmentChanges()), this, SLOT(dispatchEvents()));
 }
 
 Text::~Text()
@@ -46,6 +52,17 @@ Text::~Text()
 int Text::index() const
 {
     return m_start_index;
+}
+
+int Text::line() const
+{
+    return m_line;
+}
+
+void Text::setLine(int line)
+{
+    m_new_line = line;
+    m_text_dirty = true;
 }
 
 bool Text::visible() const
@@ -103,11 +120,6 @@ bool Text::underline() const
     return m_style.style & TextStyle::Underlined;
 }
 
-Screen *Text::screen() const
-{
-    return m_line->screen();
-}
-
 static bool differentStyle(TextStyle::Styles a, TextStyle::Styles b, TextStyle::Style style)
 {
     return (a & style) != (b & style);
@@ -115,7 +127,22 @@ static bool differentStyle(TextStyle::Styles a, TextStyle::Styles b, TextStyle::
 
 void Text::dispatchEvents()
 {
-    QString new_text = m_line->textLine()->mid(m_start_index, m_end_index + 1 - m_start_index);
+    if (m_line != m_new_line) {
+        m_line = m_new_line;
+        emit lineChanged();
+    }
+
+    if (m_old_start_index != m_start_index
+            || m_text_dirty) {
+        m_text_dirty = false;
+        m_text = m_screen->at(m_line)->textLine()->mid(m_start_index, m_end_index + 1 - m_start_index);
+        if (m_old_start_index != m_start_index) {
+            m_old_start_index = m_start_index;
+            emit indexChanged();
+        }
+        emit textChanged();
+    }
+
     if (m_style_dirty) {
         m_style_dirty = false;
 
@@ -162,16 +189,6 @@ void Text::dispatchEvents()
 
     }
 
-    if (m_old_start_index != m_start_index
-            || m_text_dirty) {
-        m_text_dirty = false;
-        m_text = m_line->textLine()->mid(m_start_index, m_end_index + 1 - m_start_index);
-        if (m_old_start_index != m_start_index) {
-            m_old_start_index = m_start_index;
-            emit indexChanged();
-        }
-        emit textChanged();
-    }
 
     if (m_visible_old != m_visible) {
         m_visible_old = m_visible;
@@ -189,9 +206,9 @@ void Text::setBackgroundColor()
 {
     QColor new_background;
     if (m_style.style & TextStyle::Inverse) {
-        new_background = screen()->colorPalette()->color(m_style.forground, false);
+        new_background = m_screen->colorPalette()->color(m_style.forground, false);
     } else {
-        new_background = screen()->colorPalette()->color(m_style.background, false);
+        new_background = m_screen->colorPalette()->color(m_style.background, false);
     }
     if (new_background != m_backgroundColor) {
         m_backgroundColor = new_background;
@@ -203,9 +220,9 @@ void Text::setForgroundColor()
 {
     QColor new_forground;
     if (m_style.style & TextStyle::Inverse) {
-        new_forground = screen()->colorPalette()->color(m_style.background, false);
+        new_forground = m_screen->colorPalette()->color(m_style.background, false);
     } else {
-        new_forground = screen()->colorPalette()->color(m_style.forground, false);
+        new_forground = m_screen->colorPalette()->color(m_style.forground, false);
     }
     if (new_forground != m_forgroundColor) {
         m_forgroundColor = new_forground;

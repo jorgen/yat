@@ -12,6 +12,7 @@ ObjectDestructItem {
     width: fontWidth
     x: objectHandle.x * fontWidth
     y: objectHandle.y * fontHeight
+    z: 1.1
 
     visible: objectHandle.visible
 

@@ -9,9 +9,17 @@ TextStyle::TextStyle()
 {
 
 }
+
 bool TextStyle::isCompatible(const TextStyle &other) const
 {
     return forground == other.forground
             && background == other.background
             && style == other.style;
 }
+
+QDebug operator<<(QDebug debug, TextStyleLine line)
+{
+    debug << "[" << line.start_index << "(" << line.style << ")" << line.end_index << "]"; 
+    return debug;
+}
+

@@ -342,6 +342,8 @@ void Screen::dispatchChanges()
     currentScreenData()->dispatchLineEvents();
     emit dispatchTextSegmentChanges();
 
+    m_to_delete.clear();
+
     if (m_flash) {
         m_flash = false;
         emit flash();
@@ -617,6 +619,30 @@ YatPty *Screen::pty()
     return &m_pty;
 }
 
+Text *Screen::createTextSegment(const TextStyleLine &style_line)
+{
+    Q_UNUSED(style_line);
+    Text *to_return;
+    if (m_to_delete.size()) {
+        to_return = m_to_delete.takeLast();
+    } else {
+        to_return = new Text(this);
+        emit textCreated(to_return);
+    }
+
+    to_return->setVisible(true);
+
+    return to_return;
+}
+
+void Screen::releaseTextSegment(Text *text)
+{
+    if (!text)
+        return;
+    text->setVisible(false);
+    m_to_delete.append(text);
+}
+
 void Screen::readData(const QByteArray &data)
 {
     m_parser.addData(data);
@@ -638,7 +664,7 @@ void Screen::setSelectionValidity()
 
 void Screen::timerEvent(QTimerEvent *)
 {
-    if (m_timer_event_id && (m_time_since_parsed.elapsed() > 1 || m_time_since_initiated.elapsed() > 5)) {
+    if (m_timer_event_id && (m_time_since_parsed.elapsed() > 3 || m_time_since_initiated.elapsed() > 8)) {
         killTimer(m_timer_event_id);
         m_timer_event_id = 0;
         dispatchChanges();

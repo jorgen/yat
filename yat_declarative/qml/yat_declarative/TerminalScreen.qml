@@ -10,6 +10,7 @@ TerminalScreen {
     property real fontHeight: fontMetricText.paintedHeight
 
     property var lineComponent : Qt.createComponent("TerminalLine.qml")
+    property var textComponent : Qt.createComponent("TerminalText.qml")
     property var cursorComponent : Qt.createComponent("TerminalCursor.qml")
 
     font.family: "menlo"
@@ -41,11 +42,21 @@ TerminalScreen {
             resetScreenItems();
         }
 
-        onLineCreated: {
-            var lineVariable = lineComponent.createObject(screenItem,
+        //onLineCreated: {
+        //    var lineVariable = lineComponent.createObject(screenItem,
+        //        {
+        //            "objectHandle" : line,
+        //            "font": screenItem.font,
+        //            "fontWidth" : screenItem.fontWidth,
+        //            "fontHeight" : screenItem.fontHeight,
+        //        })
+        //}
+
+        onTextCreated: {
+            var textSegment = textComponent.createObject(screenItem,
                 {
-                    "objectHandle" : line,
-                    "font": screenItem.font,
+                    "objectHandle" : text,
+                    "font" : screenItem.font,
                     "fontWidth" : screenItem.fontWidth,
                     "fontHeight" : screenItem.fontHeight,
                 })
@@ -134,6 +145,7 @@ TerminalScreen {
 
     Rectangle {
         id: flash
+        z: 1.2
         anchors.fill: parent
         color: "grey"
         opacity: 0

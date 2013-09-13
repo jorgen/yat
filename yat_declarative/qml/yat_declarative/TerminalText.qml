@@ -29,9 +29,10 @@ ObjectDestructItem {
     id: textItem
     property font font
     property real fontWidth
+    property real fontHeight
 
-    y: 0
-    x: 0
+    y: objectHandle.line * fontHeight;
+    x: objectHandle.index * fontWidth;
 
     width: textElement.paintedWidth
     height: textElement.paintedHeight
@@ -72,11 +73,4 @@ ObjectDestructItem {
         }
     }
 
-    Connections {
-        target: objectHandle
-
-        onIndexChanged: {
-            textItem.x = objectHandle.index *  textItem.fontWidth;
-        }
-    }
 }

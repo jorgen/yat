@@ -29,13 +29,13 @@
 #include "text_style.h"
 
 class Screen;
-class Line;
 class QQuickItem;
 
 class Text : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(int index READ index NOTIFY indexChanged)
+    Q_PROPERTY(int line READ line NOTIFY lineChanged);
     Q_PROPERTY(bool visible READ visible NOTIFY visibleChanged)
     Q_PROPERTY(QString text READ text NOTIFY textChanged)
     Q_PROPERTY(QColor foregroundColor READ foregroundColor NOTIFY forgroundColorChanged)
@@ -43,12 +43,14 @@ class Text : public QObject
     Q_PROPERTY(bool bold READ bold NOTIFY boldChanged)
     Q_PROPERTY(bool blinking READ blinking NOTIFY blinkingChanged)
     Q_PROPERTY(bool underline READ underline NOTIFY underlineChanged);
-    Q_PROPERTY(Screen *screen READ screen CONSTANT)
 public:
-    Text(Line *line);
+    Text(Screen *screen);
     ~Text();
 
     int index() const;
+
+    int line() const;
+    void setLine(int line);
 
     bool visible() const;
     void setVisible(bool visible);
@@ -64,8 +66,6 @@ public:
     bool blinking() const;
     bool underline() const;
 
-    Screen *screen() const;
-
     QObject *item() const;
 
 public slots:
@@ -73,6 +73,7 @@ public slots:
 
 signals:
     void indexChanged();
+    void lineChanged();
     void visibleChanged();
     void textChanged();
     void forgroundColorChanged();
@@ -88,11 +89,14 @@ private:
     void setBackgroundColor();
     void setForgroundColor();
 
-    Line *m_line;
+    Screen *m_screen;
     QString m_text;
     int m_start_index;
     int m_old_start_index;
     int m_end_index;
+    int m_line;
+    int m_new_line;
+
     TextStyle m_style;
     TextStyle m_new_style;
 
