@@ -67,6 +67,11 @@ Screen::Screen(QObject *parent)
 
 Screen::~Screen()
 {
+
+    //m_to_delete.clear();
+    for(int i = 0; i < m_to_delete.size(); i++) {
+        delete m_to_delete.at(i);
+    }
     for (int i = 0; i < m_screen_stack.size(); i++) {
         delete m_screen_stack.at(i);
     }
