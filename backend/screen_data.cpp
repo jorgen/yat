@@ -36,12 +36,14 @@ ScreenData::ScreenData(Screen *screen)
     , m_scroll_area_set(false)
     , m_lines_moved(0)
 {
+    qDebug() << Q_FUNC_INFO << this;
     connect(screen, SIGNAL(widthAboutToChange(int)), this,  SLOT(setWidth(int)));
-    connect(screen, SIGNAL(heightAboutToChange(int)), this, SLOT(setHeight(int)));
+    connect(screen, SIGNAL(heightAboutToChange(int, int)), this, SLOT(setHeight(int, int)));
 }
 
 ScreenData::~ScreenData()
 {
+    qDebug() << Q_FUNC_INFO << this;
     for (int i = 0; i < m_screen_lines.size(); i++) {
         delete m_screen_lines.at(i);
     }
@@ -70,25 +72,34 @@ int ScreenData::height() const
     return m_screen_lines.size();
 }
 
-void ScreenData::setHeight(int height)
+void ScreenData::setHeight(int height, int currentCursorLine)
 {
-    if (height == m_screen_lines.size())
+    const int old_height = m_screen_lines.size();
+    if (height == old_height)
         return;
 
-    if (m_screen_lines.size() > height) {
-        int removeElements = m_screen_lines.size() - height;
-        for (int i = 0; i < m_screen_lines.size(); i++) {
-            if (i <removeElements) {
+    if (old_height > height) {
+        const int to_remove = old_height - height;
+        const int removeElementsBelowCursor =
+            std::min(old_height - currentCursorLine, to_remove);
+        const int removeElementsAtTop = to_remove - removeElementsBelowCursor;
+        if (removeElementsBelowCursor > 0) {
+            for (int i = currentCursorLine; i < currentCursorLine + removeElementsBelowCursor; i++) {
+                delete m_screen_lines[i];
+            }
+            m_screen_lines.remove(currentCursorLine, removeElementsBelowCursor);
+        }
+
+        if (removeElementsAtTop > 0) {
+            for (int i = 0; i < removeElementsAtTop; i++) {
                 int not_broadcasted = m_new_lines.indexOf(m_screen_lines.at(i));
                 if (not_broadcasted >= 0)
                     m_new_lines.remove(not_broadcasted);
                 delete m_screen_lines[i];
-            } else {
-                m_screen_lines.at(i)->setIndex(i - removeElements);
             }
+            m_screen_lines.remove(0, removeElementsAtTop);
         }
-        m_screen_lines.remove(0, removeElements);
-    } else if (m_screen_lines.size() < height){
+    } else {
         int rowsToAdd = height - m_screen_lines.size();
         for (int i = 0; i < rowsToAdd; i++) {
             Line *newLine = new Line(m_screen);

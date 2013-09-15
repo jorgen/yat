@@ -147,7 +147,7 @@ signals:
     void cursorCreated(Cursor *cursor);
 
     void requestHeightChange(int newHeight);
-    void heightAboutToChange(int height);
+    void heightAboutToChange(int height, int currentCursorLine);
     void heightChanged();
 
     void requestWidthChange(int newWidth);

@@ -54,15 +54,16 @@ Screen::Screen(QObject *parent)
 {
     m_screen_stack.reserve(2);
 
+    Cursor *cursor = new Cursor(this);
+    m_cursor_stack << cursor;
+    m_new_cursors << cursor;
+
     setHeight(25);
     setWidth(80);
 
     connect(&m_pty, &YatPty::readyRead, this, &Screen::readData);
     connect(&m_pty, SIGNAL(hangupReceived()),qGuiApp, SLOT(quit()));
 
-    Cursor *cursor = new Cursor(this);
-    m_cursor_stack << cursor;
-    m_new_cursors << cursor;
 }
 
 Screen::~Screen()
@@ -98,19 +99,13 @@ void Screen::setHeight(int height)
     if (height == m_height)
         return;
 
-    m_height = height;
-
     if (!m_screen_stack.size()) {
             m_screen_stack << new ScreenData(this);
     }
 
-    for (int i = 0; i < m_screen_stack.size(); i++) {
-        m_screen_stack[i]->setHeight(height);
-    }
+    emit heightAboutToChange(height, currentCursor()->new_y());
 
-    for (int i = 0; i< m_cursor_stack.size(); i++) {
-        m_cursor_stack[i]->setDocumentHeight(height);
-    }
+    m_height = height;
 
     m_pty.setHeight(height, height * 10);
 
@@ -153,7 +148,7 @@ void Screen::saveScreenData()
 {
     ScreenData *new_data = new ScreenData(this);
     QSize pty_size = m_pty.size();
-    new_data->setHeight(pty_size.height());
+    new_data->setHeight(pty_size.height(),0);
     new_data->setWidth(pty_size.width());
 
     for (int i = 0; i < new_data->height(); i++) {
@@ -347,7 +342,11 @@ void Screen::dispatchChanges()
     currentScreenData()->dispatchLineEvents();
     emit dispatchTextSegmentChanges();
 
-    m_to_delete.clear();
+    static int max_to_delete_size = 0;
+    if (max_to_delete_size < m_to_delete.size()) {
+        max_to_delete_size = m_to_delete.size();
+        qDebug() << "TO DELETE SIZE :" << max_to_delete_size;
+    }
 
     if (m_flash) {
         m_flash = false;

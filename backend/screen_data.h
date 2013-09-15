@@ -78,7 +78,7 @@ public:
 
 public slots:
     void setWidth(int width);
-    void setHeight(int height);
+    void setHeight(int height, int currentCursorLine);
 
 private:
     Screen *m_screen;

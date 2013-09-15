@@ -48,7 +48,7 @@ Cursor::Cursor(Screen* screen)
     , m_insert_mode(Replace)
 {
     connect(screen, SIGNAL(widthAboutToChange(int)), this, SLOT(setDocumentWidth(int)));
-    connect(screen, SIGNAL(heightAboutToChange(int)), this, SLOT(setDocumentHeight(int)));
+    connect(screen, SIGNAL(heightAboutToChange(int, int)), this, SLOT(setDocumentHeight(int)));
 
     m_gl_text_codec = QTextCodec::codecForName("utf-8")->makeDecoder();
     m_gr_text_codec = QTextCodec::codecForName("utf-8")->makeDecoder();
@@ -62,6 +62,7 @@ Cursor::Cursor(Screen* screen)
 
 Cursor::~Cursor()
 {
+
 }
 void Cursor::setDocumentWidth(int width)
 {
@@ -81,11 +82,25 @@ void Cursor::setDocumentWidth(int width)
 
 void Cursor::setDocumentHeight(int height)
 {
+    if (m_document_height > height) {
+        const int to_remove = m_document_height - height;
+        const int removeLinesBelowCursor =
+            std::min(m_document_height - new_y(), to_remove);
+        const int removeLinesAtTop = to_remove - removeLinesBelowCursor;
+        new_ry() -= removeLinesAtTop;
+        notifyChanged();
+    }
+
     m_document_height = height;
+
     if (new_y() >= height) {
         new_ry() = height - 1;
         notifyChanged();
     }
+    if (new_y() <= 0) {
+        new_ry() = 0;
+    }
+
     if (m_bottom_margin >= height) {
         m_bottom_margin = height - 1;
     }
