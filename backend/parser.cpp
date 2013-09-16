@@ -139,6 +139,7 @@ Parser::Parser(Screen *screen)
     , m_parameters(10)
     , m_parameters_expecting_more(false)
     , m_dec_mode(false)
+    , m_gt_param(false)
     , m_lnm_mode_set(false)
     , m_screen(screen)
 {
@@ -437,10 +438,17 @@ void Parser::decodeParameters(uchar character)
         break;
     case 0x3c:
     case 0x3d:
-    case 0x3e:
         appendParameter();
-        qDebug() << "INVALID RANGE" << char(character);
+        qDebug() << "Parameter decoding INVALID RANGE" << char(character);
         m_parameters.append(-character);
+        break;
+    case 0x3e:
+        if (m_parameters.size() == 0 && m_parameter_string.size() == 0) {
+            m_gt_param = true;
+        } else {
+            appendParameter();
+            qDebug() << "unknown parameter state";
+        }
         break;
     case 0x3f:
         if (m_parameters.size() == 0 && m_parameter_string.size() == 0) {
@@ -664,18 +672,8 @@ void Parser::decodeCSI(uchar character)
                         qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         break;
                     case FinalBytesNoIntermediate::DA:
-                        if (m_parameters.size()) {
-                            switch (m_parameters.at(0)) {
-                            case -'>':
-                                m_screen->sendSecondaryDA();
-                                break;
-                            case -'?':
-                                qDebug() << "WHAT!!!";
-                                break; //ignore
-                            case 0:
-                            default:
-                                m_screen->sendPrimaryDA();
-                            }
+                        if (m_gt_param) {
+                            m_screen->sendSecondaryDA();
                         } else {
                             m_screen->sendPrimaryDA();
                         }
@@ -1269,6 +1267,7 @@ void Parser::tokenFinished()
 
     m_parameters_expecting_more = false;
     m_dec_mode = false;
+    m_gt_param = false;
 }
 
 void Parser::appendParameter()

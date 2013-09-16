@@ -89,6 +89,7 @@ private:
     QVector<int> m_parameters;
     bool m_parameters_expecting_more;
     bool m_dec_mode;
+    bool m_gt_param;
     bool m_lnm_mode_set;
 
     //this value does not need to be initialized nor reset
