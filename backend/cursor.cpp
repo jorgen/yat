@@ -145,9 +145,10 @@ void Cursor::scrollUp(int lines)
 {
     if (new_y() < m_top_margin || new_y() > m_bottom_margin)
         return;
-    int from = m_scroll_margins_set ? m_top_margin : 0;
+    int to = m_scroll_margins_set ? m_top_margin : 0;
+    int from = m_scroll_margins_set ? m_bottom_margin : m_document_height - 1;
     for (int i = 0; i < lines; i++) {
-        screen_data()->moveLine(from, new_y());
+        screen_data()->moveLine(from, to);
     }
 }
 
@@ -157,8 +158,9 @@ void Cursor::scrollDown(int lines)
         return;
 
     int to = m_scroll_margins_set ? m_bottom_margin : m_document_height - 1;
+    int from = m_scroll_margins_set ? m_top_margin : 0;
     for (int i = 0; i < lines; i++) {
-        screen_data()->moveLine(new_y(), to);
+        screen_data()->moveLine(from, to);
     }
 }
 

@@ -42,7 +42,6 @@ ScreenData::ScreenData(Screen *screen)
 
 ScreenData::~ScreenData()
 {
-    qDebug() << Q_FUNC_INFO << this;
     for (int i = 0; i < m_screen_lines.size(); i++) {
         delete m_screen_lines.at(i);
     }
