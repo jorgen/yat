@@ -52,6 +52,7 @@ public:
     void clearToBeginningOfScreen(int row);
     void clearLine(int index);
     void clear();
+    void releaseTextObjects();
 
     void clearCharacters(int line, int from, int to);
     void deleteCharacters(int line, int from, int to);

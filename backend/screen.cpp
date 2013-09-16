@@ -45,6 +45,10 @@ Screen::Screen(QObject *parent)
     , m_timer_event_id(0)
     , m_width(1)
     , m_height(1)
+    , m_primary_data(new ScreenData(this))
+    , m_alternate_data(new ScreenData(this))
+    , m_current_data(m_primary_data)
+    , m_old_current_data(m_primary_data)
     , m_selection_valid(false)
     , m_selection_moved(0)
     , m_flash(false)
@@ -52,8 +56,6 @@ Screen::Screen(QObject *parent)
     , m_application_cursor_key_mode(false)
     , m_fast_scroll(true)
 {
-    m_screen_stack.reserve(2);
-
     Cursor *cursor = new Cursor(this);
     m_cursor_stack << cursor;
     m_new_cursors << cursor;
@@ -73,9 +75,9 @@ Screen::~Screen()
     for(int i = 0; i < m_to_delete.size(); i++) {
         delete m_to_delete.at(i);
     }
-    for (int i = 0; i < m_screen_stack.size(); i++) {
-        delete m_screen_stack.at(i);
-    }
+
+    delete m_primary_data;
+    delete m_alternate_data;
 }
 
 
@@ -98,10 +100,6 @@ void Screen::setHeight(int height)
 {
     if (height == m_height)
         return;
-
-    if (!m_screen_stack.size()) {
-            m_screen_stack << new ScreenData(this);
-    }
 
     emit heightAboutToChange(height, currentCursor()->new_y());
 
@@ -127,9 +125,6 @@ void Screen::setWidth(int width)
     if (width == m_width)
         return;
 
-    if (!m_screen_stack.size())
-        m_screen_stack << new ScreenData(this);
-
     emit widthAboutToChange(width);
 
     m_width = width;
@@ -144,34 +139,14 @@ int Screen::width() const
     return m_width;
 }
 
-void Screen::saveScreenData()
+void Screen::useAlternateScreenBuffer()
 {
-    ScreenData *new_data = new ScreenData(this);
-    QSize pty_size = m_pty.size();
-    new_data->setHeight(pty_size.height(),0);
-    new_data->setWidth(pty_size.width());
-
-    for (int i = 0; i < new_data->height(); i++) {
-        currentScreenData()->at(i)->setVisible(false);
-    }
-
-    m_screen_stack << new_data;
-
-    setSelectionEnabled(false);
-
+    m_current_data = m_alternate_data;
 }
 
-void Screen::restoreScreenData()
+void Screen::useNormalScreenBuffer()
 {
-    ScreenData *data = currentScreenData();
-    m_screen_stack.remove(m_screen_stack.size()-1);
-    delete data;
-
-    for (int i = 0; i < currentScreenData()->height(); i++) {
-        currentScreenData()->at(i)->setVisible(true);
-    }
-
-    setSelectionEnabled(false);
+    m_current_data = m_primary_data;
 }
 
 TextStyle Screen::defaultTextStyle() const
@@ -339,6 +314,11 @@ void Screen::scheduleEventDispatch()
 
 void Screen::dispatchChanges()
 {
+    if (m_old_current_data != m_current_data) {
+        m_old_current_data->releaseTextObjects();
+        m_old_current_data = m_current_data;
+    }
+
     currentScreenData()->dispatchLineEvents();
     emit dispatchTextSegmentChanges();
 
@@ -629,12 +609,11 @@ Text *Screen::createTextSegment(const TextStyleLine &style_line)
     Text *to_return;
     if (m_to_delete.size()) {
         to_return = m_to_delete.takeLast();
+        to_return->setVisible(true);
     } else {
         to_return = new Text(this);
         emit textCreated(to_return);
     }
-
-    to_return->setVisible(true);
 
     return to_return;
 }

@@ -63,9 +63,9 @@ public:
     void setWidth(int width);
     int width() const;
 
-    ScreenData *currentScreenData() const { return m_screen_stack.last(); }
-    void saveScreenData();
-    void restoreScreenData();
+    ScreenData *currentScreenData() const { return m_current_data; }
+    void useAlternateScreenBuffer();
+    void useNormalScreenBuffer();
     Line *at(int i) const;
 
     Cursor *currentCursor() const { return  m_cursor_stack.last(); }
@@ -170,7 +170,11 @@ private:
     int m_width;
     int m_height;
 
-    QVector<ScreenData *> m_screen_stack;
+    ScreenData *m_primary_data;
+    ScreenData *m_alternate_data;
+    ScreenData *m_current_data;
+    ScreenData *m_old_current_data;
+
     QVector<Cursor *> m_cursor_stack;
     QVector<Cursor *> m_new_cursors;
     QVector<Cursor *> m_delete_cursors;

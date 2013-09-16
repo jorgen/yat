@@ -996,6 +996,9 @@ void Parser::setDecMode(int mode)
 //45 -> Reverse-wraparound Mode.
 //46 -> Start Logging. This is normally disabled by a compile-time option.
 //47 -> Use Alternate Screen Buffer. (This may be disabled by the titeInhibit resource).
+    case 47:
+        m_screen->useAlternateScreenBuffer();
+        break;
 //66 -> Application keypad (DECNKM).
 //67 -> Backarrow key sends backspace (DECBKM).
 //69 -> Enable left and right margin mode (DECLRMM), VT420 and up.
@@ -1021,6 +1024,9 @@ void Parser::setDecMode(int mode)
 //1042 -> Enable Urgency window manager hint when Control-G is received. (This enables the bellIsUrgent resource).
 //1043 -> Enable raising of the window when Control-G is received. (enables the popOnBell resource).
 //1047 -> Use Alternate Screen Buffer. (This may be disabled by the titeInhibit resource).
+    case 1047:
+        m_screen->useAlternateScreenBuffer();
+        break;
 //1048 -> Save cursor as in DECSC. (This may be disabled by the titeInhibit resource).
     case 1048:
         m_screen->saveCursor();
@@ -1028,7 +1034,7 @@ void Parser::setDecMode(int mode)
 //1049 -> Save cursor as in DECSC and use Alternate Screen Buffer, clearing it first. (This may be disabled by the titeInhibit resource). This combines the effects of the 1047 and 1048 modes. Use this with terminfo-based applications rather than the 47 mode.
     case 1049:
         m_screen->saveCursor();
-        m_screen->saveScreenData();
+        m_screen->useAlternateScreenBuffer();
         break;
 //1050 -> Set terminfo/termcap function-key mode.
 //1051 -> Set Sun function-key mode.
@@ -1129,6 +1135,9 @@ void Parser::resetDecMode(int mode)
 //45 -> No Reverse-wraparound Mode.
 //46 -> Stop Logging. (This is normally disabled by a compile-time option).
 //47 -> Use Normal Screen Buffer.
+        case 47:
+            m_screen->useNormalScreenBuffer();
+            break;
 //66 -> Numeric keypad (DECNKM).
 //67 -> Backarrow key sends delete (DECBKM).
 //69 -> Disable left and right margin mode (DECLRMM), VT420 and up.
@@ -1154,6 +1163,9 @@ void Parser::resetDecMode(int mode)
 //1042 -> Disable Urgency window manager hint when Control-G is received. (This disables the bellIsUrgent resource).
 //1043 -> Disable raising of the window when Control-G is received. (This disables the popOnBell resource).
 //1047 -> Use Normal Screen Buffer, clearing screen first if in the Alternate Screen. (This may be disabled by the titeInhibit resource).
+    case 1047:
+            m_screen->useNormalScreenBuffer();
+            break;
 //1048 -> Restore cursor as in DECRC. (This may be disabled by the titeInhibit resource).
     case 1048:
             m_screen->restoreCursor();
@@ -1161,7 +1173,7 @@ void Parser::resetDecMode(int mode)
 //1049 -> Use Normal Screen Buffer and restore cursor as in DECRC. (This may be disabled by the titeInhibit resource). This combines the effects of the 1047 and 1048 modes. Use this with terminfo-based applications rather than the 47 mode.
     case 1049:
             m_screen->restoreCursor();
-            m_screen->restoreScreenData();
+            m_screen->useNormalScreenBuffer();
             break;
 //1050 -> Reset terminfo/termcap function-key mode.
 //1051 -> Reset Sun function-key mode.

@@ -166,6 +166,14 @@ void ScreenData::clear()
     }
 }
 
+void ScreenData::releaseTextObjects()
+{
+    for (int i = 0; i < m_screen_lines.size(); i++) {
+        Line *line = m_screen_lines.at(i);
+        line->releaseTextObjects();
+    }
+}
+
 void ScreenData::clearCharacters(int line, int from, int to)
 {
     Line *line_item = m_screen_lines.at(line);

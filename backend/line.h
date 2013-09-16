@@ -61,6 +61,7 @@ public:
     bool visible() const;
 
     void dispatchEvents();
+    void releaseTextObjects();
 
     QVector<TextStyleLine> style_list();
 

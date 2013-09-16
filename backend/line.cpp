@@ -326,6 +326,7 @@ int Line::index() const
 
 void Line::setIndex(int index)
 {
+    m_changed = true;
     m_new_index = index;
     for (int i = 0; i < m_style_list.size(); i++) {
         if (m_style_list.at(i).text_segment) {
@@ -359,13 +360,13 @@ bool Line::visible() const
 
 void Line::dispatchEvents()
 {
+    if (!m_changed) {
+        return;
+    }
+
     if (m_index != m_new_index) {
         m_index = m_new_index;
         emit indexChanged();
-    }
-
-    if (!m_changed) {
-        return;
     }
 
     for (int i = 0; i < m_style_list.size(); i++) {
@@ -396,6 +397,17 @@ void Line::dispatchEvents()
         delete m_to_delete[i];
     }
     m_to_delete.clear();
+}
+
+void Line::releaseTextObjects()
+{
+    m_changed = true;
+    for (int i = 0; i < m_style_list.size(); i++) {
+        m_screen->releaseTextSegment(m_style_list.at(i).text_segment);
+        m_style_list[i].text_segment = 0;
+        m_style_list[i].text_dirty = true;
+        m_style_list[i].style_dirty = true;
+    }
 }
 
 QVector<TextStyleLine> Line::style_list()
