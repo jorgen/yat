@@ -36,7 +36,6 @@ ScreenData::ScreenData(Screen *screen)
     , m_scroll_area_set(false)
     , m_lines_moved(0)
 {
-    qDebug() << Q_FUNC_INFO << this;
     connect(screen, SIGNAL(widthAboutToChange(int)), this,  SLOT(setWidth(int)));
     connect(screen, SIGNAL(heightAboutToChange(int, int)), this, SLOT(setHeight(int, int)));
 }
