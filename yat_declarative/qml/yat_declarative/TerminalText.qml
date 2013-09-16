@@ -58,6 +58,10 @@ ObjectDestructItem {
         SequentialAnimation {
             running: objectHandle.blinking
             loops: Animation.Infinite
+            onRunningChanged: {
+                if (running === false)
+                    textElement.opacity = 1
+            }
             NumberAnimation {
                 target: textElement
                 property: "opacity"
