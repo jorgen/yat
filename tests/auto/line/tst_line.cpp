@@ -34,6 +34,8 @@ private slots:
     void replaceStart();
     void replaceEdgeOfStyle();
     void replaceCompatibleStyle();
+    void replaceCompatiblePreviousStyle();
+    void replaceCompatiblePreviousStyleShouldRemove();
     void replaceIncompatibleStyle();
     void replaceIncompaitibleStylesCrossesBoundary();
     void replace3IncompatibleStyles();
@@ -120,6 +122,69 @@ void tst_Line::replaceCompatibleStyle()
     QVector<TextStyleLine> after_style_list = line->style_list();
     QCOMPARE(after_style_list.size(), 1);
     QCOMPARE(after_style_list.at(0).style, lineHandler.default_text_style);
+}
+
+void tst_Line::replaceCompatiblePreviousStyle()
+{
+    LineHandler lineHandler;
+    Line *line = lineHandler.line();
+
+    TextStyle first_style = lineHandler.default_style;
+    first_style.style = TextStyle::Blinking;
+    QString first_text("first");
+    line->replaceAtPos(0,first_text, first_style);
+
+    TextStyle second_style = lineHandler.default_style;
+    second_style.style = TextStyle::Bold;
+    QString second_text("this is the second text");
+    line->replaceAtPos(first_text.size(), second_text, second_style);
+
+    QString third_text("third");
+    line->replaceAtPos(first_text.size(), third_text,first_style);
+
+    QVector<TextStyleLine> style_list = line->style_list();
+    QCOMPARE(style_list.size(), 3);
+
+    const TextStyleLine &first_check_style = style_list.at(0);
+    QCOMPARE(first_check_style.start_index, 0);
+    QCOMPARE(first_check_style.end_index, (first_text.size() -1) + third_text.size());
+
+    const TextStyleLine &second_check_style = style_list.at(1);
+    QCOMPARE(second_check_style.start_index, first_text.size() + third_text.size());
+    QCOMPARE(second_check_style.end_index, (first_text.size() -1) + second_text.size());
+
+    const TextStyleLine &third_check_style = style_list.at(2);
+    QCOMPARE(third_check_style.start_index, first_text.size() + second_text.size());
+}
+
+void tst_Line::replaceCompatiblePreviousStyleShouldRemove()
+{
+    LineHandler lineHandler;
+    Line *line = lineHandler.line();
+
+    TextStyle first_style = lineHandler.default_style;
+    first_style.style = TextStyle::Blinking;
+    QString first_text("first");
+    line->replaceAtPos(0,first_text, first_style);
+
+    TextStyle second_style = lineHandler.default_style;
+    second_style.style = TextStyle::Bold;
+    QString second_text("second");
+    line->replaceAtPos(first_text.size(), second_text, second_style);
+
+    QString third_text("this is the third");
+    line->replaceAtPos(first_text.size(), third_text,first_style);
+
+    QVector<TextStyleLine> style_list = line->style_list();
+    QCOMPARE(style_list.size(), 2);
+
+    const TextStyleLine &first_check_style = style_list.at(0);
+    QCOMPARE(first_check_style.start_index, 0);
+    QCOMPARE(first_check_style.end_index, (first_text.size() -1) + third_text.size());
+
+    const TextStyleLine &second_check_style = style_list.at(1);
+    QCOMPARE(second_check_style.start_index, first_text.size() + third_text.size());
+
 }
 
 void tst_Line::replaceIncompatibleStyle()

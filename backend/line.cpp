@@ -228,7 +228,13 @@ void Line::replaceAtPos(int pos, const QString &text, const TextStyle &style)
                     } else if (current_style.start_index == pos) {
                         current_style.start_index = pos + text.size();
                         current_style.text_dirty = true;
-                        m_style_list.insert(i, TextStyleLine(style,pos, pos+text.size() -1));
+                        if (i > 0 && m_style_list.at(i-1).isCompatible(style)) {
+                            TextStyleLine &previous_style = m_style_list[i -1];
+                            previous_style.end_index+= text.size();
+                            previous_style.text_dirty = true;
+                        } else {
+                            m_style_list.insert(i, TextStyleLine(style,pos, pos+text.size() -1));
+                        }
                     } else if (current_style.end_index == pos + text.size()) {
                         current_style.end_index = pos - 1;
                         current_style.text_dirty = true;
@@ -250,12 +256,22 @@ void Line::replaceAtPos(int pos, const QString &text, const TextStyle &style)
                     current_style.text_dirty = true;
                 } else {
                     if (current_style.start_index == pos) {
-                        current_style.end_index = pos + text.size() - 1;
-                        current_style.style = style.style;
-                        current_style.forground = style.forground;
-                        current_style.background = style.background;
-                        current_style.text_dirty = true;
-                        current_style.style_dirty = true;
+                        if (i > 0 && m_style_list.at(i-1).isCompatible(style)) {
+                            TextStyleLine &previous_style = m_style_list[i -1];
+                            previous_style.end_index+= text.size();
+                            previous_style.text_dirty = true;
+                            if (current_style.text_segment)
+                                m_screen->releaseTextSegment(current_style.text_segment);
+                            m_style_list.remove(i);
+                            i--;
+                        } else {
+                            current_style.end_index = pos + text.size() - 1;
+                            current_style.style = style.style;
+                            current_style.forground = style.forground;
+                            current_style.background = style.background;
+                            current_style.text_dirty = true;
+                            current_style.style_dirty = true;
+                        }
                     } else {
                         current_style.end_index = pos - 1;
                         current_style.text_dirty = true;
