@@ -50,7 +50,7 @@ Line::Line(Screen *screen)
 Line::~Line()
 {
     for (int i = 0; i < m_style_list.size(); i++) {
-        m_screen->releaseTextSegment(m_style_list.at(i).text_segment);
+        m_screen->releaseTextSegment(m_style_list[i]);
     }
 }
 
@@ -64,7 +64,7 @@ void Line::clear()
     m_text_line.fill(QChar(' '));
 
     for (int i = 0; i < m_style_list.size(); i++) {
-        m_screen->releaseTextSegment(m_style_list.at(i).text_segment);
+        m_screen->releaseTextSegment(m_style_list[i]);
     }
 
     m_style_list.clear();
@@ -106,8 +106,7 @@ void Line::deleteCharacters(int from, int to, int margin)
                 int current_style_size = current_style.end_index + 1  - current_style.start_index;
                 if (current_style_size <= size - removed) {
                     removed += current_style.end_index + 1 - current_style.start_index;
-                    if (current_style.text_segment)
-                        m_screen->releaseTextSegment(current_style.text_segment);
+                    m_screen->releaseTextSegment(current_style);
                     m_style_list.remove(i);
                     i--;
                 } else {
@@ -124,8 +123,7 @@ void Line::deleteCharacters(int from, int to, int margin)
                 current_style.text_dirty = true;
                 removed = subtract;
                 if (current_style.end_index < current_style.start_index) {
-                    if (current_style.text_segment)
-                        m_screen->releaseTextSegment(current_style.text_segment);
+                    m_screen->releaseTextSegment(current_style);
                     m_style_list.remove(i);
                     i--;
                 }
@@ -160,7 +158,7 @@ void Line::setWidth(int width)
             TextStyleLine &style_line = m_style_list[i];
             if (style_line.end_index >= width) {
                 if (style_line.start_index > width) {
-                    m_screen->releaseTextSegment(style_line.text_segment);
+                    m_screen->releaseTextSegment(style_line);
                     m_style_list.remove(i);
                     i--;
                 } else {
@@ -203,8 +201,7 @@ void Line::replaceAtPos(int pos, const QString &text, const TextStyle &style)
         TextStyleLine &current_style = m_style_list[i];
         if (found) {
             if (current_style.end_index <= pos + text.size()) {
-                if (current_style.text_segment)
-                    m_screen->releaseTextSegment(current_style.text_segment);
+                m_screen->releaseTextSegment(current_style);
                 m_style_list.remove(i);
                 i--;
             } else if (current_style.start_index <= pos + text.size()) {
@@ -260,8 +257,7 @@ void Line::replaceAtPos(int pos, const QString &text, const TextStyle &style)
                             TextStyleLine &previous_style = m_style_list[i -1];
                             previous_style.end_index+= text.size();
                             previous_style.text_dirty = true;
-                            if (current_style.text_segment)
-                                m_screen->releaseTextSegment(current_style.text_segment);
+                            m_screen->releaseTextSegment(current_style);
                             m_style_list.remove(i);
                             i--;
                         } else {
@@ -299,7 +295,7 @@ void Line::insertAtPos(int pos, const QString &text, const TextStyle &style)
             current_style.end_index += text.size();
             current_style.index_dirty = true;
             if (current_style.start_index >= m_text_line.size()) {
-                m_screen->releaseTextSegment(current_style.text_segment);
+                m_screen->releaseTextSegment(current_style);
                 m_style_list.remove(i);
                 i--;
             } else if (current_style.end_index >= m_text_line.size()) {
@@ -419,8 +415,7 @@ void Line::releaseTextObjects()
 {
     m_changed = true;
     for (int i = 0; i < m_style_list.size(); i++) {
-        m_screen->releaseTextSegment(m_style_list.at(i).text_segment);
-        m_style_list[i].text_segment = 0;
+        m_screen->releaseTextSegment(m_style_list[i]);
         m_style_list[i].text_dirty = true;
         m_style_list[i].style_dirty = true;
     }

@@ -123,7 +123,7 @@ public:
     YatPty *pty();
 
     Text *createTextSegment(const TextStyleLine &style_line);
-    void releaseTextSegment(Text *text);
+    void releaseTextSegment(TextStyleLine &style_line);
 
 public slots:
     void readData(const QByteArray &data);

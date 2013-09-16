@@ -618,12 +618,14 @@ Text *Screen::createTextSegment(const TextStyleLine &style_line)
     return to_return;
 }
 
-void Screen::releaseTextSegment(Text *text)
+void Screen::releaseTextSegment(TextStyleLine &style_line)
 {
-    if (!text)
+    if (!style_line.text_segment)
         return;
-    text->setVisible(false);
-    m_to_delete.append(text);
+
+    style_line.text_segment->setVisible(false);
+    m_to_delete.append(style_line.text_segment);
+    style_line.text_segment = 0;
 }
 
 void Screen::readData(const QByteArray &data)
