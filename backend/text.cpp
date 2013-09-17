@@ -21,7 +21,7 @@
 #include "text.h"
 
 #include "screen.h"
-#include "line.h"
+#include "block.h"
 #include <QtQuick/QQuickItem>
 
 #include <QtCore/QDebug>

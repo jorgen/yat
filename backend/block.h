@@ -28,7 +28,7 @@
 class Screen;
 class QQuickItem;
 
-class Line : public QObject
+class Block : public QObject
 {
     Q_OBJECT
 
@@ -37,8 +37,8 @@ class Line : public QObject
     Q_PROPERTY(bool visible READ visible WRITE setVisible NOTIFY visibleChanged)
     Q_PROPERTY(int width READ width WRITE setWidth NOTIFY widthChanged)
 public:
-    Line(Screen *screen);
-    ~Line();
+    Block(Screen *screen);
+    ~Block();
 
     Q_INVOKABLE Screen *screen() const;
 

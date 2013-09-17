@@ -34,7 +34,7 @@
 #include <QtCore/QStack>
 #include <QtCore/QElapsedTimer>
 
-class Line;
+class Block;
 class Cursor;
 class QQuickItem;
 class QQmlEngine;
@@ -66,7 +66,7 @@ public:
     ScreenData *currentScreenData() const { return m_current_data; }
     void useAlternateScreenBuffer();
     void useNormalScreenBuffer();
-    Line *at(int i) const;
+    Block *at(int i) const;
 
     Cursor *currentCursor() const { return  m_cursor_stack.last(); }
     void saveCursor();
@@ -142,7 +142,6 @@ signals:
 
     void screenTitleChanged();
 
-    void lineCreated(Line *line);
     void textCreated(Text *text);
     void cursorCreated(Cursor *cursor);
 
@@ -194,7 +193,6 @@ private:
     QVector<Text *> m_to_delete;
 
     friend class ScreenData;
-    friend class Line;
 };
 
 #endif // TERMINALSCREEN_H

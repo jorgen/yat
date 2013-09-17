@@ -1,27 +1,27 @@
-/******************************************************************************
-* Copyright (c) 2012 Jørgen Lind
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+/*******************************************************************************
+ * Copyright (c) 2012 Jørgen Lind
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ******************************************************************************/
 
-#include "line.h"
+#include "block.h"
 
 #include "text.h"
 #include "screen.h"
@@ -33,7 +33,7 @@
 
 #include <algorithm>
 
-Line::Line(Screen *screen)
+Block::Block(Screen *screen)
     : QObject(screen)
     , m_screen(screen)
     , m_index(0)
@@ -47,19 +47,19 @@ Line::Line(Screen *screen)
     clear();
 }
 
-Line::~Line()
+Block::~Block()
 {
     for (int i = 0; i < m_style_list.size(); i++) {
         m_screen->releaseTextSegment(m_style_list[i]);
     }
 }
 
-Screen *Line::screen() const
+Screen *Block::screen() const
 {
     return m_screen;
 }
 
-void Line::clear()
+void Block::clear()
 {
     m_text_line.fill(QChar(' '));
 
@@ -73,14 +73,14 @@ void Line::clear()
     m_changed = true;
 }
 
-void Line::clearCharacters(int from, int to)
+void Block::clearCharacters(int from, int to)
 {
     QString empty(to-from, QChar(' '));
     const TextStyle &defaultTextStyle = m_screen->defaultTextStyle();
     replaceAtPos(from, empty, defaultTextStyle);
 }
 
-void Line::deleteCharacters(int from, int to, int margin)
+void Block::deleteCharacters(int from, int to, int margin)
 {
     m_changed = true;
 
@@ -148,7 +148,7 @@ void Line::deleteCharacters(int from, int to, int margin)
     m_text_line.insert(margin + 1 - empty.size(),empty);
 }
 
-void Line::setWidth(int width)
+void Block::setWidth(int width)
 {
     int old_size = m_text_line.size();
     bool emit_changed = old_size != width;
@@ -184,12 +184,12 @@ void Line::setWidth(int width)
     }
 }
 
-int Line::width() const
+int Block::width() const
 {
     return m_text_line.size();
 }
 
-void Line::replaceAtPos(int pos, const QString &text, const TextStyle &style)
+void Block::replaceAtPos(int pos, const QString &text, const TextStyle &style)
 {
     Q_ASSERT(pos + text.size() <= m_text_line.size());
 
@@ -280,7 +280,7 @@ void Line::replaceAtPos(int pos, const QString &text, const TextStyle &style)
     }
 }
 
-void Line::insertAtPos(int pos, const QString &text, const TextStyle &style)
+void Block::insertAtPos(int pos, const QString &text, const TextStyle &style)
 {
     m_changed = true;
 
@@ -331,12 +331,12 @@ void Line::insertAtPos(int pos, const QString &text, const TextStyle &style)
     }
 }
 
-int Line::index() const
+int Block::index() const
 {
     return m_index;
 }
 
-void Line::setIndex(int index)
+void Block::setIndex(int index)
 {
     m_changed = true;
     m_new_index = index;
@@ -347,12 +347,12 @@ void Line::setIndex(int index)
     }
 }
 
-QString *Line::textLine()
+QString *Block::textLine()
 {
     return &m_text_line;
 }
 
-void Line::setVisible(bool visible)
+void Block::setVisible(bool visible)
 {
     if (visible != m_visible) {
         m_visible = visible;
@@ -365,12 +365,12 @@ void Line::setVisible(bool visible)
     }
 }
 
-bool Line::visible() const
+bool Block::visible() const
 {
     return m_visible;
 }
 
-void Line::dispatchEvents()
+void Block::dispatchEvents()
 {
     if (!m_changed) {
         return;
@@ -411,7 +411,7 @@ void Line::dispatchEvents()
     m_to_delete.clear();
 }
 
-void Line::releaseTextObjects()
+void Block::releaseTextObjects()
 {
     m_changed = true;
     for (int i = 0; i < m_style_list.size(); i++) {
@@ -421,16 +421,16 @@ void Line::releaseTextObjects()
     }
 }
 
-QVector<TextStyleLine> Line::style_list()
+QVector<TextStyleLine> Block::style_list()
 {
     return m_style_list;
 }
 
-void Line::printStyleList() const
+void Block::printStyleList() const
 {
     QString text_line = m_text_line;
     text_line.remove(QRegExp("\\s+$"));
-    qDebug() << "Line: " << this << text_line;
+    qDebug() << "Block: " << this << text_line;
     QDebug debug = qDebug();
     debug << "\t";
     for (int i= 0; i < m_style_list.size(); i++) {

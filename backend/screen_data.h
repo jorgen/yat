@@ -28,7 +28,7 @@
 
 #include <functional>
 
-class Line;
+class Block;
 class Screen;
 
 class ScreenData : public QObject
@@ -44,7 +44,7 @@ public:
     int scrollAreaStart() const;
     int scrollAreaEnd() const;
 
-    Line *at(int index) const;
+    Block *at(int index) const;
 
     void clearToEndOfLine(int row, int from_char);
     void clearToEndOfScreen(int row);
@@ -84,12 +84,11 @@ public slots:
 private:
     Screen *m_screen;
     int m_width;
-    QVector<Line *> m_screen_lines;
-    QVector<Line *> m_new_lines;
+    QVector<Block *> m_screen_blocks;
     int m_scroll_start;
     int m_scroll_end;
     bool m_scroll_area_set;
-    int m_lines_moved;
+    int m_blocks_moved;
     std::function<void(int)> m_set_width_function;
     std::function<void(int)> m_set_height_function;
 };

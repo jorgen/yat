@@ -20,7 +20,7 @@
 
 #include "screen.h"
 
-#include "line.h"
+#include "block.h"
 #include "cursor.h"
 
 #include "controll_chars.h"
@@ -292,7 +292,7 @@ void Screen::scheduleFlash()
     m_flash = true;
 }
 
-Line *Screen::at(int i) const
+Block *Screen::at(int i) const
 {
     return currentScreenData()->at(i);
 }

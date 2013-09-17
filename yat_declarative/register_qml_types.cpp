@@ -6,7 +6,6 @@
 #include "object_destruct_item.h"
 #include "screen.h"
 #include "text.h"
-#include "line.h"
 #include "cursor.h"
 
 void register_qml_types()
@@ -15,6 +14,5 @@ void register_qml_types()
     qmlRegisterType<ObjectDestructItem>("org.yat", 1, 0, "ObjectDestructItem");
     qmlRegisterType<Screen>();
     qmlRegisterType<Text>();
-    qmlRegisterType<Line>();
     qmlRegisterType<Cursor>();
 }

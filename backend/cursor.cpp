@@ -23,7 +23,7 @@
 
 #include "cursor.h"
 
-#include "line.h"
+#include "block.h"
 
 #include <QTextCodec>
 
@@ -437,8 +437,8 @@ void Cursor::replaceAtCursor(const QByteArray &data)
 
     const QString text = m_gl_text_codec->toUnicode(data);
     if (new_x() + text.size() <= m_screen->width()) {
-        Line *line = screen_data()->at(new_y());
-        line->replaceAtPos(new_x(), text, m_current_text_style);
+        Block *block = screen_data()->at(new_y());
+        block->replaceAtPos(new_x(), text, m_current_text_style);
         new_rx() += text.size();
     } else {
         if (m_wrap_around) {
@@ -448,19 +448,19 @@ void Cursor::replaceAtCursor(const QByteArray &data)
                     lineFeed();
                 }
                 const int size = screen_data()->width() - new_x();
-                QString toLine = text.mid(i,size);
+                QString toBlock = text.mid(i,size);
                 i+= size;
-                Line *line = screen_data()->at(new_y());
-                line->replaceAtPos(new_x(),toLine, m_current_text_style);
-                new_rx() += toLine.size();
+                Block *block = screen_data()->at(new_y());
+                block->replaceAtPos(new_x(),toBlock, m_current_text_style);
+                new_rx() += toBlock.size();
             }
         } else {
             const int size = screen_data()->width() - new_x();
-            QString toLine = text.mid(0,size);
-            toLine.replace(toLine.size() - 1, 1, text.at(text.size()-1));
-            Line *line = screen_data()->at(new_y());
-            line->replaceAtPos(new_x(),toLine, m_current_text_style);
-            new_rx() += toLine.size();
+            QString toBlock = text.mid(0,size);
+            toBlock.replace(toBlock.size() - 1, 1, text.at(text.size()-1));
+            Block *block = screen_data()->at(new_y());
+            block->replaceAtPos(new_x(),toBlock, m_current_text_style);
+            new_rx() += toBlock.size();
         }
     }
     if (new_x() >= m_document_width)
@@ -477,7 +477,7 @@ void Cursor::insertAtCursor(const QByteArray &data)
     //}
 
     const QString text = m_gl_text_codec->toUnicode(data);
-    Line *line = screen_data()->at(new_y());
+    Block *line = screen_data()->at(new_y());
     line->insertAtPos(new_x(), text, m_screen->defaultTextStyle());
     new_rx() += text.size();
 }

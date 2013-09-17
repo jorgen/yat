@@ -14,7 +14,7 @@ HEADERS += \
            $$PWD/controll_chars.h \
            $$PWD/parser.h \
            $$PWD/screen.h \
-           $$PWD/line.h \
+           $$PWD/block.h \
            $$PWD/color_palette.h \
            $$PWD/text_style.h \
            $$PWD/screen_data.h \
@@ -27,7 +27,7 @@ SOURCES += \
            $$PWD/controll_chars.cpp \
            $$PWD/parser.cpp \
            $$PWD/screen.cpp \
-           $$PWD/line.cpp \
+           $$PWD/block.cpp \
            $$PWD/color_palette.cpp \
            $$PWD/text_style.cpp \
            $$PWD/screen_data.cpp \
