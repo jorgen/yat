@@ -42,19 +42,10 @@ TerminalScreen {
             resetScreenItems();
         }
 
-        //onLineCreated: {
-        //    var lineVariable = lineComponent.createObject(screenItem,
-        //        {
-        //            "objectHandle" : line,
-        //            "font": screenItem.font,
-        //            "fontWidth" : screenItem.fontWidth,
-        //            "fontHeight" : screenItem.fontHeight,
-        //        })
-        //}
-
         onTextCreated: {
             var textSegment = textComponent.createObject(screenItem,
                 {
+                    "parent" : background,
                     "objectHandle" : text,
                     "font" : screenItem.font,
                     "fontWidth" : screenItem.fontWidth,
@@ -63,6 +54,10 @@ TerminalScreen {
         }
 
         onCursorCreated: {
+            if (cursorComponent.status != Component.Ready) {
+                console.log(cursorComponent.errorString());
+                return;
+            }
             var cursorVariable = cursorComponent.createObject(screenItem,
                 {
                     "objectHandle" : cursor,
@@ -132,15 +127,6 @@ TerminalScreen {
         end: screen.selectionAreaEnd
 
         visible: screen.selectionEnabled
-    }
-
-    Rectangle {
-        id: cursor
-        width: fontWidth
-        height: fontHeight
-        x: 0
-        y: 0
-        color: "grey"
     }
 
     Rectangle {
