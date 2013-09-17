@@ -232,10 +232,10 @@ void Block::replaceAtPos(int pos, const QString &text, const TextStyle &style)
                         } else {
                             m_style_list.insert(i, TextStyleLine(style,pos, pos+text.size() -1));
                         }
-                    } else if (current_style.end_index == pos + text.size()) {
+                    } else if (current_style.end_index == pos + text.size() - 1) {
                         current_style.end_index = pos - 1;
                         current_style.text_dirty = true;
-                        m_style_list.insert(i+1, TextStyleLine(style,pos, pos+text.size()));
+                        m_style_list.insert(i+1, TextStyleLine(style,pos, pos + text.size() - 1));
                     } else {
                         int old_end = current_style.end_index;
                         current_style.end_index = pos - 1;
