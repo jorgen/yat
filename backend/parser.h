@@ -98,6 +98,8 @@ private:
     QTextCodec *m_graphic_codecs[4];
 
     Screen *m_screen;
+    friend QDebug operator<<(QDebug debug, DecodeState decodeState);
 };
+QDebug operator<<(QDebug debug, Parser::DecodeState decodeState);
 
 #endif // PARSER_H

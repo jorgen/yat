@@ -283,7 +283,7 @@ void Parser::decodeC0(uchar character)
         break;
     case C0::ESC:
         if (m_decode_state != DecodeC0)
-            qDebug() << "Unexpected" << C0::ESC << "when parsing";
+            qDebug() << "Unexpected" << C0::ESC << " when parsing in decoding state:" << m_decode_state;
         m_decode_state = DecodeC1_7bit;
         break;
     case C0::IS4:
@@ -1287,4 +1287,32 @@ void Parser::handleDefaultParameters(int defaultValue)
     }
     if (m_parameters_expecting_more)
         m_parameters.append(defaultValue);
+}
+
+QDebug operator<<(QDebug debug, Parser::DecodeState decodeState)
+{
+    switch(decodeState) {
+        case Parser::PlainText:
+            debug << "PlainText";
+            break;
+        case Parser::DecodeC0:
+            debug << "DecodeC0";
+            break;
+        case Parser::DecodeC1_7bit:
+            debug << "DecodeC1_7bit";
+            break;
+        case Parser::DecodeCSI:
+            debug << "DecodeCSI";
+            break;
+        case Parser::DecodeOSC:
+            debug << "DecodeOSC";
+            break;
+        case Parser::DecodeCharacterSet:
+            debug << "DecodeCharacterSet";
+            break;
+        case Parser::DecodeFontSize:
+            debug << "DecodeFontSize";
+            break;
+    }
+    return debug;
 }
