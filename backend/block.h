@@ -66,11 +66,13 @@ public:
     QVector<TextStyleLine> style_list();
 
     void printStyleList() const;
+    void printStyleList(QDebug &debug) const;
 signals:
     void indexChanged();
     void visibleChanged();
     void widthChanged();
 private:
+    void mergeCompatibleStyles();
     Screen *m_screen;
     QString m_text_line;
     QVector<TextStyleLine> m_style_list;

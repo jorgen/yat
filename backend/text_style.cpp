@@ -19,7 +19,7 @@ bool TextStyle::isCompatible(const TextStyle &other) const
 
 QDebug operator<<(QDebug debug, TextStyleLine line)
 {
-    debug << "[" << line.start_index << "(" << line.style << ")" << line.end_index << "]"; 
+    debug << "[" << line.start_index << "(" << line.style << ":" << line.forground << ":" << line.background << ")" << line.end_index << "]";
     return debug;
 }
 

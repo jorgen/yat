@@ -36,6 +36,7 @@ private slots:
     void replaceCompatibleStyle();
     void replaceCompatiblePreviousStyle();
     void replaceCompatiblePreviousStyleShouldRemove();
+    void replaceCompatibleCurrentStyleShouldRemove();
     void replaceIncompatibleStyle();
     void replaceIncompaitibleStylesCrossesBoundary();
     void replace3IncompatibleStyles();
@@ -143,6 +144,8 @@ void tst_Block::replaceCompatiblePreviousStyle()
     QString third_text("third");
     block->replaceAtPos(first_text.size(), third_text,first_style);
 
+    blockHandler.screen.dispatchChanges();
+
     QVector<TextStyleLine> style_list = block->style_list();
     QCOMPARE(style_list.size(), 3);
 
@@ -175,6 +178,40 @@ void tst_Block::replaceCompatiblePreviousStyleShouldRemove()
 
     QString third_text("this is the third");
     block->replaceAtPos(first_text.size(), third_text,first_style);
+
+    blockHandler.screen.dispatchChanges();
+
+    QVector<TextStyleLine> style_list = block->style_list();
+    QCOMPARE(style_list.size(), 2);
+
+    const TextStyleLine &first_check_style = style_list.at(0);
+    QCOMPARE(first_check_style.start_index, 0);
+    QCOMPARE(first_check_style.end_index, (first_text.size() -1) + third_text.size());
+
+    const TextStyleLine &second_check_style = style_list.at(1);
+    QCOMPARE(second_check_style.start_index, first_text.size() + third_text.size());
+
+}
+
+void tst_Block::replaceCompatibleCurrentStyleShouldRemove()
+{
+    BlockHandler blockHandler;
+    Block *block = blockHandler.block();
+
+    TextStyle first_style = blockHandler.default_style;
+    first_style.style = TextStyle::Blinking;
+    QString first_text("first");
+    block->replaceAtPos(0,first_text, first_style);
+
+    TextStyle second_style = blockHandler.default_style;
+    second_style.style = TextStyle::Bold;
+    QString second_text("second");
+    block->replaceAtPos(first_text.size(), second_text, second_style);
+
+    QString third_text("second");
+    block->replaceAtPos(first_text.size(), third_text,first_style);
+
+    blockHandler.screen.dispatchChanges();
 
     QVector<TextStyleLine> style_list = block->style_list();
     QCOMPARE(style_list.size(), 2);

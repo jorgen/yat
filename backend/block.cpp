@@ -225,13 +225,7 @@ void Block::replaceAtPos(int pos, const QString &text, const TextStyle &style)
                     } else if (current_style.start_index == pos) {
                         current_style.start_index = pos + text.size();
                         current_style.text_dirty = true;
-                        if (i > 0 && m_style_list.at(i-1).isCompatible(style)) {
-                            TextStyleLine &previous_style = m_style_list[i -1];
-                            previous_style.end_index+= text.size();
-                            previous_style.text_dirty = true;
-                        } else {
-                            m_style_list.insert(i, TextStyleLine(style,pos, pos+text.size() -1));
-                        }
+                        m_style_list.insert(i, TextStyleLine(style,pos, pos+text.size() -1));
                     } else if (current_style.end_index == pos + text.size() - 1) {
                         current_style.end_index = pos - 1;
                         current_style.text_dirty = true;
@@ -381,6 +375,8 @@ void Block::dispatchEvents()
         emit indexChanged();
     }
 
+    mergeCompatibleStyles();
+
     for (int i = 0; i < m_style_list.size(); i++) {
         TextStyleLine &current_style = m_style_list[i];
 
@@ -428,12 +424,31 @@ QVector<TextStyleLine> Block::style_list()
 
 void Block::printStyleList() const
 {
+    QDebug debug = qDebug();
+    printStyleList(debug);
+}
+void Block::printStyleList(QDebug &debug) const
+{
     QString text_line = m_text_line;
     text_line.remove(QRegExp("\\s+$"));
-    qDebug() << "Block: " << this << text_line;
-    QDebug debug = qDebug();
+    debug << "Block: " << this << text_line << "\n";
     debug << "\t";
     for (int i= 0; i < m_style_list.size(); i++) {
         debug << m_style_list.at(i);
+    }
+}
+
+void Block::mergeCompatibleStyles()
+{
+    for (int i = 1; i < m_style_list.size(); i++) {
+        TextStyleLine &current = m_style_list[i];
+        if (m_style_list.at(i - 1).isCompatible(current)) {
+            TextStyleLine &prev = m_style_list[i-1];
+            prev.end_index = current.end_index;
+            prev.text_dirty = true;
+            m_screen->releaseTextSegment(current);
+            m_style_list.remove(i);
+            i--;
+        }
     }
 }

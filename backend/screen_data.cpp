@@ -335,7 +335,7 @@ void ScreenData::printScreen() const
 //            fprintf(stderr, "%s", qPrintable(m_screen_blocks.at(block)->at(i)->text()));
 //        }
 //        fprintf(stderr, "\n");
-        fprintf(stderr, "%s\n", qPrintable(*m_screen_blocks.at(block)->textLine()));
+        fprintf(stderr, "%d: %s\n", block, qPrintable(*m_screen_blocks.at(block)->textLine()));
     }
 }
 
@@ -345,7 +345,9 @@ void ScreenData::printStyleInformation() const
     for (int block_number = 0; block_number < m_screen_blocks.size(); block_number++) {
         const Block *block = m_screen_blocks.at(block_number);
         if (block->index() == index) {
-            block->printStyleList();
+            QDebug debug = qDebug();
+            debug << "Line: " << index;
+            block->printStyleList(debug);
             block_number = 0;
             index++;
         }
