@@ -71,8 +71,6 @@ public:
 
     void dispatchLineEvents();
 
-    void printScreen() const;
-
     void printStyleInformation() const;
 
     Screen *screen() const;
@@ -84,13 +82,12 @@ public slots:
 private:
     Screen *m_screen;
     int m_width;
-    QVector<Block *> m_screen_blocks;
+    int m_height;
+    std::list<Block *> m_screen_blocks;
     int m_scroll_start;
     int m_scroll_end;
     bool m_scroll_area_set;
     int m_blocks_moved;
-    std::function<void(int)> m_set_width_function;
-    std::function<void(int)> m_set_height_function;
 };
 
 #endif // SCREENDATA_H

@@ -390,9 +390,12 @@ void Block::dispatchEvents()
             current_style.style_dirty = false;
         }
 
-        if (current_style.index_dirty || current_style.text_dirty) {
-            current_style.text_segment->setStringSegment(current_style.start_index, current_style.end_index, current_style.text_dirty);
+        if (current_style.index_dirty) {
+            current_style.text_segment->setIndex(current_style.start_index);
             current_style.index_dirty = false;
+        }
+        if (current_style.text_dirty) {
+            current_style.text_segment->setStringSegment(m_text_line.midRef(current_style.start_index, current_style.end_index - current_style.start_index + 1));
             current_style.text_dirty = false;
         }
 

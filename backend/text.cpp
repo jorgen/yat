@@ -29,9 +29,9 @@
 Text::Text(Screen *screen)
     : QObject(screen)
     , m_screen(screen)
+    , m_text_ref_changed(false)
     , m_start_index(0)
-    , m_old_start_index(0)
-    , m_end_index(0)
+    , m_new_start_index(0)
     , m_line(0)
     , m_new_line(0)
     , m_style_dirty(true)
@@ -52,6 +52,11 @@ Text::~Text()
 int Text::index() const
 {
     return m_start_index;
+}
+
+void Text::setIndex(int index)
+{
+    m_new_start_index = index;
 }
 
 int Text::line() const
@@ -91,12 +96,10 @@ QColor Text::backgroundColor() const
     return m_backgroundColor;
 }
 
-void Text::setStringSegment(int start_index, int end_index, bool text_changed)
+void Text::setStringSegment(const QStringRef &segment)
 {
-    m_start_index = start_index;
-    m_end_index = end_index;
-
-    m_text_dirty = text_changed;
+    m_text_ref = segment;
+    m_text_ref_changed = true;
 }
 
 void Text::setTextStyle(const TextStyle &style)
@@ -132,16 +135,26 @@ void Text::dispatchEvents()
         emit lineChanged();
     }
 
-    if (m_old_start_index != m_start_index
-            || m_text_dirty) {
-        m_text_dirty = false;
-        m_text = m_screen->at(m_line)->textLine()->mid(m_start_index, m_end_index + 1 - m_start_index);
-        if (m_old_start_index != m_start_index) {
-            m_old_start_index = m_start_index;
-            emit indexChanged();
-        }
+    if (m_new_start_index != m_start_index) {
+        m_start_index = m_new_start_index;
+        emit indexChanged();
+    }
+
+    if (m_text_ref_changed) {
+        m_text = m_text_ref.toString();
+        m_text_ref_changed = false;
         emit textChanged();
     }
+    //if (m_old_start_index != m_start_index
+    //        || m_text_dirty) {
+    //    m_text_dirty = false;
+    //    m_text = m_screen->at(m_line)->textLine()->mid(m_start_index, m_end_index + 1 - m_start_index);
+    //    if (m_old_start_index != m_start_index) {
+    //        m_old_start_index = m_start_index;
+    //        emit indexChanged();
+    //    }
+    //    emit textChanged();
+    //}
 
     if (m_style_dirty) {
         m_style_dirty = false;

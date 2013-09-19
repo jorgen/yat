@@ -48,6 +48,7 @@ public:
     ~Text();
 
     int index() const;
+    void setIndex(int index);
 
     int line() const;
     void setLine(int line);
@@ -59,7 +60,7 @@ public:
     QColor foregroundColor() const;
     QColor backgroundColor() const;
 
-    void setStringSegment(int start_index, int end_index, bool textChanged);
+    void setStringSegment(const QStringRef &segment);
     void setTextStyle(const TextStyle &style);
 
     bool bold() const;
@@ -91,9 +92,10 @@ private:
 
     Screen *m_screen;
     QString m_text;
+    QStringRef m_text_ref;
+    bool m_text_ref_changed;
     int m_start_index;
-    int m_old_start_index;
-    int m_end_index;
+    int m_new_start_index;
     int m_line;
     int m_new_line;
 
