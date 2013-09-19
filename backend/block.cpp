@@ -200,7 +200,7 @@ void Block::replaceAtPos(int pos, const QString &text, const TextStyle &style)
     for (int i = 0; i < m_style_list.size(); i++) {
         TextStyleLine &current_style = m_style_list[i];
         if (found) {
-            if (current_style.end_index <= pos + text.size()) {
+            if (current_style.end_index <= pos + text.size() - 1) {
                 m_screen->releaseTextSegment(current_style);
                 m_style_list.remove(i);
                 i--;

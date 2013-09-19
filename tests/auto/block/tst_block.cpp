@@ -21,6 +21,11 @@ public:
         return screen.at(0);
     }
 
+    void doneChanges()
+    {
+        screen.dispatchChanges();
+    }
+
     TextStyle default_style;
     TextStyle::Styles default_text_style;
     Screen screen;
@@ -42,6 +47,7 @@ private slots:
     void replace3IncompatibleStyles();
     void replaceIncomaptibleStylesCrosses2Boundaries();
     void replaceIncompatibleColor();
+    void replaceRemoveOverlappedStyles();
     void replaceSwapStyles();
     void replaceEndBlock();
     void clearBlock();
@@ -144,7 +150,7 @@ void tst_Block::replaceCompatiblePreviousStyle()
     QString third_text("third");
     block->replaceAtPos(first_text.size(), third_text,first_style);
 
-    blockHandler.screen.dispatchChanges();
+    blockHandler.doneChanges();
 
     QVector<TextStyleLine> style_list = block->style_list();
     QCOMPARE(style_list.size(), 3);
@@ -179,7 +185,7 @@ void tst_Block::replaceCompatiblePreviousStyleShouldRemove()
     QString third_text("this is the third");
     block->replaceAtPos(first_text.size(), third_text,first_style);
 
-    blockHandler.screen.dispatchChanges();
+    blockHandler.doneChanges();
 
     QVector<TextStyleLine> style_list = block->style_list();
     QCOMPARE(style_list.size(), 2);
@@ -211,7 +217,7 @@ void tst_Block::replaceCompatibleCurrentStyleShouldRemove()
     QString third_text("second");
     block->replaceAtPos(first_text.size(), third_text,first_style);
 
-    blockHandler.screen.dispatchChanges();
+    blockHandler.doneChanges();
 
     QVector<TextStyleLine> style_list = block->style_list();
     QCOMPARE(style_list.size(), 2);
@@ -422,6 +428,31 @@ void tst_Block::replaceIncompatibleColor()
 
 }
 
+void tst_Block::replaceRemoveOverlappedStyles()
+{
+    BlockHandler blockHandler;
+    Block *block = blockHandler.block();
+
+    QString first_text("First Text");
+    TextStyle replace_style;
+    replace_style.style = TextStyle::Blinking;
+    block->replaceAtPos(0, first_text, replace_style);
+
+    QString second_text("Second Text");
+    replace_style.style = TextStyle::Italic;
+    block->replaceAtPos(first_text.size(), second_text, replace_style);
+
+    QString third_text("Third Text");
+    replace_style.style = TextStyle::Encircled;
+    block->replaceAtPos(first_text.size() + second_text.size(), third_text, replace_style);
+
+    QString fourth_text = third_text + second_text;
+    fourth_text.chop(1);
+    replace_style.style = TextStyle::Bold;
+    block->replaceAtPos(first_text.size(), fourth_text, replace_style);
+
+    QCOMPARE(block->style_list().size(), 4);
+}
 void tst_Block::replaceSwapStyles()
 {
     BlockHandler blockHandler;
@@ -496,7 +527,10 @@ void tst_Block::clearToEndOfBlock1Segment()
     block->replaceAtPos(0, replace_text, style);
 
     int before_clear_size = block->textLine()->size();
+
     block->clearCharacters(5, block->width() -1);
+
+    blockHandler.doneChanges();
 
     int after_clear_size = block->textLine()->size();
     QCOMPARE(after_clear_size, before_clear_size);
@@ -530,6 +564,8 @@ void tst_Block::clearToEndOfBlock3Segment()
 
     block->clearCharacters(replace_text.size(), block->width() - 1);
 
+    blockHandler.doneChanges();
+
     QVector<TextStyleLine> style_list = block->style_list();
     QCOMPARE(style_list.size(), 2);
 
@@ -557,6 +593,8 @@ void tst_Block::clearToEndOfBlockMiddle3Segment()
     block ->replaceAtPos(replace_text.size(), replace_text2, style);
 
     block->clearCharacters(replace_text.size() + 3, block->width() - 1);
+
+    blockHandler.doneChanges();
 
     QVector<TextStyleLine> style_list = block->style_list();
     QCOMPARE(style_list.size(), 3);
