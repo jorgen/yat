@@ -345,6 +345,10 @@ void ScreenData::printStyleInformation() const
     for (int block_number = 0; block_number < m_screen_blocks.size(); block_number++) {
         const Block *block = m_screen_blocks.at(block_number);
         if (block->index() == index) {
+            if (index % 5 == 0) {
+                QString ruler = QString("|----i----").repeated(m_width/10).append("|");
+                qDebug() << "Ruler:" << index << "      " << (void *) this << ruler;
+            }
             QDebug debug = qDebug();
             debug << "Line: " << index;
             block->printStyleList(debug);

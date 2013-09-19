@@ -431,7 +431,7 @@ void Block::printStyleList(QDebug &debug) const
 {
     QString text_line = m_text_line;
     text_line.remove(QRegExp("\\s+$"));
-    debug << "Block: " << this << text_line << "\n";
+    debug << "Block:" << (void *) this << text_line << "\n";
     debug << "\t";
     for (int i= 0; i < m_style_list.size(); i++) {
         debug << m_style_list.at(i);
