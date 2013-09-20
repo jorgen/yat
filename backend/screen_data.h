@@ -41,9 +41,6 @@ public:
     int width() const;
     int height() const;
 
-    int scrollAreaStart() const;
-    int scrollAreaEnd() const;
-
     Block *at(int index) const;
 
     void clearToEndOfLine(int row, int from_char);
@@ -56,8 +53,6 @@ public:
 
     void clearCharacters(int line, int from, int to);
     void deleteCharacters(int line, int from, int to);
-
-    void setScrollArea(int from, int to);
 
     void moveLine(int from, int to);
 
@@ -85,12 +80,7 @@ private:
     Screen *m_screen;
     int m_width;
     QVector<Block *> m_screen_blocks;
-    int m_scroll_start;
-    int m_scroll_end;
-    bool m_scroll_area_set;
     int m_blocks_moved;
-    std::function<void(int)> m_set_width_function;
-    std::function<void(int)> m_set_height_function;
 };
 
 #endif // SCREENDATA_H

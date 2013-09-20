@@ -31,9 +31,6 @@
 ScreenData::ScreenData(Screen *screen)
     : QObject(screen)
     , m_screen(screen)
-    , m_scroll_start(0)
-    , m_scroll_end(0)
-    , m_scroll_area_set(false)
     , m_blocks_moved(0)
 {
     connect(screen, SIGNAL(widthAboutToChange(int)), this,  SLOT(setWidth(int)));
@@ -99,21 +96,8 @@ void ScreenData::setHeight(int height, int currentCursorBlock)
         for (int i = 0; i < rowsToAdd; i++) {
             Block *newBlock = new Block(m_screen);
             m_screen_blocks.append(newBlock);
-            newBlock->setIndex(m_screen_blocks.size()-1);
         }
     }
-    if (!m_scroll_area_set)
-        m_scroll_end = height - 1;
-}
-
-int ScreenData::scrollAreaStart() const
-{
-    return m_scroll_start;
-}
-
-int ScreenData::scrollAreaEnd() const
-{
-    return m_scroll_end;
 }
 
 Block *ScreenData::at(int index) const
@@ -178,13 +162,6 @@ void ScreenData::deleteCharacters(int block, int from, int to)
 {
     Block *block_item = m_screen_blocks.at(block);
     block_item->deleteCharacters(from,to);
-}
-
-void ScreenData::setScrollArea(int from, int to)
-{
-    m_scroll_area_set = true;
-    m_scroll_start = from;
-    m_scroll_end = to;
 }
 
 void ScreenData::moveLine(int from, int to)
