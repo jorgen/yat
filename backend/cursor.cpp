@@ -82,6 +82,7 @@ void Cursor::setDocumentWidth(int width)
 
 void Cursor::setDocumentHeight(int height)
 {
+    resetScrollArea();
     if (m_document_height > height) {
         const int to_remove = m_document_height - height;
         const int removeLinesBelowCursor =
@@ -89,6 +90,9 @@ void Cursor::setDocumentHeight(int height)
         const int removeLinesAtTop = to_remove - removeLinesBelowCursor;
         new_ry() -= removeLinesAtTop;
         notifyChanged();
+    } else {
+        //should be new_ry() = std::min(content_height, document_height - 1)
+        //but dont move it for now
     }
 
     m_document_height = height;
@@ -99,10 +103,6 @@ void Cursor::setDocumentHeight(int height)
     }
     if (new_y() <= 0) {
         new_ry() = 0;
-    }
-
-    if (m_bottom_margin >= height) {
-        m_bottom_margin = height - 1;
     }
 }
 
