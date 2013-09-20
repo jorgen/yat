@@ -282,9 +282,14 @@ void Parser::decodeC0(uchar character)
             tokenFinished();
         break;
     case C0::ESC:
-        if (m_decode_state != DecodeC0)
-            qDebug() << "Unexpected" << C0::ESC << " when parsing in decoding state:" << m_decode_state;
+        if (m_decode_state != DecodeC0) {
+            tokenFinished();
+            break;
+        }
         m_decode_state = DecodeC1_7bit;
+        break;
+        if (m_decode_state != DecodeC0)
+            tokenFinished();
         break;
     case C0::IS4:
     case C0::IS3:
@@ -304,6 +309,9 @@ void Parser::decodeC1_7bit(uchar character)
         qDebug() << C1_7bit::C1_7bit(character);
     }
     switch(character) {
+    case C1_7bit::ESC:
+        tokenFinished();
+        break;
     case '#':
         m_decode_state = DecodeFontSize;
         break;

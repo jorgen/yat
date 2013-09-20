@@ -70,7 +70,8 @@ QDebug operator<<(QDebug debug, C0 character);
 
 namespace C1_7bit {
 enum C1_7bit {
-    C1_7bit_Start = 0x28,
+    C1_7bit_Start = 0x1b,
+    ESC = 0x1b,
     SCS_G0 = 0x28,
     SCS_G1 = 0x29,
     SCS_G2 = 0x2a,
