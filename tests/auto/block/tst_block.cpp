@@ -7,10 +7,15 @@
 class BlockHandler
 {
 public:
-    BlockHandler() {
+    BlockHandler(bool fill) {
         screen.setHeight(5);
-        screen.setWidth(100);
+        int width = 100;
+        screen.setWidth(width);
         screen.at(0)->clear();
+        if (fill) {
+            QString spaces(width, QChar(' '));
+            block()->replaceAtPos(0, spaces, screen.defaultTextStyle());
+        }
         QCOMPARE(block()->style_list().size(), 1);
         default_style = block()->style_list().at(0);
         default_text_style = default_style.style;
@@ -67,7 +72,7 @@ private slots:
 
 void tst_Block::replaceStart()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QVector<TextStyleLine> old_style_list = block->style_list();
@@ -88,7 +93,7 @@ void tst_Block::replaceStart()
 
 void tst_Block::replaceEdgeOfStyle()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString first_text("This is the First");
@@ -121,7 +126,7 @@ void tst_Block::replaceEdgeOfStyle()
 
 void tst_Block::replaceCompatibleStyle()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString replace_text("replaceed Text");
@@ -134,7 +139,7 @@ void tst_Block::replaceCompatibleStyle()
 
 void tst_Block::replaceCompatiblePreviousStyle()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     TextStyle first_style = blockHandler.default_style;
@@ -169,7 +174,7 @@ void tst_Block::replaceCompatiblePreviousStyle()
 
 void tst_Block::replaceCompatiblePreviousStyleShouldRemove()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     TextStyle first_style = blockHandler.default_style;
@@ -201,7 +206,7 @@ void tst_Block::replaceCompatiblePreviousStyleShouldRemove()
 
 void tst_Block::replaceCompatibleCurrentStyleShouldRemove()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     TextStyle first_style = blockHandler.default_style;
@@ -233,7 +238,7 @@ void tst_Block::replaceCompatibleCurrentStyleShouldRemove()
 
 void tst_Block::replaceIncompatibleStyle()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
 
@@ -262,7 +267,7 @@ void tst_Block::replaceIncompatibleStyle()
 
 void tst_Block::replaceIncompaitibleStylesCrossesBoundary()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString replace_text("replaceed Text");
@@ -295,7 +300,7 @@ void tst_Block::replaceIncompaitibleStylesCrossesBoundary()
 
 void tst_Block::replace3IncompatibleStyles()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString first_text("First Text");
@@ -334,7 +339,7 @@ void tst_Block::replace3IncompatibleStyles()
 }
 void tst_Block::replaceIncomaptibleStylesCrosses2Boundaries()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString first_text("First Text");
@@ -384,7 +389,7 @@ void tst_Block::replaceIncomaptibleStylesCrosses2Boundaries()
 
 void tst_Block::replaceIncompatibleColor()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString first_text("291 ");
@@ -430,7 +435,7 @@ void tst_Block::replaceIncompatibleColor()
 
 void tst_Block::replaceRemoveOverlappedStyles()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString first_text("First Text");
@@ -455,7 +460,7 @@ void tst_Block::replaceRemoveOverlappedStyles()
 }
 void tst_Block::replaceSwapStyles()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString first_text("First Text");
@@ -480,7 +485,7 @@ void tst_Block::replaceSwapStyles()
 
 void tst_Block::replaceEndBlock()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString *full_block = block->textLine();
@@ -509,7 +514,7 @@ void tst_Block::replaceEndBlock()
 
 void tst_Block::clearBlock()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QVERIFY(block->textLine()->size() > 0);
@@ -518,7 +523,7 @@ void tst_Block::clearBlock()
 
 void tst_Block::clearToEndOfBlock1Segment()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString replace_text("To be replaceed");
@@ -550,7 +555,7 @@ void tst_Block::clearToEndOfBlock1Segment()
 
 void tst_Block::clearToEndOfBlock3Segment()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString replace_text("To be");
@@ -580,7 +585,7 @@ void tst_Block::clearToEndOfBlock3Segment()
 
 void tst_Block::clearToEndOfBlockMiddle3Segment()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString replace_text("To be");
@@ -614,7 +619,7 @@ void tst_Block::clearToEndOfBlockMiddle3Segment()
 
 void tst_Block::deleteCharacters1Segment()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString replace_text("replaceing some text");
@@ -627,7 +632,7 @@ void tst_Block::deleteCharacters1Segment()
 
     block->deleteCharacters(10,14);
 
-    QCOMPARE(block->textLine()->size(), block_size);
+    QCOMPARE(block->textLine()->size(), block_size - 5);
 
     QVector<TextStyleLine> style_list = block->style_list();
     QCOMPARE(style_list.size(), 2);
@@ -643,7 +648,7 @@ void tst_Block::deleteCharacters1Segment()
 
 void tst_Block::deleteCharacters2Segments()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString replace_text("replaceing some text");
@@ -656,7 +661,7 @@ void tst_Block::deleteCharacters2Segments()
 
     block->deleteCharacters(15,25);
 
-    QCOMPARE(block->textLine()->size(), block_size);
+    QCOMPARE(block->textLine()->size(), block_size - 11);
 
     QVector<TextStyleLine> style_list = block->style_list();
     QCOMPARE(style_list.size(), 2);
@@ -673,7 +678,7 @@ void tst_Block::deleteCharacters2Segments()
 
 void tst_Block::deleteCharacters3Segments()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString replace_text("replaceing some text");
@@ -690,7 +695,7 @@ void tst_Block::deleteCharacters3Segments()
 
     block->deleteCharacters(10,15);
 
-    QCOMPARE(block->textLine()->size(), block_size);
+    QCOMPARE(block->textLine()->size(), block_size - 6);
 
     QVector<TextStyleLine> style_list = block->style_list();
     QCOMPARE(style_list.size(), 3);
@@ -711,7 +716,7 @@ void tst_Block::deleteCharacters3Segments()
 
 void tst_Block::deleteCharactersRemoveSegmentEnd()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString replace_text("replaceing some text");
@@ -728,7 +733,7 @@ void tst_Block::deleteCharactersRemoveSegmentEnd()
 
     block->deleteCharacters(16,33);
 
-    QCOMPARE(block->textLine()->size(), block_size);
+    QCOMPARE(block->textLine()->size(), block_size - ((33 - 16) + 1));
 
     QVector<TextStyleLine> style_list = block->style_list();
     QCOMPARE(style_list.size(), 2);
@@ -745,7 +750,7 @@ void tst_Block::deleteCharactersRemoveSegmentEnd()
 
 void tst_Block::deleteCharactersRemoveSegmentBeginning()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString replace_text("replaceing some text");
@@ -762,7 +767,8 @@ void tst_Block::deleteCharactersRemoveSegmentBeginning()
 
     block->deleteCharacters(replace_text.size(),replace_text.size() + replace_more_text.size() + 3);
 
-    QCOMPARE(block->textLine()->size(), block_size);
+    int expected_size = block_size -1 - ((replace_text.size() + replace_more_text.size() + 3 ) - replace_text.size());
+    QCOMPARE(block->textLine()->size(), expected_size);
 
     QVector<TextStyleLine> style_list = block->style_list();
     QCOMPARE(style_list.size(), 2);
@@ -778,7 +784,7 @@ void tst_Block::deleteCharactersRemoveSegmentBeginning()
 
 void tst_Block::deleteCharactersRemoveMiddle()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString insert_text('A');
@@ -797,7 +803,7 @@ void tst_Block::deleteCharactersRemoveMiddle()
 
 void tst_Block::insertCharacters()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString *full_block = block->textLine();
@@ -808,7 +814,9 @@ void tst_Block::insertCharacters()
     style.style = TextStyle::Encircled;
     block->insertAtPos(5, insert_text, style);
 
-    QCOMPARE(block->textLine()->size(), block_size);
+    int expected_size = block_size + insert_text.size();
+
+    QCOMPARE(block->textLine()->size(), expected_size);
 
     QVector<TextStyleLine> style_list = block->style_list();
     QCOMPARE(style_list.size(), 3);
@@ -825,13 +833,13 @@ void tst_Block::insertCharacters()
 
     const TextStyleLine &third_style = style_list.at(2);
     QCOMPARE(third_style.start_index, 5 + insert_text.size());
-    QCOMPARE(third_style.end_index, block_size - 1);
+    QCOMPARE(third_style.end_index, expected_size - 1);
     QCOMPARE(third_style.style, blockHandler.default_text_style);
 }
 
 void tst_Block::insertCharacters2Segments()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString *full_block = block->textLine();
@@ -846,7 +854,8 @@ void tst_Block::insertCharacters2Segments()
     style.style = TextStyle::Encircled;
     block->insertAtPos(5, insert_text, style);
 
-    QCOMPARE(block->textLine()->size(), block_size);
+    int expected_size = block_size + insert_text.size();
+    QCOMPARE(block->textLine()->size(), expected_size);
 
     QVector<TextStyleLine> style_list = block->style_list();
     QCOMPARE(style_list.size(), 4);
@@ -868,13 +877,13 @@ void tst_Block::insertCharacters2Segments()
 
     const TextStyleLine &fourth_style = style_list.at(3);
     QCOMPARE(fourth_style.start_index, block_size - replace_text.size() + insert_text.size());
-    QCOMPARE(fourth_style.end_index, block_size -1 );
+    QCOMPARE(fourth_style.end_index, expected_size - 1 );
     QCOMPARE(fourth_style.style, TextStyle::Bold);
 }
 
 void tst_Block::insertCharacters3Segments()
 {
-    BlockHandler blockHandler;
+    BlockHandler blockHandler(true);
     Block *block = blockHandler.block();
 
     QString *full_block = block->textLine();
@@ -896,10 +905,13 @@ void tst_Block::insertCharacters3Segments()
     style.style = TextStyle::Italic;
     block->insertAtPos(10, insert_text, style);
 
-    QCOMPARE(block->textLine()->size(), block_size);
+    blockHandler.doneChanges();
+
+    int expected_size = block_size + insert_text.size();
+    QCOMPARE(block->textLine()->size(), expected_size);
 
     QVector<TextStyleLine> style_list = block->style_list();
-    QCOMPARE(style_list.size(), 5);
+    QCOMPARE(style_list.size(), 6);
 
     const TextStyleLine &first_style = style_list.at(0);
     QCOMPARE(first_style.start_index, 0);
@@ -923,8 +935,13 @@ void tst_Block::insertCharacters3Segments()
 
     const TextStyleLine &fith_style = style_list.at(4);
     QCOMPARE(fith_style.start_index, 20 + insert_text.size() + replace_text2.size());
-    QCOMPARE(fith_style.end_index, block_size - 1);
+    QCOMPARE(fith_style.end_index, block_size - replace_text.size() + insert_text.size() - 1);
     QCOMPARE(fith_style.style, blockHandler.default_text_style);
+
+    const TextStyleLine &sixth_style = style_list.at(5);
+    QCOMPARE(sixth_style.start_index, block_size - replace_text.size() + insert_text.size());
+    QCOMPARE(sixth_style.end_index, block_size + insert_text.size() - 1);
+    QCOMPARE(sixth_style.style, TextStyle::Bold);
 }
 
 #include <tst_block.moc>

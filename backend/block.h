@@ -35,7 +35,6 @@ class Block : public QObject
     Q_PROPERTY(int index READ index NOTIFY indexChanged)
     Q_PROPERTY(Screen *screen READ screen CONSTANT)
     Q_PROPERTY(bool visible READ visible WRITE setVisible NOTIFY visibleChanged)
-    Q_PROPERTY(int width READ width WRITE setWidth NOTIFY widthChanged)
 public:
     Block(Screen *screen);
     ~Block();
@@ -44,10 +43,7 @@ public:
 
     void clear();
     void clearCharacters(int from, int to);
-    void deleteCharacters(int from, int to, int margin = -1);
-
-    void setWidth(int width);
-    int width() const;
+    void deleteCharacters(int from, int to);
 
     void replaceAtPos(int i, const QString &text, const TextStyle &style);
     void insertAtPos(int i, const QString &text, const TextStyle &style);
@@ -67,6 +63,8 @@ public:
 
     void printStyleList() const;
     void printStyleList(QDebug &debug) const;
+    void printRuler() const;
+    void printRuler(QDebug &debug) const;
 signals:
     void indexChanged();
     void visibleChanged();

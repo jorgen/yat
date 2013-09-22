@@ -402,6 +402,9 @@ static bool hasMeta(Qt::KeyboardModifiers modifiers)
 
 void Screen::sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers modifiers)
 {
+
+    if (key == Qt::Key_Control)
+        printScreen();
     /// UGH, this function should be re-written
     char escape = '\0';
     char  control = '\0';

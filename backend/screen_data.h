@@ -66,8 +66,6 @@ public:
 
     void dispatchLineEvents();
 
-    void printScreen() const;
-
     void printStyleInformation() const;
 
     Screen *screen() const;

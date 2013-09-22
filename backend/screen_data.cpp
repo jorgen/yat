@@ -57,9 +57,9 @@ void ScreenData::setWidth(int width)
 
     m_width = width;
 
-    for (int i = 0; i < m_screen_blocks.size(); i++) {
-        m_screen_blocks.at(i)->setWidth(width);
-    }
+//    for (int i = 0; i < m_screen_blocks.size(); i++) {
+//        m_screen_blocks.at(i)->setWidth(width);
+//    }
 }
 
 int ScreenData::height() const
@@ -108,7 +108,7 @@ Block *ScreenData::at(int index) const
 void ScreenData::clearToEndOfLine(int row, int from_char)
 {
     Block *block = m_screen_blocks.at(row);
-    block->clearCharacters(from_char, block->width() -1);
+    block->clearCharacters(from_char, m_width -1);
 }
 
 void ScreenData::clearToEndOfScreen(int row)
@@ -305,28 +305,17 @@ void ScreenData::dispatchLineEvents()
     m_blocks_moved = 0;
 }
 
-void ScreenData::printScreen() const
-{
-    for (int block = 0; block < m_screen_blocks.size(); block++) {
-//        for (int i = 0; i < m_screen_blocks.at(block)->size(); i++) {
-//            fprintf(stderr, "%s", qPrintable(m_screen_blocks.at(block)->at(i)->text()));
-//        }
-//        fprintf(stderr, "\n");
-        fprintf(stderr, "%d: %s\n", block, qPrintable(*m_screen_blocks.at(block)->textLine()));
-    }
-}
-
 void ScreenData::printStyleInformation() const
 {
     int index = 0;
     for (int block_number = 0; block_number < m_screen_blocks.size(); block_number++) {
         const Block *block = m_screen_blocks.at(block_number);
         if (block->index() == index) {
-            if (index % 5 == 0) {
-                QString ruler = QString("|----i----").repeated(m_width/10).append("|");
-                qDebug() << "Ruler:" << index << "      " << (void *) this << ruler;
-            }
             QDebug debug = qDebug();
+            if (index % 5 == 0) {
+                debug << "Ruler:" << index;
+                block->printRuler(debug);
+            }
             debug << "Line: " << index;
             block->printStyleList(debug);
             block_number = 0;

@@ -61,42 +61,54 @@ Screen *Block::screen() const
 
 void Block::clear()
 {
-    m_text_line.fill(QChar(' '));
+    m_text_line.clear();
 
     for (int i = 0; i < m_style_list.size(); i++) {
         m_screen->releaseTextSegment(m_style_list[i]);
     }
 
     m_style_list.clear();
-    m_style_list.append(TextStyleLine(m_screen->defaultTextStyle(),0,m_text_line.size() -1));
 
     m_changed = true;
 }
 
 void Block::clearCharacters(int from, int to)
 {
-    QString empty(to-from, QChar(' '));
-    const TextStyle &defaultTextStyle = m_screen->defaultTextStyle();
-    replaceAtPos(from, empty, defaultTextStyle);
+    if (from > m_text_line.size())
+        return;
+
+    if (to < m_text_line.size()) {
+        QString empty(to-from, QChar(' '));
+        const TextStyle &defaultTextStyle = m_screen->defaultTextStyle();
+        replaceAtPos(from, empty, defaultTextStyle);
+    } else {
+        m_text_line.chop((m_text_line.size() - 1 ) - from + 1);
+        for (int i = 0; i < m_style_list.size(); i++) {
+            TextStyleLine &current_style = m_style_list[i];
+            if (current_style.start_index >= from) {
+                m_screen->releaseTextSegment(current_style);
+                m_style_list.remove(i);
+                i--;
+            } else if (current_style.end_index > to) {
+                current_style.end_index = to;
+                current_style.text_dirty = true;
+            }
+        }
+    }
 }
 
-void Block::deleteCharacters(int from, int to, int margin)
+void Block::deleteCharacters(int from, int to)
 {
     m_changed = true;
 
-    if (margin < 0)
-        margin = m_text_line.size() -1;
-
     int removed = 0;
-    const int size = (std::min(to,margin) + 1) - from;
+    const int size = (to + 1) - from;
     bool found = false;
 
     int last_index = -1;
 
     for (int i = 0; i < m_style_list.size(); i++) {
         TextStyleLine &current_style = m_style_list[i];
-        if (current_style.start_index > margin)
-            break;
         last_index = i;
         if (found) {
             current_style.start_index -= removed;
@@ -144,56 +156,27 @@ void Block::deleteCharacters(int from, int to, int margin)
     }
 
     m_text_line.remove(from, size);
-    QString empty(size,' ');
-    m_text_line.insert(margin + 1 - empty.size(),empty);
-}
-
-void Block::setWidth(int width)
-{
-    int old_size = m_text_line.size();
-    bool emit_changed = old_size != width;
-    if (old_size > width) {
-        m_text_line.chop(old_size - width);
-        for (int i = 0; i < m_style_list.size(); i++) {
-            TextStyleLine &style_line = m_style_list[i];
-            if (style_line.end_index >= width) {
-                if (style_line.start_index > width) {
-                    m_screen->releaseTextSegment(style_line);
-                    m_style_list.remove(i);
-                    i--;
-                } else {
-                    style_line.end_index = width -1;
-                    style_line.text_dirty = true;
-                }
-            }
-        }
-    } else if (m_text_line.size() < width) {
-        m_text_line.append(QString(width - m_text_line.size(), QChar(' ')));
-        TextStyleLine &style_line = m_style_list.last();
-        if (style_line.isCompatible(m_screen->defaultTextStyle())) {
-            style_line.end_index = width - 1;
-        } else {
-            TextStyleLine new_style_line(m_screen->defaultTextStyle(), style_line.end_index + 1, width - 1);
-            m_style_list.append(new_style_line);
-        }
-    }
-
-    if (emit_changed) {
-        m_changed = true;
-        emit widthChanged();
-    }
-}
-
-int Block::width() const
-{
-    return m_text_line.size();
 }
 
 void Block::replaceAtPos(int pos, const QString &text, const TextStyle &style)
 {
-    Q_ASSERT(pos + text.size() <= m_text_line.size());
-
     m_changed = true;
+
+    if (pos >= m_text_line.size()) {
+        if (pos > m_text_line.size()) {
+            int old_size = m_text_line.size();
+            QString filling(pos - m_text_line.size(), QChar(' '));
+            m_text_line.append(filling);
+            m_style_list.append(TextStyleLine(m_screen->defaultTextStyle(), old_size, old_size + filling.size() -1));
+        }
+        m_text_line.append(text);
+        m_style_list.append(TextStyleLine(style, pos, pos + text.size()-1));
+        return;
+    } else if (pos + text.size() > m_text_line.size()) {
+        QString filling(pos + text.size() - m_text_line.size(), QChar(' '));
+        m_text_line.append(filling);
+        m_style_list.append(TextStyleLine(m_screen->defaultTextStyle(), pos + text.size() - m_text_line.size(), pos + text.size() -1));
+    }
 
     m_text_line.replace(pos,text.size(),text);
     bool found = false;
@@ -279,7 +262,6 @@ void Block::insertAtPos(int pos, const QString &text, const TextStyle &style)
     m_changed = true;
 
     m_text_line.insert(pos,text);
-    m_text_line.chop(text.size());
     bool found = false;
 
     for (int i = 0; i < m_style_list.size(); i++) {
@@ -436,6 +418,17 @@ void Block::printStyleList(QDebug &debug) const
     for (int i= 0; i < m_style_list.size(); i++) {
         debug << m_style_list.at(i);
     }
+}
+
+void Block::printRuler() const
+{
+    QDebug debug = qDebug();
+    printRuler(debug);
+}
+void Block::printRuler(QDebug &debug) const
+{
+    QString ruler = QString("|----i----").repeated((m_text_line.size()/10)+1).append("|");
+    debug << "      " << (void *) this << ruler;
 }
 
 void Block::mergeCompatibleStyles()
