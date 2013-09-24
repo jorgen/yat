@@ -77,24 +77,9 @@ void Block::clearCharacters(int from, int to)
     if (from > m_text_line.size())
         return;
 
-    if (to < m_text_line.size()) {
-        QString empty(to-from, QChar(' '));
-        const TextStyle &defaultTextStyle = m_screen->defaultTextStyle();
-        replaceAtPos(from, empty, defaultTextStyle);
-    } else {
-        m_text_line.chop((m_text_line.size() - 1 ) - from + 1);
-        for (int i = 0; i < m_style_list.size(); i++) {
-            TextStyleLine &current_style = m_style_list[i];
-            if (current_style.start_index >= from) {
-                m_screen->releaseTextSegment(current_style);
-                m_style_list.remove(i);
-                i--;
-            } else if (current_style.end_index > to) {
-                current_style.end_index = to;
-                current_style.text_dirty = true;
-            }
-        }
-    }
+    QString empty(to-from, QChar(' '));
+    const TextStyle &defaultTextStyle = m_screen->defaultTextStyle();
+    replaceAtPos(from, empty, defaultTextStyle);
 }
 
 void Block::deleteCharacters(int from, int to)
