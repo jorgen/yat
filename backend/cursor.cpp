@@ -24,6 +24,7 @@
 #include "cursor.h"
 
 #include "block.h"
+#include "screen_data.h"
 
 #include <QTextCodec>
 
@@ -64,6 +65,7 @@ Cursor::~Cursor()
 {
 
 }
+
 void Cursor::setDocumentWidth(int width)
 {
     if (width > m_document_width) {
@@ -73,6 +75,7 @@ void Cursor::setDocumentWidth(int width)
             }
         }
     }
+
     m_document_width = width;
     if (new_x() >= width) {
         new_rx() = width - 1;
@@ -436,32 +439,26 @@ void Cursor::replaceAtCursor(const QByteArray &data)
     //}
 
     const QString text = m_gl_text_codec->toUnicode(data);
+
     if (new_x() + text.size() <= m_screen->width()) {
-        Block *block = screen_data()->at(new_y());
+        Block *block = screen_data()->blockContainingLine(new_y());
         block->replaceAtPos(new_x(), text, m_current_text_style);
         new_rx() += text.size();
-    } else {
-        if (m_wrap_around) {
-            for (int i = 0; i < text.size();) {
-                if (new_x() >= m_screen->width()) {
-                    new_rx() = 0;
-                    lineFeed();
-                }
-                const int size = screen_data()->width() - new_x();
-                QString toBlock = text.mid(i,size);
-                i+= size;
-                Block *block = screen_data()->at(new_y());
-                block->replaceAtPos(new_x(),toBlock, m_current_text_style);
-                new_rx() += toBlock.size();
-            }
-        } else {
-            const int size = screen_data()->width() - new_x();
-            QString toBlock = text.mid(0,size);
-            toBlock.replace(toBlock.size() - 1, 1, text.at(text.size()-1));
-            Block *block = screen_data()->at(new_y());
-            block->replaceAtPos(new_x(),toBlock, m_current_text_style);
-            new_rx() += toBlock.size();
+    } else if (m_wrap_around) {
+        Block *block = screen_data()->blockContainingLine(new_y());
+        block->replaceAtPos(new_x(), text, m_current_text_style);
+        int line_feeds = (new_x() + text.size()) / m_screen->width();
+        new_rx() = (new_x() + text.size()) % m_screen->width();
+        for (int i = 0; i < line_feeds; i++) {
+            lineFeed();
         }
+    }else {
+        const int size = screen_data()->width() - new_x();
+        QString toBlock = text.mid(0,size);
+        toBlock.replace(toBlock.size() - 1, 1, text.at(text.size()-1));
+        Block *block = screen_data()->blockContainingLine(new_y());
+        block->replaceAtPos(new_x(),toBlock, m_current_text_style);
+        new_rx() += toBlock.size();
     }
     if (new_x() >= m_document_width)
         new_rx() = m_document_width - 1;
@@ -477,7 +474,7 @@ void Cursor::insertAtCursor(const QByteArray &data)
     //}
 
     const QString text = m_gl_text_codec->toUnicode(data);
-    Block *line = screen_data()->at(new_y());
+    Block *line = screen_data()->blockContainingLine(new_y());
     line->insertAtPos(new_x(), text, m_screen->defaultTextStyle());
     new_rx() += text.size();
 }

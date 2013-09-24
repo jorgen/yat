@@ -25,8 +25,9 @@
 #include <QtCore/QVector>
 #include <QtCore/QLinkedList>
 
-#include "text.h"
 #include "controll_chars.h"
+
+class Screen;
 
 class Parser
 {

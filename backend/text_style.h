@@ -4,6 +4,7 @@
 #include <QtGui/QColor>
 
 #include "color_palette.h"
+
 class Screen;
 
 class TextStyle
@@ -60,6 +61,8 @@ public:
     {
 
     }
+
+    void releaseTextSegment(Screen *screen);
 
     int start_index;
     int end_index;

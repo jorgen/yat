@@ -1,5 +1,8 @@
 #include "text_style.h"
 
+#include "screen.h"
+#include "text.h"
+
 #include <QtCore/QDebug>
 
 TextStyle::TextStyle()
@@ -23,3 +26,11 @@ QDebug operator<<(QDebug debug, TextStyleLine line)
     return debug;
 }
 
+void TextStyleLine::releaseTextSegment(Screen *screen)
+{
+    if (text_segment) {
+        text_segment->setVisible(false);
+        screen->releaseTextSegment(text_segment);
+        text_segment = 0;
+    }
+}

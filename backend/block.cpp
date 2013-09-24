@@ -41,16 +41,13 @@ Block::Block(Screen *screen)
     , m_visible(true)
     , m_changed(true)
 {
-    m_text_line.resize(screen->width());
-    m_style_list.reserve(25);
-
     clear();
 }
 
 Block::~Block()
 {
     for (int i = 0; i < m_style_list.size(); i++) {
-        m_screen->releaseTextSegment(m_style_list[i]);
+        m_style_list[i].releaseTextSegment(m_screen);
     }
 }
 
@@ -64,7 +61,7 @@ void Block::clear()
     m_text_line.clear();
 
     for (int i = 0; i < m_style_list.size(); i++) {
-        m_screen->releaseTextSegment(m_style_list[i]);
+        m_style_list[i].releaseTextSegment(m_screen);
     }
 
     m_style_list.clear();
@@ -103,7 +100,7 @@ void Block::deleteCharacters(int from, int to)
                 int current_style_size = current_style.end_index + 1  - current_style.start_index;
                 if (current_style_size <= size - removed) {
                     removed += current_style.end_index + 1 - current_style.start_index;
-                    m_screen->releaseTextSegment(current_style);
+                    current_style.releaseTextSegment(m_screen);
                     m_style_list.remove(i);
                     i--;
                 } else {
@@ -120,7 +117,7 @@ void Block::deleteCharacters(int from, int to)
                 current_style.text_dirty = true;
                 removed = subtract;
                 if (current_style.end_index < current_style.start_index) {
-                    m_screen->releaseTextSegment(current_style);
+                    current_style.releaseTextSegment(m_screen);
                     m_style_list.remove(i);
                     i--;
                 }
@@ -169,7 +166,7 @@ void Block::replaceAtPos(int pos, const QString &text, const TextStyle &style)
         TextStyleLine &current_style = m_style_list[i];
         if (found) {
             if (current_style.end_index <= pos + text.size() - 1) {
-                m_screen->releaseTextSegment(current_style);
+                current_style.releaseTextSegment(m_screen);
                 m_style_list.remove(i);
                 i--;
             } else if (current_style.start_index <= pos + text.size()) {
@@ -219,7 +216,7 @@ void Block::replaceAtPos(int pos, const QString &text, const TextStyle &style)
                             TextStyleLine &previous_style = m_style_list[i -1];
                             previous_style.end_index+= text.size();
                             previous_style.text_dirty = true;
-                            m_screen->releaseTextSegment(current_style);
+                            current_style.releaseTextSegment(m_screen);
                             m_style_list.remove(i);
                             i--;
                         } else {
@@ -256,7 +253,7 @@ void Block::insertAtPos(int pos, const QString &text, const TextStyle &style)
             current_style.end_index += text.size();
             current_style.index_dirty = true;
             if (current_style.start_index >= m_text_line.size()) {
-                m_screen->releaseTextSegment(current_style);
+                current_style.releaseTextSegment(m_screen);
                 m_style_list.remove(i);
                 i--;
             } else if (current_style.end_index >= m_text_line.size()) {
@@ -292,20 +289,10 @@ void Block::insertAtPos(int pos, const QString &text, const TextStyle &style)
     }
 }
 
-int Block::index() const
-{
-    return m_index;
-}
-
 void Block::setIndex(int index)
 {
     m_changed = true;
     m_new_index = index;
-    for (int i = 0; i < m_style_list.size(); i++) {
-        if (m_style_list.at(i).text_segment) {
-            m_style_list.at(i).text_segment->setLine(index);
-        }
-    }
 }
 
 QString *Block::textLine()
@@ -337,11 +324,6 @@ void Block::dispatchEvents()
         return;
     }
 
-    if (m_index != m_new_index) {
-        m_index = m_new_index;
-        emit indexChanged();
-    }
-
     mergeCompatibleStyles();
 
     for (int i = 0; i < m_style_list.size(); i++) {
@@ -349,7 +331,9 @@ void Block::dispatchEvents()
 
         if (current_style.text_segment == 0) {
             current_style.text_segment = m_screen->createTextSegment(current_style);
-            current_style.text_segment->setLine(m_index);
+            current_style.text_segment->setLine(m_new_index, &m_text_line);
+        } else if (m_new_index != m_index) {
+            current_style.text_segment->setLine(m_new_index, &m_text_line);
         }
 
         if (current_style.style_dirty) {
@@ -367,20 +351,18 @@ void Block::dispatchEvents()
     }
 
     m_changed = false;
+    m_index = m_new_index;
 
-    for (int i = 0; i< m_to_delete.size(); i++) {
-        delete m_to_delete[i];
-    }
-    m_to_delete.clear();
 }
 
 void Block::releaseTextObjects()
 {
     m_changed = true;
     for (int i = 0; i < m_style_list.size(); i++) {
-        m_screen->releaseTextSegment(m_style_list[i]);
-        m_style_list[i].text_dirty = true;
-        m_style_list[i].style_dirty = true;
+        TextStyleLine &currentStyleLine = m_style_list[i];
+        currentStyleLine.releaseTextSegment(m_screen);
+        currentStyleLine.text_dirty = true;
+        currentStyleLine.style_dirty = true;
     }
 }
 
@@ -424,7 +406,7 @@ void Block::mergeCompatibleStyles()
             TextStyleLine &prev = m_style_list[i-1];
             prev.end_index = current.end_index;
             prev.text_dirty = true;
-            m_screen->releaseTextSegment(current);
+            current.releaseTextSegment(m_screen);
             m_style_list.remove(i);
             i--;
         }

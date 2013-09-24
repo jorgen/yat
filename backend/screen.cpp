@@ -20,8 +20,10 @@
 
 #include "screen.h"
 
+#include "screen_data.h"
 #include "block.h"
 #include "cursor.h"
+#include "text.h"
 
 #include "controll_chars.h"
 #include "character_sets.h"
@@ -71,10 +73,10 @@ Screen::Screen(QObject *parent)
 Screen::~Screen()
 {
 
-    //m_to_delete.clear();
     for(int i = 0; i < m_to_delete.size(); i++) {
         delete m_to_delete.at(i);
     }
+    //m_to_delete.clear();
 
     delete m_primary_data;
     delete m_alternate_data;
@@ -292,11 +294,6 @@ void Screen::scheduleFlash()
     m_flash = true;
 }
 
-Block *Screen::at(int i) const
-{
-    return currentScreenData()->at(i);
-}
-
 void Screen::printScreen() const
 {
     currentScreenData()->printStyleInformation();
@@ -403,8 +400,8 @@ static bool hasMeta(Qt::KeyboardModifiers modifiers)
 void Screen::sendKey(const QString &text, Qt::Key key, Qt::KeyboardModifiers modifiers)
 {
 
-    if (key == Qt::Key_Control)
-        printScreen();
+//    if (key == Qt::Key_Control)
+//        printScreen();
     /// UGH, this function should be re-written
     char escape = '\0';
     char  control = '\0';
@@ -621,14 +618,9 @@ Text *Screen::createTextSegment(const TextStyleLine &style_line)
     return to_return;
 }
 
-void Screen::releaseTextSegment(TextStyleLine &style_line)
+void Screen::releaseTextSegment(Text *text)
 {
-    if (!style_line.text_segment)
-        return;
-
-    style_line.text_segment->setVisible(false);
-    m_to_delete.append(style_line.text_segment);
-    style_line.text_segment = 0;
+    m_to_delete.append(text);
 }
 
 void Screen::readData(const QByteArray &data)

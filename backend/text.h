@@ -50,7 +50,7 @@ public:
     int index() const;
 
     int line() const;
-    void setLine(int line);
+    void setLine(int line, const QString *textLine);
 
     bool visible() const;
     void setVisible(bool visible);
@@ -91,6 +91,7 @@ private:
 
     Screen *m_screen;
     QString m_text;
+    const QString *m_text_line;
     int m_start_index;
     int m_old_start_index;
     int m_end_index;

@@ -41,7 +41,7 @@ public:
     int width() const;
     int height() const;
 
-    Block *at(int index) const;
+    Block *blockContainingLine(int line) const;
 
     void clearToEndOfLine(int row, int from_char);
     void clearToEndOfScreen(int row);

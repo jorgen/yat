@@ -40,7 +40,7 @@ ScreenData::ScreenData(Screen *screen)
 ScreenData::~ScreenData()
 {
     for (int i = 0; i < m_screen_blocks.size(); i++) {
-        delete m_screen_blocks.at(i);
+        delete blockContainingLine(i);
     }
 }
 
@@ -58,7 +58,7 @@ void ScreenData::setWidth(int width)
     m_width = width;
 
 //    for (int i = 0; i < m_screen_blocks.size(); i++) {
-//        m_screen_blocks.at(i)->setWidth(width);
+//        blockContainingLine(i)->setWidth(width);
 //    }
 }
 
@@ -100,46 +100,46 @@ void ScreenData::setHeight(int height, int currentCursorBlock)
     }
 }
 
-Block *ScreenData::at(int index) const
+Block *ScreenData::blockContainingLine(int line) const
 {
-    return m_screen_blocks.at(index);
+    return m_screen_blocks.at(line);
 }
 
 void ScreenData::clearToEndOfLine(int row, int from_char)
 {
-    Block *block = m_screen_blocks.at(row);
+    Block *block = blockContainingLine(row);
     block->clearCharacters(from_char, m_width -1);
 }
 
 void ScreenData::clearToEndOfScreen(int row)
 {
     for(int i = row; i < m_screen_blocks.size(); i++) {
-        Block *block = m_screen_blocks.at(i);
+        Block *block = blockContainingLine(i);
         block->clear();
     }
 }
 
 void ScreenData::clearToBeginningOfLine(int row, int from_char)
 {
-    m_screen_blocks.at(row)->clearCharacters(0,from_char);
+    blockContainingLine(row)->clearCharacters(0,from_char);
 }
 void ScreenData::clearToBeginningOfScreen(int row)
 {
     for (int i = row; i >= 0; i--) {
-        Block *block = m_screen_blocks.at(i);
+        Block *block = blockContainingLine(i);
         block->clear();
     }
 }
 
 void ScreenData::clearLine(int index)
 {
-    m_screen_blocks.at(index)->clear();
+    blockContainingLine(index)->clear();
 }
 
 void ScreenData::clear()
 {
     for (int i = 0; i < m_screen_blocks.size(); i++) {
-        Block *block = m_screen_blocks.at(i);
+        Block *block = blockContainingLine(i);
         block->clear();
     }
 }
@@ -147,20 +147,20 @@ void ScreenData::clear()
 void ScreenData::releaseTextObjects()
 {
     for (int i = 0; i < m_screen_blocks.size(); i++) {
-        Block *block = m_screen_blocks.at(i);
+        Block *block = blockContainingLine(i);
         block->releaseTextObjects();
     }
 }
 
 void ScreenData::clearCharacters(int block, int from, int to)
 {
-    Block *block_item = m_screen_blocks.at(block);
+    Block *block_item = blockContainingLine(block);
     block_item->clearCharacters(from,to);
 }
 
 void ScreenData::deleteCharacters(int block, int from, int to)
 {
-    Block *block_item = m_screen_blocks.at(block);
+    Block *block_item = blockContainingLine(block);
     block_item->deleteCharacters(from,to);
 }
 
@@ -172,7 +172,7 @@ void ScreenData::moveLine(int from, int to)
     if (from < to) {
         int blocks_to_shift = to - from;
         m_blocks_moved += blocks_to_shift;
-        Block *from_block = m_screen_blocks.at(from);
+        Block *from_block = blockContainingLine(from);
         Block **from_block_ptr = m_screen_blocks.data() + from;
         memmove(from_block_ptr, from_block_ptr+1, sizeof(from_block_ptr) * blocks_to_shift);
         from_block->clear();
@@ -180,7 +180,7 @@ void ScreenData::moveLine(int from, int to)
     } else {
         int blocks_to_shift = from - to;
         m_blocks_moved += blocks_to_shift;
-        Block *from_block = m_screen_blocks.at(from);
+        Block *from_block = blockContainingLine(from);
         Block **to_block_ptr = const_cast<Block **>(m_screen_blocks.constData() + to);
         memmove(to_block_ptr + 1, to_block_ptr, sizeof(to_block_ptr) * blocks_to_shift);
         from_block->clear();
@@ -222,7 +222,7 @@ void ScreenData::sendSelectionToClipboard(const QPointF &start, const QPointF &e
             data.append(QChar('\n'));
         if (i == end_block)
             char_end = end.x();
-        data += m_screen_blocks.at(i)->textLine()->mid(char_start, char_end - char_start).trimmed();
+        data += blockContainingLine(i)->textLine()->mid(char_start, char_end - char_start).trimmed();
     }
 
     QGuiApplication::clipboard()->setText(data, clipboard);
@@ -247,7 +247,7 @@ void ScreenData::getDoubleClickSelectionArea(const QPointF &cliked, int *start_r
     *end_ret = -1;
     bool find_equals = false;
 
-    QStringRef to_return(m_screen_blocks.at(cliked.y())->textLine());
+    QStringRef to_return(blockContainingLine(cliked.y())->textLine());
 
     QChar clicked_char = to_return.at(cliked.x());
 
@@ -299,28 +299,23 @@ void ScreenData::getDoubleClickSelectionArea(const QPointF &cliked, int *start_r
 void ScreenData::dispatchLineEvents()
 {
     for (int i = 0; i < m_screen_blocks.size(); i++) {
-        m_screen_blocks.at(i)->setIndex(i);
-        m_screen_blocks.at(i)->dispatchEvents();
+        blockContainingLine(i)->setIndex(i);
+        blockContainingLine(i)->dispatchEvents();
     }
     m_blocks_moved = 0;
 }
 
 void ScreenData::printStyleInformation() const
 {
-    int index = 0;
-    for (int block_number = 0; block_number < m_screen_blocks.size(); block_number++) {
-        const Block *block = m_screen_blocks.at(block_number);
-        if (block->index() == index) {
-            QDebug debug = qDebug();
-            if (index % 5 == 0) {
-                debug << "Ruler:" << index;
-                block->printRuler(debug);
-            }
-            debug << "Line: " << index;
-            block->printStyleList(debug);
-            block_number = 0;
-            index++;
+    for (int i = 0; i < m_screen_blocks.size(); i++) {
+        const Block *block = blockContainingLine(i);
+        QDebug debug = qDebug();
+        if (i % 5 == 0) {
+            debug << "Ruler:" << i;
+            block->printRuler(debug);
         }
+        debug << "Line: " << i;
+        block->printStyleList(debug);
     }
 }
 

@@ -29,6 +29,7 @@
 Text::Text(Screen *screen)
     : QObject(screen)
     , m_screen(screen)
+    , m_text_line(0)
     , m_start_index(0)
     , m_old_start_index(0)
     , m_end_index(0)
@@ -59,10 +60,11 @@ int Text::line() const
     return m_line;
 }
 
-void Text::setLine(int line)
+void Text::setLine(int line, const QString *textLine)
 {
     m_new_line = line;
     m_text_dirty = true;
+    m_text_line = textLine;
 }
 
 bool Text::visible() const
@@ -135,7 +137,7 @@ void Text::dispatchEvents()
     if (m_old_start_index != m_start_index
             || m_text_dirty) {
         m_text_dirty = false;
-        m_text = m_screen->at(m_line)->textLine()->mid(m_start_index, m_end_index + 1 - m_start_index);
+        m_text = m_text_line->mid(m_start_index, m_end_index - m_start_index + 1);
         if (m_old_start_index != m_start_index) {
             m_old_start_index = m_start_index;
             emit indexChanged();

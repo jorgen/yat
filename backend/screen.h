@@ -23,11 +23,10 @@
 
 #include <QObject>
 
-#include "text.h"
 #include "color_palette.h"
 #include "parser.h"
 #include "yat_pty.h"
-#include "screen_data.h"
+#include "text_style.h"
 
 #include <QtCore/QPoint>
 #include <QtCore/QSize>
@@ -36,9 +35,8 @@
 
 class Block;
 class Cursor;
-class QQuickItem;
-class QQmlEngine;
-class QQmlComponent;
+class Text;
+class ScreenData;
 
 class Screen : public QObject
 {
@@ -66,7 +64,6 @@ public:
     ScreenData *currentScreenData() const { return m_current_data; }
     void useAlternateScreenBuffer();
     void useNormalScreenBuffer();
-    Block *at(int i) const;
 
     Cursor *currentCursor() const { return  m_cursor_stack.last(); }
     void saveCursor();
@@ -123,7 +120,7 @@ public:
     YatPty *pty();
 
     Text *createTextSegment(const TextStyleLine &style_line);
-    void releaseTextSegment(TextStyleLine &style_line);
+    void releaseTextSegment(Text *text);
 
 public slots:
     void readData(const QByteArray &data);

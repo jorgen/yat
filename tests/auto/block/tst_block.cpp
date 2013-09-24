@@ -3,6 +3,7 @@
 
 #include <QtQml/QQmlEngine>
 #include "../../../backend/screen.h"
+#include "../../../backend/screen_data.h"
 
 class BlockHandler
 {
@@ -11,7 +12,7 @@ public:
         screen.setHeight(5);
         int width = 100;
         screen.setWidth(width);
-        screen.at(0)->clear();
+        screen.currentScreenData()->blockContainingLine(0)->clear();
         if (fill) {
             QString spaces(width, QChar(' '));
             block()->replaceAtPos(0, spaces, screen.defaultTextStyle());
@@ -23,7 +24,7 @@ public:
 
     Block *block() const
     {
-        return screen.at(0);
+        return screen.currentScreenData()->blockContainingLine(0);
     }
 
     void doneChanges()
@@ -533,7 +534,7 @@ void tst_Block::clearToEndOfBlock1Segment()
 
     int before_clear_size = block->textLine()->size();
 
-    block->clearCharacters(5, block->width() -1);
+    block->clearCharacters(5, blockHandler.screen.width() -1);
 
     blockHandler.doneChanges();
 
@@ -567,7 +568,7 @@ void tst_Block::clearToEndOfBlock3Segment()
     style.style = TextStyle::Bold;
     block ->replaceAtPos(replace_text.size(), replace_text2, style);
 
-    block->clearCharacters(replace_text.size(), block->width() - 1);
+    block->clearCharacters(replace_text.size(), blockHandler.screen.width() - 1);
 
     blockHandler.doneChanges();
 
@@ -597,7 +598,7 @@ void tst_Block::clearToEndOfBlockMiddle3Segment()
     style.style = TextStyle::Bold;
     block ->replaceAtPos(replace_text.size(), replace_text2, style);
 
-    block->clearCharacters(replace_text.size() + 3, block->width() - 1);
+    block->clearCharacters(replace_text.size() + 3, blockHandler.screen.width() - 1);
 
     blockHandler.doneChanges();
 
@@ -788,12 +789,12 @@ void tst_Block::deleteCharactersRemoveMiddle()
     Block *block = blockHandler.block();
 
     QString insert_text('A');
-    int old_width = block->width();
+    int old_width = blockHandler.screen.width();
     QString empty(old_width - 2, ' ');
     insert_text += empty + 'B';
     block->replaceAtPos(0, insert_text, blockHandler.default_style);
 
-    Q_ASSERT(old_width == block->width());
+    Q_ASSERT(old_width == blockHandler.screen.width());
     Q_ASSERT(insert_text == *block->textLine());
 
     block->deleteCharacters(1, old_width - 2);
