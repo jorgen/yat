@@ -1,22 +1,25 @@
-/**************************************************************************************************
-* Copyright (c) 2012 Jørgen Lind
+/*******************************************************************************
+ * Copyright (c) 2012 Jørgen Lind
 *
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-* associated documentation files (the "Software"), to deal in the Software without restriction,
-* including without limitation the rights to use, copy, modify, merge, publish, distribute,
-* sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
 *
-* The above copyright notice and this permission notice shall be included in all copies or
-* substantial portions of the Software.
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
 *
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-* NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-* DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-* OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
 *
-***************************************************************************************************/
+*******************************************************************************/
 
 #include "screen_data.h"
 
@@ -31,40 +34,26 @@
 ScreenData::ScreenData(Screen *screen)
     : QObject(screen)
     , m_screen(screen)
-    , m_blocks_moved(0)
+    , m_height(0)
+    , m_max_block_factor(2)
+    , m_new_total_lines(0)
+    , m_total_lines(0)
+    , m_dispatch_outside_screen(0)
 {
-    connect(screen, SIGNAL(widthAboutToChange(int)), this,  SLOT(setWidth(int)));
     connect(screen, SIGNAL(heightAboutToChange(int, int)), this, SLOT(setHeight(int, int)));
 }
 
 ScreenData::~ScreenData()
 {
-    for (int i = 0; i < m_screen_blocks.size(); i++) {
-        delete blockContainingLine(i);
+    for (auto it = m_screen_blocks.begin(); it != m_screen_blocks.end(); ++it) {
+        delete *it;
     }
 }
 
 
-int ScreenData::width() const
+int ScreenData::dataHeight() const
 {
-    return m_width;
-}
-
-void ScreenData::setWidth(int width)
-{
-    if (width == m_width)
-        return;
-
-    m_width = width;
-
-//    for (int i = 0; i < m_screen_blocks.size(); i++) {
-//        blockContainingLine(i)->setWidth(width);
-//    }
-}
-
-int ScreenData::height() const
-{
-    return m_screen_blocks.size();
+    return m_total_lines;
 }
 
 void ScreenData::setHeight(int height, int currentCursorBlock)
@@ -77,45 +66,46 @@ void ScreenData::setHeight(int height, int currentCursorBlock)
         const int to_remove = old_height - height;
         const int removeElementsBelowCursor =
             std::min(old_height - currentCursorBlock, to_remove);
-        const int removeElementsAtTop = to_remove - removeElementsBelowCursor;
         if (removeElementsBelowCursor > 0) {
-            for (int i = currentCursorBlock; i < currentCursorBlock + removeElementsBelowCursor; i++) {
-                delete m_screen_blocks[i];
+            auto it = --m_screen_blocks.end();
+            for (int i = 0; i < removeElementsBelowCursor; --it, i++) {
+                delete *it;
             }
-            m_screen_blocks.remove(currentCursorBlock, removeElementsBelowCursor);
-        }
-
-        if (removeElementsAtTop > 0) {
-            for (int i = 0; i < removeElementsAtTop; i++) {
-                delete m_screen_blocks[i];
-            }
-            m_screen_blocks.remove(0, removeElementsAtTop);
+            m_screen_blocks.erase(it, m_screen_blocks.end());
         }
     } else {
         int rowsToAdd = height - m_screen_blocks.size();
+        m_height += rowsToAdd;
+        m_new_total_lines += rowsToAdd;
         for (int i = 0; i < rowsToAdd; i++) {
             Block *newBlock = new Block(m_screen);
-            m_screen_blocks.append(newBlock);
+            m_screen_blocks.push_back(newBlock);
         }
     }
 }
 
 Block *ScreenData::blockContainingLine(int line) const
 {
-    return m_screen_blocks.at(line);
+    if (line == m_screen->height())
+        return m_screen_blocks.back();
+    auto it = m_screen_blocks.end();
+    int move_back = line - m_screen->height();
+    std::advance(it, move_back);
+    return *it;
 }
 
 void ScreenData::clearToEndOfLine(int row, int from_char)
 {
     Block *block = blockContainingLine(row);
-    block->clearCharacters(from_char, m_width -1);
+    block->clearToEnd(from_char);
 }
 
 void ScreenData::clearToEndOfScreen(int row)
 {
-    for(int i = row; i < m_screen_blocks.size(); i++) {
-        Block *block = blockContainingLine(i);
-        block->clear();
+    auto it = --m_screen_blocks.end();
+    int lines_back = (m_screen->height() ) - row;
+    for(int i = 0; i < lines_back; --it, i++) {
+        (*it)->clear();
     }
 }
 
@@ -138,17 +128,16 @@ void ScreenData::clearLine(int index)
 
 void ScreenData::clear()
 {
-    for (int i = 0; i < m_screen_blocks.size(); i++) {
-        Block *block = blockContainingLine(i);
-        block->clear();
+    auto it = --m_screen_blocks.end();
+    for (int i = 0; i < m_screen->height(); --it, i++) {
+        (*it)->clear();
     }
 }
 
 void ScreenData::releaseTextObjects()
 {
-    for (int i = 0; i < m_screen_blocks.size(); i++) {
-        Block *block = blockContainingLine(i);
-        block->releaseTextObjects();
+    for (auto it = m_screen_blocks.begin(); it != m_screen_blocks.end(); ++it) {
+        (*it)->releaseTextObjects();
     }
 }
 
@@ -169,33 +158,44 @@ void ScreenData::moveLine(int from, int to)
     if (from == to)
         return;
 
-    if (from < to) {
-        int blocks_to_shift = to - from;
-        m_blocks_moved += blocks_to_shift;
-        Block *from_block = blockContainingLine(from);
-        Block **from_block_ptr = m_screen_blocks.data() + from;
-        memmove(from_block_ptr, from_block_ptr+1, sizeof(from_block_ptr) * blocks_to_shift);
-        from_block->clear();
-        m_screen_blocks.replace(to,from_block);
-    } else {
-        int blocks_to_shift = from - to;
-        m_blocks_moved += blocks_to_shift;
-        Block *from_block = blockContainingLine(from);
-        Block **to_block_ptr = const_cast<Block **>(m_screen_blocks.constData() + to);
-        memmove(to_block_ptr + 1, to_block_ptr, sizeof(to_block_ptr) * blocks_to_shift);
-        from_block->clear();
-        m_screen_blocks.replace(to,from_block);
-    }
-    if (!m_screen->fastScroll() && m_blocks_moved > 6)
-        m_screen->dispatchChanges();
+    auto from_it = m_screen_blocks.end();
+    std::advance(from_it, from - m_screen->height());
+    (*from_it)->clear();
+
+    auto to_it = m_screen_blocks.end();
+    if (to < from)
+        --to_it;
+    std::advance(to_it, to - m_screen->height());
+
+    m_screen_blocks.splice(++to_it, m_screen_blocks, from_it);
+    if (from >= m_screen->height())
+        m_new_total_lines++;
 }
+
+void ScreenData::appendLine(int row)
+{
+    auto row_it = m_screen_blocks.end();
+    std::advance(row_it, row - (m_screen->height()-1));
+    if (m_height >= m_screen->height() * m_max_block_factor) {
+        m_screen_blocks.splice(row_it, m_screen_blocks, m_screen_blocks.begin());
+        m_screen_blocks.back()->clear();
+    } else {
+        Block *block_to_insert = new Block(m_screen);
+        m_screen_blocks.insert(row_it,block_to_insert);
+        m_height++;
+        m_dispatch_outside_screen++;
+    }
+
+    m_new_total_lines++;
+}
+
 
 void ScreenData::fill(const QChar &character)
 {
-    for (int i = 0; i < m_screen_blocks.size(); i++) {
-        Block *block = m_screen_blocks[i];
-        QString fill_str(width(), character);
-        block->replaceAtPos(0, fill_str, m_screen->defaultTextStyle());
+    auto it = --m_screen_blocks.end();
+    for (int i = 0; i < m_screen->height(); --it, i++) {
+        QString fill_str(m_screen->width(), character);
+        (*it)->replaceAtPos(0, fill_str, m_screen->defaultTextStyle());
     }
 }
 
@@ -210,22 +210,25 @@ void ScreenData::updateIndexes(int from, int to)
 
 void ScreenData::sendSelectionToClipboard(const QPointF &start, const QPointF &end, QClipboard::Mode clipboard)
 {
-    QString data;
-    int start_block = qMax((int)start.y(), 0);
-    int end_block = qMin((int)end.y(), m_screen_blocks.size()-1);
-    for (int i = start_block; i <= end_block; i++) {
-        int char_start = 0;
-        int char_end = m_width - 1;
-        if (i == start_block)
-            char_start = start.x();
-        else
-            data.append(QChar('\n'));
-        if (i == end_block)
-            char_end = end.x();
-        data += blockContainingLine(i)->textLine()->mid(char_start, char_end - char_start).trimmed();
-    }
+    Q_UNUSED(start);
+    Q_UNUSED(end);
+    Q_UNUSED(clipboard);
+    //QString data;
+    //int start_block = qMax((int)start.y(), 0);
+    //int end_block = qMin((int)end.y(), m_screen_blocks.size()-1);
+    //for (int i = start_block; i <= end_block; i++) {
+    //    int char_start = 0;
+    //    int char_end = m_width - 1;
+    //    if (i == start_block)
+    //        char_start = start.x();
+    //    else
+    //        data.append(QChar('\n'));
+    //    if (i == end_block)
+    //        char_end = end.x();
+    //    data += blockContainingLine(i)->textLine()->mid(char_start, char_end - char_start).trimmed();
+    //}
 
-    QGuiApplication::clipboard()->setText(data, clipboard);
+    //QGuiApplication::clipboard()->setText(data, clipboard);
 }
 
 void ScreenData::getDoubleClickSelectionArea(const QPointF &cliked, int *start_ret, int *end_ret) const
@@ -298,28 +301,48 @@ void ScreenData::getDoubleClickSelectionArea(const QPointF &cliked, int *start_r
 
 void ScreenData::dispatchLineEvents()
 {
-    for (int i = 0; i < m_screen_blocks.size(); i++) {
-        blockContainingLine(i)->setIndex(i);
-        blockContainingLine(i)->dispatchEvents();
+    if (!m_height)
+        return;
+    auto it = --m_screen_blocks.end();
+    for (int i = 0; i < m_screen->height() + m_dispatch_outside_screen; --it, i++) {
+        int line = (m_new_total_lines - 1) - i;
+        (*it)->setIndex(line);
+        (*it)->dispatchEvents();
+        if (it == m_screen_blocks.begin())
+            break;
     }
-    m_blocks_moved = 0;
+    m_dispatch_outside_screen = 0;
+
+    if (m_new_total_lines != m_total_lines) {
+        m_total_lines = m_new_total_lines;
+        emit dataHeightChanged();
+    }
 }
 
 void ScreenData::printStyleInformation() const
 {
-    for (int i = 0; i < m_screen_blocks.size(); i++) {
-        const Block *block = blockContainingLine(i);
+    auto it = m_screen_blocks.end();
+    std::advance(it, -m_screen->height());
+    for (int i = 0; it != m_screen_blocks.end(); ++it, i++) {
         QDebug debug = qDebug();
         if (i % 5 == 0) {
             debug << "Ruler:" << i;
-            block->printRuler(debug);
+            (*it)->printRuler(debug);
         }
         debug << "Line: " << i;
-        block->printStyleList(debug);
+        (*it)->printStyleList(debug);
     }
 }
 
 Screen *ScreenData::screen() const
 {
     return m_screen;
+}
+
+std::list<Block *>::iterator ScreenData::it_for_row(int row)
+{
+    int advance = row - m_screen->height();
+    auto it = m_screen_blocks.end();
+    std::advance(it, advance);
+    return it;
 }

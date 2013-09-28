@@ -23,10 +23,25 @@ TerminalScreen {
         textFormat: Text.PlainText
     }
 
-    Rectangle {
-        id: background
+    Flickable {
+        id: flickable
         anchors.fill: parent
-        color: "black"
+        contentWidth: width
+        contentHeight: background.height
+        interactive: true
+        flickableDirection: Flickable.VerticalFlick
+        contentY: ((screen.contentHeight - screen.height) * screenItem.fontHeight)
+
+        Item {
+            id: textContainer
+            width: parent.width
+            height: screen.contentHeight * screenItem.fontHeight
+            Rectangle {
+                id: background
+                anchors.fill: parent
+                color: "black"
+            }
+        }
     }
 
     Connections {
@@ -60,6 +75,7 @@ TerminalScreen {
             }
             var cursorVariable = cursorComponent.createObject(screenItem,
                 {
+                    "parent" : textContainer,
                     "objectHandle" : cursor,
                     "fontWidth" : screenItem.fontWidth,
                     "fontHeight" : screenItem.fontHeight,

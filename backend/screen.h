@@ -44,6 +44,7 @@ class Screen : public QObject
 
     Q_PROPERTY(int height READ height WRITE setHeight NOTIFY heightChanged)
     Q_PROPERTY(int width READ width WRITE setWidth NOTIFY widthChanged)
+    Q_PROPERTY(int contentHeight READ contentHeight NOTIFY contentHeightChanged)
     Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY screenTitleChanged)
     Q_PROPERTY(bool selectionEnabled READ selectionEnabled NOTIFY selectionEnabledChanged)
     Q_PROPERTY(QPointF selectionAreaStart READ selectionAreaStart WRITE setSelectionAreaStart NOTIFY selectionAreaStartChanged)
@@ -56,6 +57,7 @@ public:
     void emitRequestHeight(int newHeight);
     void setHeight(int height);
     int height() const;
+    int contentHeight() const;
 
     void emitRequestWidth(int newWidth);
     void setWidth(int width);
@@ -145,6 +147,7 @@ signals:
     void requestHeightChange(int newHeight);
     void heightAboutToChange(int height, int currentCursorLine);
     void heightChanged();
+    void contentHeightChanged();
 
     void requestWidthChange(int newWidth);
     void widthAboutToChange(int width);

@@ -120,6 +120,9 @@ signals:
     void visibilityChanged();
     void blinkingChanged();
 
+private slots:
+    void contentHeightChanged();
+
 private:
     ScreenData *screen_data() const { return m_screen->currentScreenData(); }
     int &new_rx() { return m_new_position.rx(); }
@@ -151,6 +154,7 @@ private:
     bool m_blinking;
     bool m_new_blinking;
     bool m_wrap_around;
+    bool m_content_height_changed;
 
     QTextDecoder *m_gl_text_codec;
     QTextDecoder *m_gr_text_codec;

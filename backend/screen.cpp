@@ -62,6 +62,8 @@ Screen::Screen(QObject *parent)
     m_cursor_stack << cursor;
     m_new_cursors << cursor;
 
+    connect(m_primary_data, SIGNAL(dataHeightChanged()), this, SIGNAL(contentHeightChanged()));
+
     setHeight(25);
     setWidth(80);
 
@@ -117,6 +119,11 @@ int Screen::height() const
     return m_height;
 }
 
+int Screen::contentHeight() const
+{
+    return currentScreenData()->dataHeight();
+}
+
 void Screen::emitRequestWidth(int newWidth)
 {
     emit requestWidthChange(newWidth);
@@ -143,12 +150,22 @@ int Screen::width() const
 
 void Screen::useAlternateScreenBuffer()
 {
-    m_current_data = m_alternate_data;
+    if (m_current_data == m_primary_data) {
+        disconnect(m_primary_data, SIGNAL(dataHeightChanged()), this, SIGNAL(contentHeightChanged()));
+        m_current_data = m_alternate_data;
+        connect(m_alternate_data, SIGNAL(dataHeightChanged()), this, SIGNAL(contentHeightChanged()));
+        emit contentHeightChanged();
+    }
 }
 
 void Screen::useNormalScreenBuffer()
 {
-    m_current_data = m_primary_data;
+    if (m_current_data == m_alternate_data) {
+        disconnect(m_alternate_data, SIGNAL(dataHeightChanged()), this, SIGNAL(contentHeightChanged()));
+        m_current_data = m_primary_data;
+        connect(m_primary_data, SIGNAL(dataHeightChanged()), this, SIGNAL(contentHeightChanged()));
+        emit contentHeightChanged();
+    }
 }
 
 TextStyle Screen::defaultTextStyle() const
@@ -349,7 +366,7 @@ void Screen::dispatchChanges()
 
     if (m_selection_valid && m_selection_moved) {
         if (m_selection_start.y() < 0 ||
-                m_selection_end.y() >= currentScreenData()->height()) {
+                m_selection_end.y() >= height()) {
             setSelectionEnabled(false);
         } else {
             emit selectionAreaStartChanged();

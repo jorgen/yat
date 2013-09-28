@@ -1,22 +1,25 @@
-/**************************************************************************************************
-* Copyright (c) 2012 Jørgen Lind
+/*******************************************************************************
+ * Copyright (c) 2012 Jørgen Lind
 *
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-* associated documentation files (the "Software"), to deal in the Software without restriction,
-* including without limitation the rights to use, copy, modify, merge, publish, distribute,
-* sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
 *
-* The above copyright notice and this permission notice shall be included in all copies or
-* substantial portions of the Software.
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
 *
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-* NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-* DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-* OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
 *
-***************************************************************************************************/
+*******************************************************************************/
 
 #ifndef SCREENDATA_H
 #define SCREENDATA_H
@@ -38,8 +41,7 @@ public:
     ScreenData(Screen *screen);
     ~ScreenData();
 
-    int width() const;
-    int height() const;
+    int dataHeight() const;
 
     Block *blockContainingLine(int line) const;
 
@@ -55,6 +57,7 @@ public:
     void deleteCharacters(int line, int from, int to);
 
     void moveLine(int from, int to);
+    void appendLine(int row);
 
     void fill(const QChar &character);
 
@@ -71,14 +74,21 @@ public:
     Screen *screen() const;
 
 public slots:
-    void setWidth(int width);
     void setHeight(int height, int currentCursorLine);
 
+signals:
+    void dataHeightChanged();
+
 private:
+    std::list<Block *>::iterator it_for_row(int row);
     Screen *m_screen;
-    int m_width;
-    QVector<Block *> m_screen_blocks;
-    int m_blocks_moved;
+    int m_height;
+    int m_max_block_factor;
+    int m_new_total_lines;
+    int m_total_lines;
+    int m_dispatch_outside_screen;
+
+    std::list<Block *> m_screen_blocks;
 };
 
 #endif // SCREENDATA_H

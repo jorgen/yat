@@ -44,6 +44,7 @@ public:
     Q_INVOKABLE Screen *screen() const;
 
     void clear();
+    void clearToEnd(int from);
     void clearCharacters(int from, int to);
     void deleteCharacters(int from, int to);
 

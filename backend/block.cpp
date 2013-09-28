@@ -69,12 +69,17 @@ void Block::clear()
     m_changed = true;
 }
 
+void Block::clearToEnd(int from)
+{
+    clearCharacters(from, m_text_line.size() - 1);
+}
+
 void Block::clearCharacters(int from, int to)
 {
     if (from > m_text_line.size())
         return;
 
-    QString empty(to-from, QChar(' '));
+    QString empty(to+1-from, QChar(' '));
     const TextStyle &defaultTextStyle = m_screen->defaultTextStyle();
     replaceAtPos(from, empty, defaultTextStyle);
 }

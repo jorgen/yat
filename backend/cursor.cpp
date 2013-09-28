@@ -46,10 +46,12 @@ Cursor::Cursor(Screen* screen)
     , m_blinking(false)
     , m_new_blinking(false)
     , m_wrap_around(true)
+    , m_content_height_changed(false)
     , m_insert_mode(Replace)
 {
     connect(screen, SIGNAL(widthAboutToChange(int)), this, SLOT(setDocumentWidth(int)));
     connect(screen, SIGNAL(heightAboutToChange(int, int)), this, SLOT(setDocumentHeight(int)));
+    connect(screen, SIGNAL(contentHeightChanged()), this, SLOT(contentHeightChanged()));
 
     m_gl_text_codec = QTextCodec::codecForName("utf-8")->makeDecoder();
     m_gr_text_codec = QTextCodec::codecForName("utf-8")->makeDecoder();
@@ -146,24 +148,31 @@ void Cursor::resetStyle()
 
 void Cursor::scrollUp(int lines)
 {
-    if (new_y() < m_top_margin || new_y() > m_bottom_margin)
-        return;
-    int to = m_scroll_margins_set ? m_top_margin : 0;
-    int from = m_scroll_margins_set ? m_bottom_margin : m_document_height - 1;
-    for (int i = 0; i < lines; i++) {
-        screen_data()->moveLine(from, to);
+    if (m_scroll_margins_set) {
+        if (new_y() < m_top_margin || new_y() > m_bottom_margin)
+            return;
+        for (int i = 0; i < lines; i++) {
+            screen_data()->moveLine(m_bottom_margin, m_top_margin);
+        }
+    } else {
+        for (int i = 0; i < lines; i++) {
+            screen_data()->moveLine(m_document_height -1, 0);
+        }
     }
 }
 
 void Cursor::scrollDown(int lines)
 {
-    if (new_y() < m_top_margin || new_y() > m_bottom_margin)
-        return;
-
-    int to = m_scroll_margins_set ? m_bottom_margin : m_document_height - 1;
-    int from = m_scroll_margins_set ? m_top_margin : 0;
-    for (int i = 0; i < lines; i++) {
-        screen_data()->moveLine(from, to);
+    if (m_scroll_margins_set) {
+        if (new_y() < m_top_margin || new_y() > m_bottom_margin)
+            return;
+        for (int i = 0; i < lines; i++) {
+            screen_data()->moveLine(m_top_margin, m_bottom_margin);
+        }
+    } else {
+        for (int i = 0; i < lines; i++) {
+            screen_data()->moveLine(0,m_document_height - 1);
+        }
     }
 }
 
@@ -215,7 +224,7 @@ int Cursor::x() const
 
 int Cursor::y() const
 {
-    return m_position.y();
+    return (m_screen->currentScreenData()->dataHeight() - m_screen->height()) + m_position.y();
 }
 
 void Cursor::moveOrigin()
@@ -453,7 +462,7 @@ void Cursor::replaceAtCursor(const QByteArray &data)
             lineFeed();
         }
     }else {
-        const int size = screen_data()->width() - new_x();
+        const int size = m_document_width - new_x();
         QString toBlock = text.mid(0,size);
         toBlock.replace(toBlock.size() - 1, 1, text.at(text.size()-1));
         Block *block = screen_data()->blockContainingLine(new_y());
@@ -486,8 +495,7 @@ void Cursor::lineFeed()
         //m_selection_start.new_ry()--;
         //m_selection_end.new_ry()--;
         //m_selection_moved = true;
-        int move_to = m_scroll_margins_set ? m_top_margin : 0;
-        screen_data()->moveLine(move_to,new_y());
+        screen_data()->appendLine(bottom);
     } else {
         new_ry()++;
         notifyChanged();
@@ -501,8 +509,7 @@ void Cursor::reverseLineFeed()
         //m_selection_start.new_ry()++;
         //m_selection_end.new_ry()++;
         //m_selection_moved = true;
-        int move_from = m_scroll_margins_set ? m_bottom_margin : m_document_height - 1;
-        screen_data()->moveLine(move_from, new_y());
+        scrollUp(1);
     } else {
         new_ry()--;
         notifyChanged();
@@ -532,13 +539,13 @@ void Cursor::resetScrollArea()
 
 void Cursor::dispatchEvents()
 {
-    if (m_new_position != m_position) {
+    if (m_new_position != m_position|| m_content_height_changed) {
         bool emit_x_changed = m_new_position.x() != m_position.x();
         bool emit_y_changed = m_new_position.y() != m_position.y();
         m_position = m_new_position;
         if (emit_x_changed)
             emit xChanged();
-        if (emit_y_changed)
+        if (emit_y_changed || m_content_height_changed)
             emit yChanged();
     }
 
@@ -553,3 +560,7 @@ void Cursor::dispatchEvents()
     }
 }
 
+void Cursor::contentHeightChanged()
+{
+    m_content_height_changed = true;
+}
