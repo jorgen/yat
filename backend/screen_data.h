@@ -40,7 +40,7 @@ class ScreenData : public QObject
 {
 Q_OBJECT
 public:
-    ScreenData(Screen *screen);
+    ScreenData(size_t max_scrollback, Screen *screen);
     ~ScreenData();
 
     int contentHeight() const;

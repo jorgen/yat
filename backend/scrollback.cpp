@@ -30,18 +30,25 @@
 #define P_VAR(variable) \
     #variable ":" << variable
 
-Scrollback::Scrollback(ScreenData *screenData)
-    : m_screen_data(screenData)
+Scrollback::Scrollback(size_t max_size, ScreenData *screen_data)
+    : m_screen_data(screen_data)
     , m_height(0)
+    , m_max_size(max_size)
+    , m_adjust_visible_pages(0)
 {
-    Q_UNUSED(m_screen_data);
 }
 
 void Scrollback::addBlock(Block *block)
 {
     m_blocks.push_back(block);
     block->releaseTextObjects();
-    m_height++;
+    if (!m_max_size || m_height == m_max_size - 1) {
+        delete m_blocks.front();
+        m_blocks.pop_front();
+        m_adjust_visible_pages++;
+    } else {
+        m_height++;
+    }
 }
 
 Block *Scrollback::reclaimBlock()
@@ -57,7 +64,8 @@ Block *Scrollback::reclaimBlock()
 
 void Scrollback::ensureVisiblePages(int top_line)
 {
-    int height = std::max(m_screen_data->screen()->height(), 1);
+    adjustVisiblePages();
+    uint height = std::max(m_screen_data->screen()->height(), 1);
 
     int complete_pages = m_height / height;
     int remainder = m_height - (complete_pages * height);
@@ -124,10 +132,10 @@ void Scrollback::ensurePageNotVisible(Page &page)
 
 std::list<Block *>::iterator Scrollback::findIteratorForPage(int page_no)
 {
-    int line = page_no * m_screen_data->screen()->height();
+    uint line = page_no * m_screen_data->screen()->height();
     Q_ASSERT(line < m_height);
     for (auto it = m_visible_pages.begin(); it != m_visible_pages.end(); ++it) {
-        Page &page = (*it);
+        Page &page = *it;
         int diff = page_no - page.page_no;
         if (diff < 5 && diff > 5) {
             auto to_return = page.it;
@@ -148,7 +156,28 @@ std::list<Block *>::iterator Scrollback::findIteratorForPage(int page_no)
     return to_return;
 }
 
-int Scrollback::height() const
+void Scrollback::adjustVisiblePages()
+{
+    if (!m_adjust_visible_pages)
+        return;
+
+    for (auto it = m_visible_pages.begin(); it != m_visible_pages.end(); ++it) {
+        Page &page = *it;
+        const size_t line_for_page = page.page_no * m_screen_data->screen()->height();
+        if (line_for_page < m_adjust_visible_pages) {
+            auto to_remove = it;
+            --it;
+            m_visible_pages.erase(to_remove);
+        } else {
+            page.size = 0;
+            std::advance(page.it, m_adjust_visible_pages);
+        }
+    }
+
+    m_adjust_visible_pages = 0;
+}
+
+size_t Scrollback::height() const
 {
     return m_height;
 }

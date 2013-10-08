@@ -32,10 +32,10 @@
 #include <QtGui/QGuiApplication>
 #include <QtCore/QDebug>
 
-ScreenData::ScreenData(Screen *screen)
+ScreenData::ScreenData(size_t max_scrollback, Screen *screen)
     : QObject(screen)
     , m_screen(screen)
-    , m_scrollback(new Scrollback(this))
+    , m_scrollback(new Scrollback(max_scrollback, this))
     , m_height(0)
     , m_total_lines(0)
 {

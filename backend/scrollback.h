@@ -40,24 +40,26 @@ struct Page {
 class Scrollback
 {
 public:
-    Scrollback(ScreenData *screenData);
+    Scrollback(size_t max_size, ScreenData *screen_data);
 
     void addBlock(Block *block);
     Block *reclaimBlock();
     void ensureVisiblePages(int top_line);
 
-    int height() const;
+    size_t height() const;
 
 private:
     void ensurePageVisible(Page &page, int new_height);
     void ensurePageNotVisible(Page &page);
     std::list<Block *>::iterator findIteratorForPage(int page_no);
+    void adjustVisiblePages();
     ScreenData *m_screen_data;
 
     std::list<Block *> m_blocks;
     std::list<Page> m_visible_pages;
-    int m_height;
-
+    size_t m_height;
+    size_t m_max_size;
+    size_t m_adjust_visible_pages;
 };
 
 #endif //SCROLLBACK_H
