@@ -19,7 +19,8 @@ HEADERS += \
            $$PWD/text_style.h \
            $$PWD/screen_data.h \
            $$PWD/cursor.h \
-           $$PWD/nrc_text_codec.h
+           $$PWD/nrc_text_codec.h \
+           $$PWD/scrollback.h
 
 SOURCES += \
            $$PWD/yat_pty.cpp \
@@ -32,5 +33,6 @@ SOURCES += \
            $$PWD/text_style.cpp \
            $$PWD/screen_data.cpp \
            $$PWD/cursor.cpp \
-           $$PWD/nrc_text_codec.cpp
+           $$PWD/nrc_text_codec.cpp \
+           $$PWD/scrollback.cpp
 

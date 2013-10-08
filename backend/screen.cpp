@@ -1,22 +1,25 @@
-/**************************************************************************************************
-* Copyright (c) 2012 Jørgen Lind
+/******************************************************************************
+ * Copyright (c) 2012 Jørgen Lind
 *
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-* associated documentation files (the "Software"), to deal in the Software without restriction,
-* including without limitation the rights to use, copy, modify, merge, publish, distribute,
-* sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
 *
-* The above copyright notice and this permission notice shall be included in all copies or
-* substantial portions of the Software.
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
 *
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-* NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-* DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-* OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
 *
-***************************************************************************************************/
+******************************************************************************/
 
 #include "screen.h"
 
@@ -24,6 +27,7 @@
 #include "block.h"
 #include "cursor.h"
 #include "text.h"
+#include "scrollback.h"
 
 #include "controll_chars.h"
 #include "character_sets.h"
@@ -31,10 +35,6 @@
 #include <QtCore/QTimer>
 #include <QtCore/QSocketNotifier>
 #include <QtGui/QGuiApplication>
-
-#include <QtQuick/QQuickItem>
-#include <QtQuick/QQuickView>
-#include <QtQml/QQmlComponent>
 
 #include <QtCore/QDebug>
 
@@ -45,8 +45,8 @@ Screen::Screen(QObject *parent)
     , m_palette(new ColorPalette(this))
     , m_parser(this)
     , m_timer_event_id(0)
-    , m_width(1)
-    , m_height(1)
+    , m_width(0)
+    , m_height(0)
     , m_primary_data(new ScreenData(this))
     , m_alternate_data(new ScreenData(this))
     , m_current_data(m_primary_data)
@@ -57,12 +57,14 @@ Screen::Screen(QObject *parent)
     , m_cursor_changed(false)
     , m_application_cursor_key_mode(false)
     , m_fast_scroll(true)
+    , m_default_background(m_palette->normalColor(ColorPalette::DefaultBackground))
 {
     Cursor *cursor = new Cursor(this);
     m_cursor_stack << cursor;
     m_new_cursors << cursor;
 
-    connect(m_primary_data, SIGNAL(dataHeightChanged()), this, SIGNAL(contentHeightChanged()));
+    connect(m_primary_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
+    connect(m_palette, SIGNAL(changed()), this, SLOT(paletteChanged()));
 
     setHeight(25);
     setWidth(80);
@@ -105,7 +107,7 @@ void Screen::setHeight(int height)
     if (height == m_height)
         return;
 
-    emit heightAboutToChange(height, currentCursor()->new_y());
+    emit heightAboutToChange(height, currentCursor()->new_y(), currentScreenData()->scrollback()->height());
 
     m_height = height;
 
@@ -121,7 +123,7 @@ int Screen::height() const
 
 int Screen::contentHeight() const
 {
-    return currentScreenData()->dataHeight();
+    return currentScreenData()->contentHeight();
 }
 
 void Screen::emitRequestWidth(int newWidth)
@@ -151,9 +153,9 @@ int Screen::width() const
 void Screen::useAlternateScreenBuffer()
 {
     if (m_current_data == m_primary_data) {
-        disconnect(m_primary_data, SIGNAL(dataHeightChanged()), this, SIGNAL(contentHeightChanged()));
+        disconnect(m_primary_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
         m_current_data = m_alternate_data;
-        connect(m_alternate_data, SIGNAL(dataHeightChanged()), this, SIGNAL(contentHeightChanged()));
+        connect(m_alternate_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
         emit contentHeightChanged();
     }
 }
@@ -161,9 +163,9 @@ void Screen::useAlternateScreenBuffer()
 void Screen::useNormalScreenBuffer()
 {
     if (m_current_data == m_alternate_data) {
-        disconnect(m_alternate_data, SIGNAL(dataHeightChanged()), this, SIGNAL(contentHeightChanged()));
+        disconnect(m_alternate_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
         m_current_data = m_primary_data;
-        connect(m_primary_data, SIGNAL(dataHeightChanged()), this, SIGNAL(contentHeightChanged()));
+        connect(m_primary_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
         emit contentHeightChanged();
     }
 }
@@ -314,6 +316,7 @@ void Screen::scheduleFlash()
 void Screen::printScreen() const
 {
     currentScreenData()->printStyleInformation();
+    qDebug() << "Total height: " << currentScreenData()->contentHeight();
 }
 
 void Screen::scheduleEventDispatch()
@@ -394,6 +397,11 @@ void Screen::setApplicationCursorKeysMode(bool enable)
 bool Screen::applicationCursorKeyMode() const
 {
     return m_application_cursor_key_mode;
+}
+
+void Screen::ensureVisiblePages(int top_line)
+{
+    currentScreenData()->ensureVisiblePages(top_line);
 }
 
 static bool hasControll(Qt::KeyboardModifiers modifiers)
@@ -645,6 +653,15 @@ void Screen::readData(const QByteArray &data)
     m_parser.addData(data);
 
     scheduleEventDispatch();
+}
+
+void Screen::paletteChanged()
+{
+    QColor new_default = m_palette->normalColor(ColorPalette::DefaultBackground);
+    if (new_default != m_default_background) {
+        m_default_background = new_default;
+        emit defaultBackgroundColorChanged();
+    }
 }
 
 void Screen::setSelectionValidity()

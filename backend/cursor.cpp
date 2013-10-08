@@ -50,7 +50,7 @@ Cursor::Cursor(Screen* screen)
     , m_insert_mode(Replace)
 {
     connect(screen, SIGNAL(widthAboutToChange(int)), this, SLOT(setDocumentWidth(int)));
-    connect(screen, SIGNAL(heightAboutToChange(int, int)), this, SLOT(setDocumentHeight(int)));
+    connect(screen, SIGNAL(heightAboutToChange(int, int, int)), this, SLOT(setDocumentHeight(int, int, int)));
     connect(screen, SIGNAL(contentHeightChanged()), this, SLOT(contentHeightChanged()));
 
     m_gl_text_codec = QTextCodec::codecForName("utf-8")->makeDecoder();
@@ -85,19 +85,27 @@ void Cursor::setDocumentWidth(int width)
     }
 }
 
-void Cursor::setDocumentHeight(int height)
+void Cursor::setDocumentHeight(int height, int currentCursorBlock, int currentScrollBackHeight)
 {
+    Q_UNUSED(currentCursorBlock);
     resetScrollArea();
     if (m_document_height > height) {
         const int to_remove = m_document_height - height;
         const int removeLinesBelowCursor =
             std::min(m_document_height - new_y(), to_remove);
         const int removeLinesAtTop = to_remove - removeLinesBelowCursor;
-        new_ry() -= removeLinesAtTop;
-        notifyChanged();
+        if (!removeLinesAtTop) {
+            new_ry() -= removeLinesAtTop;
+            notifyChanged();
+        }
     } else {
-        //should be new_ry() = std::min(content_height, document_height - 1)
-        //but dont move it for now
+        int height_diff = height - m_document_height;
+        if (currentScrollBackHeight >= height_diff) {
+            new_ry() += height_diff;
+        } else if (currentScrollBackHeight > 0) {
+            const int move = height_diff - currentScrollBackHeight;
+            new_ry() += move;
+        }
     }
 
     m_document_height = height;
@@ -224,7 +232,7 @@ int Cursor::x() const
 
 int Cursor::y() const
 {
-    return (m_screen->currentScreenData()->dataHeight() - m_screen->height()) + m_position.y();
+    return (m_screen->currentScreenData()->contentHeight() - m_screen->height()) + m_position.y();
 }
 
 void Cursor::moveOrigin()
@@ -495,7 +503,7 @@ void Cursor::lineFeed()
         //m_selection_start.new_ry()--;
         //m_selection_end.new_ry()--;
         //m_selection_moved = true;
-        screen_data()->appendLine(bottom);
+        screen_data()->insertLine(bottom);
     } else {
         new_ry()++;
         notifyChanged();

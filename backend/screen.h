@@ -49,6 +49,7 @@ class Screen : public QObject
     Q_PROPERTY(bool selectionEnabled READ selectionEnabled NOTIFY selectionEnabledChanged)
     Q_PROPERTY(QPointF selectionAreaStart READ selectionAreaStart WRITE setSelectionAreaStart NOTIFY selectionAreaStartChanged)
     Q_PROPERTY(QPointF selectionAreaEnd READ selectionAreaEnd WRITE setSelectionAreaEnd NOTIFY selectionAreaEndChanged)
+    Q_PROPERTY(QColor defaultBackgroundColor READ defaultBackgroundColor NOTIFY defaultBackgroundColorChanged);
 
 public:
     explicit Screen(QObject *parent = 0);
@@ -121,11 +122,13 @@ public:
 
     YatPty *pty();
 
+    Q_INVOKABLE void ensureVisiblePages(int top_line);
     Text *createTextSegment(const TextStyleLine &style_line);
     void releaseTextSegment(Text *text);
 
 public slots:
     void readData(const QByteArray &data);
+    void paletteChanged();
 
 signals:
     void reset();
@@ -145,7 +148,7 @@ signals:
     void cursorCreated(Cursor *cursor);
 
     void requestHeightChange(int newHeight);
-    void heightAboutToChange(int height, int currentCursorLine);
+    void heightAboutToChange(int height, int currentCursorLine, int currentScrollBackHeight);
     void heightChanged();
     void contentHeightChanged();
 
@@ -153,6 +156,7 @@ signals:
     void widthAboutToChange(int width);
     void widthChanged();
 
+    void defaultBackgroundColorChanged();
 protected:
     void timerEvent(QTimerEvent *);
 
@@ -191,6 +195,8 @@ private:
     bool m_fast_scroll;
 
     QVector<Text *> m_to_delete;
+
+    QColor m_default_background;
 
     friend class ScreenData;
 };

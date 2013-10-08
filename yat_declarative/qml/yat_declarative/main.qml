@@ -10,4 +10,5 @@ Window {
     }
     width: 800
     height: 600
+    color: terminal.screen.defaultBackgroundColor
 }

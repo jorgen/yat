@@ -112,7 +112,7 @@ public:
 
 public slots:
     void setDocumentWidth(int width);
-    void setDocumentHeight(int height);
+    void setDocumentHeight(int height, int currentCursorBlock, int currentScrollBackHeight);
 
 signals:
     void xChanged();

@@ -31,8 +31,10 @@
 
 #include <functional>
 
+
 class Block;
 class Screen;
+class Scrollback;
 
 class ScreenData : public QObject
 {
@@ -41,7 +43,7 @@ public:
     ScreenData(Screen *screen);
     ~ScreenData();
 
-    int dataHeight() const;
+    int contentHeight() const;
 
     Block *blockContainingLine(int line) const;
 
@@ -57,11 +59,9 @@ public:
     void deleteCharacters(int line, int from, int to);
 
     void moveLine(int from, int to);
-    void appendLine(int row);
+    void insertLine(int row);
 
     void fill(const QChar &character);
-
-    void updateIndexes(int from = 0, int to = -1);
 
     void sendSelectionToClipboard(const QPointF &start, const QPointF &end, QClipboard::Mode clipboard);
 
@@ -73,20 +73,21 @@ public:
 
     Screen *screen() const;
 
+    void ensureVisiblePages(int top_line);
+
+    Scrollback *scrollback() const;
 public slots:
-    void setHeight(int height, int currentCursorLine);
+    void setHeight(int height, int currentCursorLine, int currentContentHeight);
 
 signals:
-    void dataHeightChanged();
+    void contentHeightChanged();
 
 private:
     std::list<Block *>::iterator it_for_row(int row);
     Screen *m_screen;
+    Scrollback *m_scrollback;
     int m_height;
-    int m_max_block_factor;
-    int m_new_total_lines;
     int m_total_lines;
-    int m_dispatch_outside_screen;
 
     std::list<Block *> m_screen_blocks;
 };
