@@ -25,9 +25,10 @@ TerminalScreen {
 
     Flickable {
         id: flickable
-        anchors.fill: parent
+        anchors.top: parent.top
+        anchors.left: parent.left
         contentWidth: width
-        contentHeight: background.height
+        contentHeight: textContainer.height
         interactive: true
         flickableDirection: Flickable.VerticalFlick
         contentY: ((screen.contentHeight - screen.height) * screenItem.fontHeight)
@@ -118,6 +119,7 @@ TerminalScreen {
     function setTerminalWidth() {
         if (fontWidth > 0) {
             var pty_width = Math.floor(width / fontWidth);
+            flickable.width = pty_width * fontWidth;
             screen.width = pty_width;
         }
     }
@@ -125,6 +127,7 @@ TerminalScreen {
     function setTerminalHeight() {
         if (fontHeight > 0) {
             var pty_height = Math.floor(height / fontHeight);
+            flickable.height = pty_height * fontHeight;
             screen.height = pty_height;
         }
     }
