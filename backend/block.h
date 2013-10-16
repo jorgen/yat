@@ -24,24 +24,18 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
-#include <QtCore/QObject>
-
 #include "text_style.h"
 
 class Text;
 class Screen;
 
-class Block : public QObject
+class Block
 {
-    Q_OBJECT
-
-    Q_PROPERTY(Screen *screen READ screen CONSTANT)
-    Q_PROPERTY(bool visible READ visible WRITE setVisible NOTIFY visibleChanged)
 public:
     Block(Screen *screen);
     ~Block();
 
-    Q_INVOKABLE Screen *screen() const;
+    Screen *screen() const;
 
     void clear();
     void clearToEnd(int from);
@@ -51,10 +45,16 @@ public:
     void replaceAtPos(int i, const QString &text, const TextStyle &style);
     void insertAtPos(int i, const QString &text, const TextStyle &style);
 
-    void setIndex(int index);
+    void setLine(size_t line);
+    void incLine(size_t inc = 1);
+    void decIndec(size_t dec = 1);
+    size_t line() const;
 
-    QString *textLine();
-    int textSize() { return m_text_line.size(); }
+    const QString *textLine() const;
+    int textSize() const;
+    int lines() const;
+    int width() const;
+    void setWidth(int width);
 
     void setVisible(bool visible);
     bool visible() const;
@@ -68,17 +68,16 @@ public:
     void printStyleList(QDebug &debug) const;
     void printRuler() const;
     void printRuler(QDebug &debug) const;
-signals:
-    void indexChanged();
-    void visibleChanged();
-    void widthChanged();
+
 private:
     void mergeCompatibleStyles();
     Screen *m_screen;
     QString m_text_line;
     QVector<TextStyleLine> m_style_list;
-    int m_index;
-    int m_new_index;
+    size_t m_line;
+    size_t m_new_line;
+
+    int m_width;
 
     bool m_visible;
     bool m_changed;

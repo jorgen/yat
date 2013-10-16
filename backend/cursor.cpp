@@ -34,8 +34,8 @@ Cursor::Cursor(Screen* screen)
     , m_current_text_style(screen->defaultTextStyle())
     , m_position(0,0)
     , m_new_position(0,0)
-    , m_document_width(screen->width())
-    , m_document_height(screen->height())
+    , m_width(screen->width())
+    , m_height(screen->height())
     , m_top_margin(0)
     , m_bottom_margin(0)
     , m_scroll_margins_set(false)
@@ -49,14 +49,14 @@ Cursor::Cursor(Screen* screen)
     , m_content_height_changed(false)
     , m_insert_mode(Replace)
 {
-    connect(screen, SIGNAL(widthAboutToChange(int)), this, SLOT(setDocumentWidth(int)));
-    connect(screen, SIGNAL(heightAboutToChange(int, int, int)), this, SLOT(setDocumentHeight(int, int, int)));
+    connect(screen, SIGNAL(widthAboutToChange(int)), this, SLOT(setWidth(int)));
+    connect(screen, SIGNAL(heightAboutToChange(int, int, int)), this, SLOT(setHeight(int, int, int)));
     connect(screen, SIGNAL(contentHeightChanged()), this, SLOT(contentHeightChanged()));
 
     m_gl_text_codec = QTextCodec::codecForName("utf-8")->makeDecoder();
     m_gr_text_codec = QTextCodec::codecForName("utf-8")->makeDecoder();
 
-    for (int i = 0; i < m_document_width; i++) {
+    for (int i = 0; i < m_width; i++) {
         if (i % 8 == 0) {
             m_tab_stops.append(i);
         }
@@ -68,47 +68,48 @@ Cursor::~Cursor()
 
 }
 
-void Cursor::setDocumentWidth(int width)
+void Cursor::setWidth(int width)
 {
-    if (width > m_document_width) {
-        for (int i = m_document_width -1; i < width; i++) {
+    if (width > m_width) {
+        for (int i = m_width -1; i < width; i++) {
             if (i % 8 == 0) {
                 m_tab_stops.append(i);
             }
         }
     }
 
-    m_document_width = width;
+    m_width = width;
     if (new_x() >= width) {
         new_rx() = width - 1;
         notifyChanged();
     }
 }
 
-void Cursor::setDocumentHeight(int height, int currentCursorBlock, int currentScrollBackHeight)
+void Cursor::setHeight(int height, int currentCursorBlock, int currentScrollBackHeight)
 {
     Q_UNUSED(currentCursorBlock);
+    Q_UNUSED(currentScrollBackHeight);
     resetScrollArea();
-    if (m_document_height > height) {
-        const int to_remove = m_document_height - height;
+    if (m_height > height) {
+        const int to_remove = m_height - height;
         const int removeLinesBelowCursor =
-            std::min(m_document_height - new_y(), to_remove);
+            std::min(m_height - new_y(), to_remove);
         const int removeLinesAtTop = to_remove - removeLinesBelowCursor;
         if (!removeLinesAtTop) {
             new_ry() -= removeLinesAtTop;
             notifyChanged();
         }
     } else {
-        int height_diff = height - m_document_height;
-        if (currentScrollBackHeight >= height_diff) {
-            new_ry() += height_diff;
-        } else if (currentScrollBackHeight > 0) {
-            const int move = height_diff - currentScrollBackHeight;
-            new_ry() += move;
-        }
+        //int height_diff = height - m_height;
+        //if (currentScrollBackHeight >= height_diff) {
+        //    new_ry() += height_diff;
+        //} else if (currentScrollBackHeight > 0) {
+        //    const int move = height_diff - currentScrollBackHeight;
+        //    new_ry() += move;
+        //}
     }
 
-    m_document_height = height;
+    m_height = height;
 
     if (new_y() >= height) {
         new_ry() = height - 1;
@@ -160,11 +161,11 @@ void Cursor::scrollUp(int lines)
         if (new_y() < m_top_margin || new_y() > m_bottom_margin)
             return;
         for (int i = 0; i < lines; i++) {
-            screen_data()->moveLine(m_bottom_margin, m_top_margin);
+            screen_data()->moveLine(tr_y(m_bottom_margin), tr_y(m_top_margin));
         }
     } else {
         for (int i = 0; i < lines; i++) {
-            screen_data()->moveLine(m_document_height -1, 0);
+            screen_data()->moveLine(tr_y(m_height -1),tr_y(0));
         }
     }
 }
@@ -175,11 +176,11 @@ void Cursor::scrollDown(int lines)
         if (new_y() < m_top_margin || new_y() > m_bottom_margin)
             return;
         for (int i = 0; i < lines; i++) {
-            screen_data()->moveLine(m_top_margin, m_bottom_margin);
+            screen_data()->moveLine(tr_y(m_top_margin), tr_y(m_bottom_margin));
         }
     } else {
         for (int i = 0; i < lines; i++) {
-            screen_data()->moveLine(0,m_document_height - 1);
+            screen_data()->moveLine(tr_y(0),tr_y(m_height - 1));
         }
     }
 }
@@ -360,11 +361,11 @@ void Cursor::moveToNextTab()
 {
     for (int i = 0; i < m_tab_stops.size(); i++) {
         if (new_x() < m_tab_stops.at(i)) {
-            moveToCharacter(std::min(m_tab_stops.at(i), m_document_width -1));
+            moveToCharacter(std::min(m_tab_stops.at(i), m_width -1));
             return;
         }
     }
-    moveToCharacter(m_document_width - 1);
+    moveToCharacter(m_width - 1);
 }
 
 void Cursor::setTabStop()
@@ -401,36 +402,36 @@ void Cursor::clearTabStops()
 
 void Cursor::clearToBeginningOfLine()
 {
-    screen_data()->clearToBeginningOfLine(new_y(),new_x());
+    screen_data()->clearToBeginningOfLine(tr_y(new_y()),new_x());
 }
 
 void Cursor::clearToEndOfLine()
 {
-    screen_data()->clearToEndOfLine(new_y(), new_x());
+    screen_data()->clearToEndOfLine(tr_y(new_y()), new_x());
 }
 
 void Cursor::clearToBeginningOfScreen()
 {
     clearToBeginningOfLine();
     if (new_y() > 0)
-        screen_data()->clearToBeginningOfScreen(new_y() - 1);
+        screen_data()->clearToBeginningOfScreen(tr_y(new_y() - 1));
 }
 
 void Cursor::clearToEndOfScreen()
 {
     clearToEndOfLine();
     if (new_y() < m_screen->height() -1)
-        screen_data()->clearToEndOfScreen(new_y() + 1);
+        screen_data()->clearToEndOfScreen(tr_y(new_y() + 1));
 }
 
 void Cursor::clearLine()
 {
-    screen_data()->clearLine(new_y());
+    screen_data()->clearLine(tr_y(new_y()));
 }
 
 void Cursor::deleteCharacters(int characters)
 {
-    screen_data()->deleteCharacters(new_y(), new_x(), new_x() + characters -1);
+    screen_data()->deleteCharacters(tr_y(new_y()), new_x(), new_x() + characters -1);
 }
 
 void Cursor::setWrapAround(bool wrap)
@@ -449,36 +450,25 @@ void Cursor::addAtCursor(const QByteArray &data)
 
 void Cursor::replaceAtCursor(const QByteArray &data)
 {
-    //if (m_selection_valid ) {
-    //    if (current_cursor_new_y() >= m_selection_start.new_y() && current_cursor_new_y() <= m_selection_end.new_y())
-    //        //don't need to schedule as event since it will only happen once
-    //        setSelectionEnabled(false);
-    //}
-
     const QString text = m_gl_text_codec->toUnicode(data);
 
-    if (new_x() + text.size() <= m_screen->width()) {
-        Block *block = screen_data()->blockContainingLine(new_y());
-        block->replaceAtPos(new_x(), text, m_current_text_style);
-        new_rx() += text.size();
-    } else if (m_wrap_around) {
-        Block *block = screen_data()->blockContainingLine(new_y());
-        block->replaceAtPos(new_x(), text, m_current_text_style);
-        int line_feeds = (new_x() + text.size()) / m_screen->width();
-        new_rx() = (new_x() + text.size()) % m_screen->width();
-        for (int i = 0; i < line_feeds; i++) {
-            lineFeed();
-        }
-    }else {
-        const int size = m_document_width - new_x();
+    if (!m_wrap_around && new_x() + text.size() > m_width) {
+        const int size = m_width - new_x();
         QString toBlock = text.mid(0,size);
         toBlock.replace(toBlock.size() - 1, 1, text.at(text.size()-1));
-        Block *block = screen_data()->blockContainingLine(new_y());
-        block->replaceAtPos(new_x(),toBlock, m_current_text_style);
-        new_rx() += toBlock.size();
+        const CursorDiff diff =
+            screen_data()->replace(tr_y(new_y()), new_x(), toBlock, m_current_text_style);
+        adjustToCursorDiff(diff);
+    } else {
+        const CursorDiff diff =
+            screen_data()->replace(tr_y(new_y()), new_x(), text, m_current_text_style);
+        adjustToCursorDiff(diff);
     }
-    if (new_x() >= m_document_width)
-        new_rx() = m_document_width - 1;
+
+    if (new_x() >= m_width)
+        new_rx() = m_width - 1;
+    if (new_y() >= m_height)
+        new_ry() = m_height -1;
     notifyChanged();
 }
 
@@ -491,19 +481,19 @@ void Cursor::insertAtCursor(const QByteArray &data)
     //}
 
     const QString text = m_gl_text_codec->toUnicode(data);
-    Block *line = screen_data()->blockContainingLine(new_y());
+    Block *line = screen_data()->blockContainingLine(tr_y(new_y()));
     line->insertAtPos(new_x(), text, m_screen->defaultTextStyle());
     new_rx() += text.size();
 }
 
 void Cursor::lineFeed()
 {
-    int bottom = m_scroll_margins_set ? m_bottom_margin : m_document_height - 1;
+    int bottom = m_scroll_margins_set ? m_bottom_margin : m_height - 1;
     if(new_y() >= bottom) {
         //m_selection_start.new_ry()--;
         //m_selection_end.new_ry()--;
         //m_selection_moved = true;
-        screen_data()->insertLine(bottom);
+        screen_data()->insertLine(tr_y(bottom+1));
     } else {
         new_ry()++;
         notifyChanged();
@@ -534,7 +524,7 @@ void Cursor::setOriginAtMargin(bool atMargin)
 void Cursor::setScrollArea(int from, int to)
 {
     m_top_margin = from;
-    m_bottom_margin = std::min(to,m_document_height -1);
+    m_bottom_margin = std::min(to,m_height -1);
     m_scroll_margins_set = true;
 }
 

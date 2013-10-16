@@ -29,9 +29,11 @@ TerminalScreen {
         anchors.left: parent.left
         contentWidth: width
         contentHeight: textContainer.height
+        contentY: 0
         interactive: true
         flickableDirection: Flickable.VerticalFlick
-        contentY: ((screen.contentHeight - screen.height) * screenItem.fontHeight)
+
+        property bool followEnd: true
 
         Item {
             id: textContainer
@@ -44,11 +46,33 @@ TerminalScreen {
             }
         }
         onContentYChanged: {
-            if (!atYEnd) {
-                var top_line = Math.floor(Math.max(contentY,0) / screenItem.fontHeight);
-                screen.ensureVisiblePages(top_line);
+            var top_line = Math.floor(contentY / screenItem.fontHeight);
+            screen.ensureVisiblePages(top_line);
+        }
+
+        Component.onCompleted: {
+            screen.ensureVisiblePages(0);
+        }
+
+        onContentHeightChanged: {
+            if (followEnd && height > screenItem.fontHeight) {
+                contentY = contentHeight - height;
             }
         }
+
+        onFollowEndChanged: {
+            if (followEnd) {
+                contentY = contentHeight - height;
+            }
+        }
+
+        onIsAtBoundaryChanged: {
+            if (atYEnd) {
+                followEnd = true;
+            } else if (flicking) {
+                followEnd = false;
+            }
+       }
     }
 
     Connections {
@@ -137,6 +161,7 @@ TerminalScreen {
         id: keyHandler
         focus: true
         Keys.onPressed: {
+            flickable.followEnd = true;
             terminal.screen.sendKey(event.text, event.key, event.modifiers);
             if (event.text === "?") {
                 terminal.screen.printScreen()

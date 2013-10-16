@@ -27,7 +27,6 @@
 #include "block.h"
 #include "cursor.h"
 #include "text.h"
-#include "scrollback.h"
 
 #include "controll_chars.h"
 #include "character_sets.h"
@@ -107,7 +106,7 @@ void Screen::setHeight(int height)
     if (height == m_height)
         return;
 
-    emit heightAboutToChange(height, currentCursor()->new_y(), currentScreenData()->scrollback()->height());
+    emit heightAboutToChange(height, currentCursor()->new_y(), currentScreenData()->contentHeight());
 
     m_height = height;
 
@@ -210,7 +209,7 @@ ColorPalette *Screen::colorPalette() const
 
 void Screen::fill(const QChar character)
 {
-    currentScreenData()->fill(character);
+    currentScreenData()->fill(currentScreenData()->contentHeight() - m_height, m_height, character);
 }
 
 void Screen::clear()

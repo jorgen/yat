@@ -52,7 +52,7 @@ Text::~Text()
 
 int Text::index() const
 {
-    return m_start_index;
+    return m_start_index % m_screen->width();
 }
 
 int Text::line() const

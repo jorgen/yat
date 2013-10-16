@@ -25,9 +25,11 @@
 
 #include "block.h"
 #include "screen.h"
-#include "scrollback.h"
+#include "cursor.h"
 
 #include <stdio.h>
+
+#include <set>
 
 #include <QtGui/QGuiApplication>
 #include <QtCore/QDebug>
@@ -35,76 +37,74 @@
 ScreenData::ScreenData(size_t max_scrollback, Screen *screen)
     : QObject(screen)
     , m_screen(screen)
-    , m_scrollback(new Scrollback(max_scrollback, this))
-    , m_height(0)
     , m_total_lines(0)
+    , m_total_lines_old(0)
+    , m_viewport_height(0)
+    , m_width(0)
 {
+    Q_UNUSED(max_scrollback);
     connect(screen, SIGNAL(heightAboutToChange(int, int, int)), this, SLOT(setHeight(int, int, int)));
+    connect(screen, SIGNAL(widthAboutToChange(int)), this, SLOT(setWidth(int)));
 }
 
 ScreenData::~ScreenData()
 {
-    for (auto it = m_screen_blocks.begin(); it != m_screen_blocks.end(); ++it) {
+    for (auto it = m_blocks.begin(); it != m_blocks.end(); ++it) {
         delete *it;
     }
-    delete m_scrollback;
 }
 
 
 int ScreenData::contentHeight() const
 {
-    return m_screen->height() + m_scrollback->height();
+    return m_total_lines;
 }
 
 void ScreenData::setHeight(int height, int currentCursorBlock, int currentContentHeight)
 {
     Q_UNUSED(currentContentHeight);
-    const int old_height = m_height;
-    if (height == old_height)
-        return;
-
-    if (old_height > height) {
-        const int to_remove = old_height - height;
-        const int remove_from_end = std::min((old_height - 1) - currentCursorBlock, to_remove);
-        const int remove_from_begin = to_remove - remove_from_end;
+    Q_UNUSED(currentCursorBlock);
+    if (m_viewport_height > height) {
+        const int to_remove = m_viewport_height - height;
+        const int remove_from_end = std::min((m_viewport_height - 1) - currentCursorBlock, to_remove);
         if (remove_from_end > 0) {
-            auto it = --m_screen_blocks.end();
+            auto it = --m_blocks.end();
             for (int i = 0; i < remove_from_end; --it, i++) {
+                m_total_lines -= (*it)->lines();
                 delete *it;
             }
-            m_screen_blocks.erase(++it, m_screen_blocks.end());
+            m_blocks.erase(++it, m_blocks.end());
         }
-        if (remove_from_begin > 0) {
-            auto it = m_screen_blocks.begin();
-            for (int i = 0; i < remove_from_begin; ++it, i++) {
-                m_scrollback->addBlock(*it);
-            }
-            m_screen_blocks.erase(m_screen_blocks.begin(), it);
-        }
-        m_height -= to_remove;
-    } else {
-        int rowsToAdd = height - old_height;
-        m_height += rowsToAdd;
-        int reclaimed = 0;
+    } else if (m_total_lines < height) {
+        int rowsToAdd = height - m_total_lines;
         for (int i = 0; i < rowsToAdd; i++) {
-            Block *newBlock = m_scrollback->reclaimBlock();
-            if (newBlock) {
-                reclaimed ++;
-                m_screen_blocks.push_front(newBlock);
-            } else {
-                m_screen_blocks.push_back(new Block(m_screen));
-            }
+            auto block = new Block(m_screen);
+            m_total_lines++;
+            m_blocks.push_back(block);
         }
+    }
+
+    m_viewport_height = height;
+    m_top_of_viewport = m_blocks.end();
+    std::advance(m_top_of_viewport, -height);
+    m_pages.clear();
+}
+
+void ScreenData::setWidth(int width)
+{
+    m_total_lines = 0;
+    m_width = width;
+    for (auto it = m_blocks.begin(); it != m_blocks.end(); ++it) {
+        (*it)->setWidth(width);
+        m_total_lines += (*it)->lines();
     }
 }
 
-Block *ScreenData::blockContainingLine(int line) const
+Block *ScreenData::blockContainingLine(int line)
 {
-    if (line == m_height - 1)
-        return m_screen_blocks.back();
-    auto it = m_screen_blocks.end();
-    int move_back = line - m_height;
-    std::advance(it, move_back);
+    auto it = it_for_row(line);
+    if (it == m_blocks.end())
+        return 0;
     return *it;
 }
 
@@ -116,11 +116,13 @@ void ScreenData::clearToEndOfLine(int row, int from_char)
 
 void ScreenData::clearToEndOfScreen(int row)
 {
-    auto it = --m_screen_blocks.end();
-    int lines_back = m_height - row;
-    for(int i = 0; i < lines_back; --it, i++) {
-        (*it)->clear();
-    }
+    Q_UNUSED(row);
+    Q_ASSERT(false);
+    //auto it = --m_blocks.end();
+    //int lines_back = m_total_lines - row;
+    //for(int i = 0; i < lines_back; --it, i++) {
+    //    (*it)->clear();
+    //}
 }
 
 void ScreenData::clearToBeginningOfLine(int row, int from_char)
@@ -129,10 +131,12 @@ void ScreenData::clearToBeginningOfLine(int row, int from_char)
 }
 void ScreenData::clearToBeginningOfScreen(int row)
 {
-    for (int i = row; i >= 0; i--) {
-        Block *block = blockContainingLine(i);
-        block->clear();
-    }
+    Q_UNUSED(row);
+    Q_ASSERT(false); //implement
+//    for (int i = row; i >= 0; i--) {
+//        Block *block = blockContainingLine(i);
+//        block->clear();
+//    }
 }
 
 void ScreenData::clearLine(int index)
@@ -142,29 +146,80 @@ void ScreenData::clearLine(int index)
 
 void ScreenData::clear()
 {
-    auto it = --m_screen_blocks.end();
-    for (int i = 0; i < m_height; --it, i++) {
+    auto it = --m_blocks.end();
+    for (int i = 0; i < m_viewport_height; --it, i++) {
         (*it)->clear();
+        if (it == m_blocks.begin())
+            break;
     }
 }
 
 void ScreenData::releaseTextObjects()
-{
-    for (auto it = m_screen_blocks.begin(); it != m_screen_blocks.end(); ++it) {
+{   //too heavy
+    for (auto it = m_blocks.begin(); it != m_blocks.end(); ++it) {
         (*it)->releaseTextObjects();
     }
 }
 
-void ScreenData::clearCharacters(int block, int from, int to)
+void ScreenData::clearCharacters(int line, int from, int to)
 {
-    Block *block_item = blockContainingLine(block);
+    Block *block_item = blockContainingLine(line);
     block_item->clearCharacters(from,to);
 }
 
-void ScreenData::deleteCharacters(int block, int from, int to)
+void ScreenData::deleteCharacters(int line, int from, int to)
 {
-    Block *block_item = blockContainingLine(block);
+    Block *block_item = blockContainingLine(line);
     block_item->deleteCharacters(from,to);
+}
+
+CursorDiff ScreenData::replace(int line, int from_char, const QString &text, const TextStyle &style)
+{
+    auto it = it_for_row(line);
+    Block *block = *it;
+    size_t lines_before = block->lines();
+    int start_char = (line - block->line()) * m_width + from_char;
+    block->replaceAtPos(start_char, text, style);
+    int lines_changed = block->lines() - lines_before;
+    int end_char = (start_char + text.size()) % m_width;
+    int removed = 0;
+    for(auto to_remove = --m_blocks.end();
+            lines_changed && removed <= lines_changed && to_remove != it; --to_remove) {
+        if (removed + (*to_remove)->lines() <= lines_changed) {
+            removed+= (*to_remove)->lines();
+            delete *to_remove;
+            to_remove = m_blocks.erase(to_remove);
+        } else {
+            break;
+            --to_remove;
+            removed+=1;
+        }
+    }
+    m_total_lines += lines_changed;
+    return { lines_changed, end_char - start_char };
+}
+
+CursorDiff ScreenData::insert(int line, int from_char, const QString &text, const TextStyle &style)
+{
+    auto it = it_for_row(line);
+    Block *block = *it;
+    size_t lines_before = block->lines();
+    int start_char = (line - block->line()) * m_width + from_char;
+    block->insertAtPos(start_char, text, style);
+    int lines_changed = block->lines() - lines_before;
+    int end_char = (start_char + text.size()) % m_width;
+    int removed = 0;
+    for(auto to_remove = --m_blocks.end();
+            removed <= lines_changed && to_remove != it; --to_remove, removed++) {
+        if (removed + (*to_remove)->lines() <= lines_changed) {
+            to_remove = m_blocks.erase(to_remove);
+        } else {
+            qDebug() << "NOT HANDLED";
+            --to_remove;
+        }
+    }
+    m_total_lines += lines_changed;
+    return { lines_changed, end_char - start_char };
 }
 
 void ScreenData::moveLine(int from, int to)
@@ -172,37 +227,48 @@ void ScreenData::moveLine(int from, int to)
     if (from == to)
         return;
 
-    auto from_it = m_screen_blocks.end();
-    std::advance(from_it, from - m_height);
+    auto from_it = m_blocks.end();
+    std::advance(from_it, from - m_total_lines);
     (*from_it)->clear();
 
-    auto to_it = m_screen_blocks.end();
-    if (to < from)
-        --to_it;
-    std::advance(to_it, to - m_height);
+    auto to_it = m_blocks.end();
+    std::advance(to_it, to - (m_total_lines-1));
 
-    m_screen_blocks.splice(++to_it, m_screen_blocks, from_it);
+    m_blocks.splice(to_it, m_blocks, from_it);
 }
 
 void ScreenData::insertLine(int row)
 {
-    auto row_it = m_screen_blocks.end();
-    std::advance(row_it, row - (m_height - 1));
+    auto insert_it = it_for_row(row);
+    auto it = insert_it;
 
     Block *block_to_insert = new Block(m_screen);
-    m_screen_blocks.insert(row_it,block_to_insert);
+    m_blocks.insert(insert_it, block_to_insert);
 
-    m_scrollback->addBlock(*m_screen_blocks.begin());
-    m_screen_blocks.pop_front();
+    m_total_lines++;
+
+    for (; it != m_blocks.end(); ++it) {
+        (*it)->incLine();
+    }
+
+    (*m_top_of_viewport)->releaseTextObjects();
+    ++m_top_of_viewport;
 }
 
 
-void ScreenData::fill(const QChar &character)
+void ScreenData::fill(int start_line, int size, const QChar &character)
 {
-    auto it = --m_screen_blocks.end();
-    for (int i = 0; i < m_height; --it, i++) {
+    int advance = m_total_lines - (start_line + size);
+    auto it = m_blocks.end();
+    std::advance(it, advance);
+    for (int i = 0; i < size; --it, i++) {
         QString fill_str(m_screen->width(), character);
+        (*it)->clear();
         (*it)->replaceAtPos(0, fill_str, m_screen->defaultTextStyle());
+        if (it == m_blocks.begin()) {
+            qDebug() << "SIZE is bigger than n lines";
+            break;
+        }
     }
 }
 
@@ -213,7 +279,7 @@ void ScreenData::sendSelectionToClipboard(const QPointF &start, const QPointF &e
     Q_UNUSED(clipboard);
     //QString data;
     //int start_block = qMax((int)start.y(), 0);
-    //int end_block = qMin((int)end.y(), m_screen_blocks.size()-1);
+    //int end_block = qMin((int)end.y(), m_blocks.size()-1);
     //for (int i = start_block; i <= end_block; i++) {
     //    int char_start = 0;
     //    int char_end = m_width - 1;
@@ -229,7 +295,7 @@ void ScreenData::sendSelectionToClipboard(const QPointF &start, const QPointF &e
     //QGuiApplication::clipboard()->setText(data, clipboard);
 }
 
-void ScreenData::getDoubleClickSelectionArea(const QPointF &cliked, int *start_ret, int *end_ret) const
+void ScreenData::getDoubleClickSelectionArea(const QPointF &cliked, int *start_ret, int *end_ret)
 {
     static const QChar delimiter_list[] = {
         ' ',
@@ -300,34 +366,39 @@ void ScreenData::getDoubleClickSelectionArea(const QPointF &cliked, int *start_r
 
 void ScreenData::dispatchLineEvents()
 {
-    if (!m_height)
-        return;
-    auto it = --m_screen_blocks.end();
-    const int content_height = contentHeight();
-    for (int i = 0; i < m_height; --it, i++) {
-        int line = (content_height - 1) - i;
-        (*it)->setIndex(line);
-        (*it)->dispatchEvents();
-        if (it == m_screen_blocks.begin())
-            break;
+    if (m_total_lines_old != m_total_lines) {
+        m_total_lines_old = m_total_lines;
+        emit contentHeightChanged();
     }
 
-    if (content_height != m_total_lines) {
-        m_total_lines = contentHeight();
-        emit contentHeightChanged();
+    if (!m_viewport_height)
+        return;
+
+    auto it = --m_blocks.end();
+    int block_line = m_total_lines;
+    for (int i = 0; i < m_viewport_height; --it) {
+        Block *block = *it;
+        block_line -= block->lines();
+        i += block->lines();
+        block->setLine(block_line);
+        block->dispatchEvents();
+        if (it == m_blocks.begin())
+            break;
     }
 }
 
 void ScreenData::printStyleInformation() const
 {
-    auto it = m_screen_blocks.end();
-    std::advance(it, -m_height);
-    for (int i = 0; it != m_screen_blocks.end(); ++it, i++) {
-        QDebug debug = qDebug();
+    auto it = m_blocks.end();
+    std::advance(it, -m_viewport_height);
+    for (int i = 0; it != m_blocks.end(); ++it, i++) {
         if (i % 5 == 0) {
+            QDebug debug = qDebug();
             debug << "Ruler:" << i;
             (*it)->printRuler(debug);
+            debug << "\n";
         }
+        QDebug debug = qDebug();
         debug << "Line: " << i;
         (*it)->printStyleList(debug);
     }
@@ -340,18 +411,94 @@ Screen *ScreenData::screen() const
 
 void ScreenData::ensureVisiblePages(int top_line)
 {
-    m_scrollback->ensureVisiblePages(top_line);
-}
+    if (top_line + m_viewport_height == m_total_lines)
+        return;
+    if (top_line < 0) {
+        top_line = 0;
+    } else if (top_line > m_total_lines - m_viewport_height) {
+        top_line = m_total_lines - m_viewport_height;
+    }
 
-Scrollback *ScreenData::scrollback() const
-{
-    return m_scrollback;
+    std::set<size_t> visible_pages;
+
+    size_t top_page = top_line / m_viewport_height;
+    visible_pages.insert(top_page);
+
+    if ((top_line % (m_viewport_height -1)) != 0) {
+        visible_pages.insert(top_page + 1);
+    }
+
+    auto page_it = m_pages.begin();
+    while(page_it != m_pages.end()) {
+        if (visible_pages.count(page_it->index)) {
+            visible_pages.erase(page_it->index);
+            handleVisiblePage(*page_it);
+            ++page_it;
+        } else {
+            handleRemovePage(*page_it);
+            page_it = m_pages.erase(page_it);
+        }
+    }
+
+    for (auto new_indexs_it = visible_pages.begin(); new_indexs_it != visible_pages.end(); ++new_indexs_it) {
+        auto it_for_page = it_for_row((*new_indexs_it) * m_viewport_height);
+        m_pages.push_back( { *new_indexs_it, (*it_for_page)->line(), it_for_page, 0 } );
+    }
+
+    m_last_top_line = top_line;
 }
 
 std::list<Block *>::iterator ScreenData::it_for_row(int row)
 {
-    int advance = row - m_height;
-    auto it = m_screen_blocks.end();
-    std::advance(it, advance);
+    auto it = m_blocks.end();
+    int line_for_block = m_total_lines;
+    while (it != m_blocks.begin()) {
+        --it;
+        int end_line = line_for_block - 1;
+        line_for_block -= (*it)->lines();
+        if (line_for_block <= row && end_line >= row) {
+            (*it)->setLine(line_for_block);
+            return it;
+        }
+
+        if (end_line < row) {
+            break;
+        }
+    }
+
+    ++it;
+
     return it;
 }
+
+void ScreenData::handleVisiblePage(Page &page)
+{
+    size_t total_pages = m_total_lines / m_viewport_height;
+    size_t height;
+    if (page.index < total_pages) {
+        height = m_viewport_height;
+    } else {
+        height = m_total_lines - page.line;
+    }
+
+    if (height <= page.size)
+        return;
+
+    auto it = page.it;
+    for (size_t i = 0; i < height; ++it, i++) {
+        (*it)->setLine(i + page.line);
+        (*it)->dispatchEvents();
+    }
+
+    page.size = height;
+}
+
+void ScreenData::handleRemovePage(Page &page)
+{
+    auto it = page.it;
+    for (size_t i = 0; i < page.size; ++it, i++) {
+        (*it)->releaseTextObjects();
+    }
+    page.size = 0;
+}
+

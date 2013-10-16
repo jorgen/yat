@@ -26,6 +26,7 @@
 
 #include "text_style.h"
 #include "screen.h"
+#include "screen_data.h"
 
 #include <QtCore/QObject>
 
@@ -111,8 +112,8 @@ public:
     void dispatchEvents();
 
 public slots:
-    void setDocumentWidth(int width);
-    void setDocumentHeight(int height, int currentCursorBlock, int currentScrollBackHeight);
+    void setWidth(int width);
+    void setHeight(int height, int currentCursorBlock, int currentScrollBackHeight);
 
 signals:
     void xChanged();
@@ -132,14 +133,17 @@ private:
     int adjusted_new_y() const { return m_origin_at_margin ?
         m_new_position.y() - m_top_margin : m_new_position.y(); }
     int adjusted_top() const { return m_origin_at_margin ? m_top_margin : 0; }
-    int adjusted_bottom() const { return m_origin_at_margin ? m_bottom_margin : m_document_height - 1; }
+    int adjusted_bottom() const { return m_origin_at_margin ? m_bottom_margin : m_height - 1; }
+    inline int tr_y(int y) const;
+    inline int content_height() const;
+    inline void adjustToCursorDiff(const CursorDiff &diff);
     Screen *m_screen;
     TextStyle m_current_text_style;
     QPoint m_position;
     QPoint m_new_position;
 
-    int m_document_width;
-    int m_document_height;
+    int m_width;
+    int m_height;
 
     int m_top_margin;
     int m_bottom_margin;
@@ -162,6 +166,16 @@ private:
     InsertMode m_insert_mode;
 };
 
+int Cursor::tr_y(int y) const
+{
+    return content_height() - std::min(m_height, content_height()) + y;
+}
+
+int Cursor::content_height() const
+{
+    return m_screen->currentScreenData()->contentHeight();
+}
+
 void Cursor::notifyChanged()
 {
     if (!m_notified) {
@@ -170,4 +184,9 @@ void Cursor::notifyChanged()
     }
 }
 
+void Cursor::adjustToCursorDiff(const CursorDiff &diff)
+{
+    new_ry() += diff.line_diff;
+    new_rx() += diff.char_diff;
+}
 #endif //CUROSOR_H

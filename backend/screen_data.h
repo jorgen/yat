@@ -21,8 +21,8 @@
 *
 *******************************************************************************/
 
-#ifndef SCREENDATA_H
-#define SCREENDATA_H
+#ifndef SCREEN_DATA_H
+#define SCREEN_DATA_H
 
 #include <QtCore/QVector>
 #include <QtCore/QPoint>
@@ -31,10 +31,26 @@
 
 #include <functional>
 
+#include "text_style.h"
 
 class Block;
 class Screen;
-class Scrollback;
+
+class Page
+{
+public:
+    size_t index;
+    size_t line;
+    std::list<Block *>::iterator it;
+    size_t size;
+};
+
+class CursorDiff
+{
+public:
+    int line_diff;
+    int char_diff;
+};
 
 class ScreenData : public QObject
 {
@@ -45,7 +61,7 @@ public:
 
     int contentHeight() const;
 
-    Block *blockContainingLine(int line) const;
+    Block *blockContainingLine(int line);
 
     void clearToEndOfLine(int row, int from_char);
     void clearToEndOfScreen(int row);
@@ -58,14 +74,17 @@ public:
     void clearCharacters(int line, int from, int to);
     void deleteCharacters(int line, int from, int to);
 
+    CursorDiff replace(int line, int from_char, const QString &text, const TextStyle &style);
+    CursorDiff insert(int line, int from_char, const QString &text, const TextStyle &style);
+
     void moveLine(int from, int to);
     void insertLine(int row);
 
-    void fill(const QChar &character);
+    void fill(int start_line, int size, const QChar &character);
 
     void sendSelectionToClipboard(const QPointF &start, const QPointF &end, QClipboard::Mode clipboard);
 
-    void getDoubleClickSelectionArea(const QPointF &cliked, int *start_ret, int *end_ret) const;
+    void getDoubleClickSelectionArea(const QPointF &cliked, int *start_ret, int *end_ret);
 
     void dispatchLineEvents();
 
@@ -74,22 +93,30 @@ public:
     Screen *screen() const;
 
     void ensureVisiblePages(int top_line);
-
-    Scrollback *scrollback() const;
 public slots:
     void setHeight(int height, int currentCursorLine, int currentContentHeight);
+    void setWidth(int width);
 
 signals:
     void contentHeightChanged();
 
 private:
     std::list<Block *>::iterator it_for_row(int row);
+    void addLines(int lines);
+    void removeLines(int lines, int cursorLine);
+    void handleVisiblePage(Page &page);
+    void handleRemovePage(Page &page);
+    void markPageForRowDirty(int row);
     Screen *m_screen;
-    Scrollback *m_scrollback;
-    int m_height;
     int m_total_lines;
+    int m_total_lines_old;
+    int m_viewport_height;
+    int m_last_top_line;
+    int m_width;
 
-    std::list<Block *> m_screen_blocks;
+    std::list<Block *> m_blocks;
+    std::list<Block *>::iterator m_top_of_viewport;
+    std::list<Page> m_pages;
 };
 
-#endif // SCREENDATA_H
+#endif // SCREEN_DATA_H
