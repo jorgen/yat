@@ -25,6 +25,7 @@
 #define SCREENDATA_H
 
 #include "text_style.h"
+#include "block.h"
 
 #include <QtCore/QVector>
 #include <QtCore/QPoint>
@@ -33,7 +34,6 @@
 
 #include <functional>
 
-class Block;
 class Screen;
 class Scrollback;
 
@@ -46,7 +46,7 @@ public:
 
     int contentHeight() const;
 
-    Block *blockContainingLine(int line) const;
+    inline Block *blockContainingLine(int line) const;
 
     void clearToEndOfLine(int row, int from_char);
     void clearToEndOfScreen(int row);
@@ -88,7 +88,7 @@ signals:
     void contentHeightChanged();
 
 private:
-    std::list<Block *>::iterator it_for_row(int row);
+    inline std::list<Block *>::const_iterator it_for_row(int row) const;
     Screen *m_screen;
     Scrollback *m_scrollback;
     int m_height;
@@ -98,4 +98,33 @@ private:
     std::list<Block *> m_screen_blocks;
 };
 
+Block *ScreenData::blockContainingLine(int line) const
+{
+    auto it = it_for_row(line);
+    if (it == m_screen_blocks.end())
+        return nullptr;
+
+    return *it;
+}
+
+std::list<Block *>::const_iterator ScreenData::it_for_row(int row) const
+{
+    auto it = m_screen_blocks.end();
+    int line_for_block = m_height;
+    while (it != m_screen_blocks.begin()) {
+        --it;
+        int end_line = line_for_block - 1;
+        line_for_block -= (*it)->lineCount();
+        if (line_for_block <= row && end_line >= row) {
+            (*it)->setIndex(line_for_block);
+            return it;
+        }
+
+        if (end_line < row) {
+            break;
+        }
+    }
+
+    return m_screen_blocks.end();
+}
 #endif // SCREENDATA_H

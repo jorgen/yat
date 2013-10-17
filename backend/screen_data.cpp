@@ -99,6 +99,7 @@ void ScreenData::setHeight(int height, int currentCursorBlock, int currentConten
             }
         }
     }
+    m_height = height;
 }
 
 void ScreenData::setWidth(int width)
@@ -109,15 +110,6 @@ void ScreenData::setWidth(int width)
     m_scrollback->setWidth(width);
 }
 
-Block *ScreenData::blockContainingLine(int line) const
-{
-    if (line == m_block_count - 1)
-        return m_screen_blocks.back();
-    auto it = m_screen_blocks.end();
-    int move_back = line - m_block_count;
-    std::advance(it, move_back);
-    return *it;
-}
 
 void ScreenData::clearToEndOfLine(int row, int from_char)
 {
@@ -193,8 +185,7 @@ void ScreenData::moveLine(int from, int to)
     if (from == to)
         return;
 
-    auto from_it = m_screen_blocks.end();
-    std::advance(from_it, from - m_block_count);
+    auto from_it = it_for_row(from);
     (*from_it)->clear();
 
     auto to_it = m_screen_blocks.end();
@@ -348,6 +339,7 @@ void ScreenData::printStyleInformation() const
         if (i % 5 == 0) {
             debug << "Ruler:" << i;
             (*it)->printRuler(debug);
+            debug << "\n";
         }
         debug << "Line: " << i;
         (*it)->printStyleList(debug);
@@ -369,10 +361,3 @@ Scrollback *ScreenData::scrollback() const
     return m_scrollback;
 }
 
-std::list<Block *>::iterator ScreenData::it_for_row(int row)
-{
-    int advance = row - m_block_count;
-    auto it = m_screen_blocks.end();
-    std::advance(it, advance);
-    return it;
-}
