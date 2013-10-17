@@ -333,6 +333,27 @@ bool Block::visible() const
     return m_visible;
 }
 
+Block *Block::takeLine(int line)
+{
+    if (line >= lineCount())
+        return nullptr;
+    Block *to_return = new Block(m_screen);
+    int start_index = line * m_width;
+    int end_index = start_index + (m_width - 1);
+    for (int i = 0; i < m_style_list.size(); i++) {
+        ensureStyleAlignWithLines(i);
+        TextStyleLine &current_style = m_style_list[i];
+        if (current_style.start_index >= start_index && current_style.end_index <= end_index) {
+            to_return->m_style_list.append(current_style);
+            m_style_list.remove(i);
+            i--;
+        }
+    }
+    to_return->m_text_line = m_text_line.mid(start_index, m_width);
+    m_text_line.remove(start_index, m_width);
+    return to_return;
+}
+
 void Block::dispatchEvents()
 {
     if (!m_changed) {
@@ -342,21 +363,13 @@ void Block::dispatchEvents()
     mergeCompatibleStyles();
 
      for (int i = 0; i < m_style_list.size(); i++) {
-        int start_index = m_style_list[i].start_index / m_width;
-        int end_index = m_style_list[i].end_index / m_width;
-        if (start_index != end_index) {
-            int remainder_start_index = ((m_width * (start_index + 1))-1) - m_style_list[i].start_index;
-            int next_line_end_index = m_style_list[i].end_index;
-            m_style_list[i].end_index = m_style_list[i].start_index + remainder_start_index;
-            m_style_list.insert(i + 1, TextStyleLine(m_style_list[i], m_style_list[i].end_index + 1, next_line_end_index));
-        }
-
+        ensureStyleAlignWithLines(i);
         TextStyleLine &current_style = m_style_list[i];
          if (current_style.text_segment == 0) {
              current_style.text_segment = m_screen->createTextSegment(current_style);
-            current_style.text_segment->setLine(m_new_line + start_index, &m_text_line);
+            current_style.text_segment->setLine(m_new_line, m_width, &m_text_line);
         } else if (m_new_line != m_line) {
-            current_style.text_segment->setLine(m_new_line + start_index, &m_text_line);
+            current_style.text_segment->setLine(m_new_line, m_width, &m_text_line);
          }
 
         if (current_style.style_dirty) {
@@ -434,5 +447,17 @@ void Block::mergeCompatibleStyles()
             m_style_list.remove(i);
             i--;
         }
+    }
+}
+
+void Block::ensureStyleAlignWithLines(int i)
+{
+    int start_line = m_style_list[i].start_index / m_width;
+    int end_line = m_style_list[i].end_index / m_width;
+    if (start_line != end_line) {
+        int remainder_start_line = ((m_width * (start_line + 1))-1) - m_style_list[i].start_index;
+        int next_line_end_index = m_style_list[i].end_index;
+        m_style_list[i].end_index = m_style_list[i].start_index + remainder_start_line;
+        m_style_list.insert(i + 1, TextStyleLine(m_style_list[i], m_style_list[i].end_index + 1, next_line_end_index));
     }
 }

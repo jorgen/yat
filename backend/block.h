@@ -56,10 +56,12 @@ public:
 
     int width() const { return m_width; }
     void setWidth(int width) { m_width = width; }
-    int lineCount() const { return (m_text_line.size() / (m_width + 1)) + 1; }
+    int lineCount() const { return (m_text_line.size() / m_width) + 1; }
 
     void setVisible(bool visible);
     bool visible() const;
+
+    Block *takeLine(int line);
 
     void dispatchEvents();
     void releaseTextObjects();
@@ -73,6 +75,7 @@ public:
 
 private:
     void mergeCompatibleStyles();
+    void ensureStyleAlignWithLines(int i);
     Screen *m_screen;
     QString m_text_line;
     QVector<TextStyleLine> m_style_list;

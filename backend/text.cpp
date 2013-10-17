@@ -35,6 +35,7 @@ Text::Text(Screen *screen)
     , m_end_index(0)
     , m_line(0)
     , m_new_line(0)
+    , m_width(1)
     , m_style_dirty(true)
     , m_text_dirty(true)
     , m_visible(true)
@@ -52,17 +53,18 @@ Text::~Text()
 
 int Text::index() const
 {
-    return m_start_index % m_screen->width();
+    return m_start_index % m_width;
 }
 
 int Text::line() const
 {
-    return m_line;
+    return m_line + (m_start_index / m_width);
 }
 
-void Text::setLine(int line, const QString *textLine)
+void Text::setLine(int line, int width, const QString *textLine)
 {
     m_new_line = line;
+    m_width = width;
     m_text_dirty = true;
     m_text_line = textLine;
 }

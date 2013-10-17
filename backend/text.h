@@ -50,7 +50,7 @@ public:
     int index() const;
 
     int line() const;
-    void setLine(int line, const QString *textLine);
+    void setLine(int line, int width, const QString *textLine);
 
     bool visible() const;
     void setVisible(bool visible);
@@ -97,6 +97,7 @@ private:
     int m_end_index;
     int m_line;
     int m_new_line;
+    int m_width;
 
     TextStyle m_style;
     TextStyle m_new_style;

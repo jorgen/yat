@@ -178,15 +178,15 @@ void ScreenData::deleteCharacters(int block, int from, int to)
     block_item->deleteCharacters(from,to);
 }
 
-// void ScreenData::insert(int line, int from, const QString &text, const TextStyle &style)
-// {
-//     
-// }
-// 
-// void ScreenData::replace(int line, int from, const QString &text, const TextStyle &style)
-// {
-// 
-// }
+//void ScreenData::insert(int line, int from, const QString &text, const TextStyle &style)
+//{
+//
+//}
+
+//void ScreenData::replace(int line, int from, const QString &text, const TextStyle &style)
+//{
+//
+//}
 
 void ScreenData::moveLine(int from, int to)
 {
