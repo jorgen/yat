@@ -24,13 +24,14 @@
 #ifndef SCREENDATA_H
 #define SCREENDATA_H
 
+#include "text_style.h"
+
 #include <QtCore/QVector>
 #include <QtCore/QPoint>
 #include <QtCore/QObject>
 #include <QtGui/QClipboard>
 
 #include <functional>
-
 
 class Block;
 class Screen;
@@ -58,6 +59,9 @@ public:
     void clearCharacters(int line, int from, int to);
     void deleteCharacters(int line, int from, int to);
 
+//    void insert(int line, int from, const QString &text, const TextStyle &style);
+//    void replace(int line, int from, const QString &text, const TextStyle &style);
+
     void moveLine(int from, int to);
     void insertLine(int row);
 
@@ -78,6 +82,7 @@ public:
     Scrollback *scrollback() const;
 public slots:
     void setHeight(int height, int currentCursorLine, int currentContentHeight);
+    void setWidth(int width);
 
 signals:
     void contentHeightChanged();
@@ -87,6 +92,7 @@ private:
     Screen *m_screen;
     Scrollback *m_scrollback;
     int m_height;
+    int m_block_count;
     int m_total_lines;
 
     std::list<Block *> m_screen_blocks;

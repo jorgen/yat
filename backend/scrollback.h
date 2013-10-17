@@ -48,6 +48,7 @@ public:
 
     size_t height() const;
 
+    void setWidth(int width);
 private:
     void ensurePageVisible(Page &page, int new_height);
     void ensurePageNotVisible(Page &page);

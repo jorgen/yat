@@ -34,10 +34,10 @@
 #include <algorithm>
 
 Block::Block(Screen *screen)
-    : QObject(screen)
-    , m_screen(screen)
-    , m_index(0)
-    , m_new_index(-1)
+    : m_screen(screen)
+    , m_line(0)
+    , m_new_line(-1)
+    , m_width(m_screen->width())
     , m_visible(true)
     , m_changed(true)
 {
@@ -143,6 +143,17 @@ void Block::deleteCharacters(int from, int to)
     }
 
     m_text_line.remove(from, size);
+}
+
+void Block::deleteToEnd(int from)
+{
+    deleteCharacters(from, m_text_line.size() - 1);
+}
+
+void Block::deleteLines(int from)
+{
+    if (from > lineCount())
+        return;
 }
 
 void Block::replaceAtPos(int pos, const QString &text, const TextStyle &style)
@@ -297,7 +308,7 @@ void Block::insertAtPos(int pos, const QString &text, const TextStyle &style)
 void Block::setIndex(int index)
 {
     m_changed = true;
-    m_new_index = index;
+    m_new_line = index;
 }
 
 QString *Block::textLine()
@@ -309,7 +320,6 @@ void Block::setVisible(bool visible)
 {
     if (visible != m_visible) {
         m_visible = visible;
-        emit visibleChanged();
         for (int i = 0; i < m_style_list.size(); i++) {
             if (m_style_list.at(i).text_segment) {
                 m_style_list.at(i).text_segment->setVisible(visible);
@@ -331,15 +341,23 @@ void Block::dispatchEvents()
 
     mergeCompatibleStyles();
 
-    for (int i = 0; i < m_style_list.size(); i++) {
-        TextStyleLine &current_style = m_style_list[i];
-
-        if (current_style.text_segment == 0) {
-            current_style.text_segment = m_screen->createTextSegment(current_style);
-            current_style.text_segment->setLine(m_new_index, &m_text_line);
-        } else if (m_new_index != m_index) {
-            current_style.text_segment->setLine(m_new_index, &m_text_line);
+     for (int i = 0; i < m_style_list.size(); i++) {
+        int start_index = m_style_list[i].start_index / m_width;
+        int end_index = m_style_list[i].end_index / m_width;
+        if (start_index != end_index) {
+            int remainder_start_index = ((m_width * (start_index + 1))-1) - m_style_list[i].start_index;
+            int next_line_end_index = m_style_list[i].end_index;
+            m_style_list[i].end_index = m_style_list[i].start_index + remainder_start_index;
+            m_style_list.insert(i + 1, TextStyleLine(m_style_list[i], m_style_list[i].end_index + 1, next_line_end_index));
         }
+
+        TextStyleLine &current_style = m_style_list[i];
+         if (current_style.text_segment == 0) {
+             current_style.text_segment = m_screen->createTextSegment(current_style);
+            current_style.text_segment->setLine(m_new_line + start_index, &m_text_line);
+        } else if (m_new_line != m_line) {
+            current_style.text_segment->setLine(m_new_line + start_index, &m_text_line);
+         }
 
         if (current_style.style_dirty) {
             current_style.text_segment->setTextStyle(current_style);
@@ -352,11 +370,11 @@ void Block::dispatchEvents()
             current_style.text_dirty = false;
         }
 
-        m_style_list.at(i).text_segment->dispatchEvents();
+        current_style.text_segment->dispatchEvents();
     }
 
     m_changed = false;
-    m_index = m_new_index;
+    m_line = m_new_line;
 
 }
 
@@ -407,7 +425,8 @@ void Block::mergeCompatibleStyles()
 {
     for (int i = 1; i < m_style_list.size(); i++) {
         TextStyleLine &current = m_style_list[i];
-        if (m_style_list.at(i - 1).isCompatible(current)) {
+        if (m_style_list.at(i - 1).isCompatible(current) &&
+                current.start_index % m_width != 0) {
             TextStyleLine &prev = m_style_list[i-1];
             prev.end_index = current.end_index;
             prev.text_dirty = true;

@@ -31,12 +31,8 @@
 class Text;
 class Screen;
 
-class Block : public QObject
+class Block
 {
-    Q_OBJECT
-
-    Q_PROPERTY(Screen *screen READ screen CONSTANT)
-    Q_PROPERTY(bool visible READ visible WRITE setVisible NOTIFY visibleChanged)
 public:
     Block(Screen *screen);
     ~Block();
@@ -47,6 +43,8 @@ public:
     void clearToEnd(int from);
     void clearCharacters(int from, int to);
     void deleteCharacters(int from, int to);
+    void deleteToEnd(int from);
+    void deleteLines(int from);
 
     void replaceAtPos(int i, const QString &text, const TextStyle &style);
     void insertAtPos(int i, const QString &text, const TextStyle &style);
@@ -55,6 +53,10 @@ public:
 
     QString *textLine();
     int textSize() { return m_text_line.size(); }
+
+    int width() const { return m_width; }
+    void setWidth(int width) { m_width = width; }
+    int lineCount() const { return (m_text_line.size() / (m_width + 1)) + 1; }
 
     void setVisible(bool visible);
     bool visible() const;
@@ -68,21 +70,18 @@ public:
     void printStyleList(QDebug &debug) const;
     void printRuler() const;
     void printRuler(QDebug &debug) const;
-signals:
-    void indexChanged();
-    void visibleChanged();
-    void widthChanged();
+
 private:
     void mergeCompatibleStyles();
     Screen *m_screen;
     QString m_text_line;
     QVector<TextStyleLine> m_style_list;
-    int m_index;
-    int m_new_index;
+    int m_line;
+    int m_new_line;
+    int m_width;
 
     bool m_visible;
     bool m_changed;
-
 };
 
 #endif // BLOCK_H

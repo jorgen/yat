@@ -181,3 +181,8 @@ size_t Scrollback::height() const
 {
     return m_height;
 }
+
+void Scrollback::setWidth(int width)
+{
+    Q_UNUSED(width);
+}
