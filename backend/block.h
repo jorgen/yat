@@ -50,6 +50,7 @@ public:
     void insertAtPos(int i, const QString &text, const TextStyle &style);
 
     void setIndex(int index);
+    int index() const { return m_new_line; }
 
     QString *textLine();
     int textSize() { return m_text_line.size(); }
@@ -62,6 +63,7 @@ public:
     bool visible() const;
 
     Block *takeLine(int line);
+    void removeLine(int line);
 
     void dispatchEvents();
     void releaseTextObjects();

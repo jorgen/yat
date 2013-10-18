@@ -37,6 +37,13 @@
 class Screen;
 class Scrollback;
 
+class CursorDiff
+{
+public:
+    int line;
+    int character;
+};
+
 class ScreenData : public QObject
 {
 Q_OBJECT
@@ -59,8 +66,8 @@ public:
     void clearCharacters(int line, int from, int to);
     void deleteCharacters(int line, int from, int to);
 
-//    void insert(int line, int from, const QString &text, const TextStyle &style);
-//    void replace(int line, int from, const QString &text, const TextStyle &style);
+    CursorDiff replace(int line, int from_char, const QString &text, const TextStyle &style);
+    CursorDiff insert(int line, int from_char, const QString &text, const TextStyle &style);
 
     void moveLine(int from, int to);
     void insertLine(int row);
@@ -88,12 +95,15 @@ signals:
     void contentHeightChanged();
 
 private:
+    CursorDiff modify(int line, int from_char, const QString &text, const TextStyle &style, bool replace);
     inline std::list<Block *>::const_iterator it_for_row(int row) const;
     Screen *m_screen;
     Scrollback *m_scrollback;
+    int m_screen_height;
     int m_height;
+    int m_width;
     int m_block_count;
-    int m_total_lines;
+    int m_old_total_lines;
 
     std::list<Block *> m_screen_blocks;
 };
@@ -110,7 +120,7 @@ Block *ScreenData::blockContainingLine(int line) const
 std::list<Block *>::const_iterator ScreenData::it_for_row(int row) const
 {
     auto it = m_screen_blocks.end();
-    int line_for_block = m_height;
+    int line_for_block = m_screen_height;
     while (it != m_screen_blocks.begin()) {
         --it;
         int end_line = line_for_block - 1;

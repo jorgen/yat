@@ -347,11 +347,33 @@ Block *Block::takeLine(int line)
             to_return->m_style_list.append(current_style);
             m_style_list.remove(i);
             i--;
+        } else if (current_style.start_index > end_index) {
+            break;
         }
     }
     to_return->m_text_line = m_text_line.mid(start_index, m_width);
     m_text_line.remove(start_index, m_width);
     return to_return;
+}
+
+void Block::removeLine(int line)
+{
+    if (line >= lineCount())
+        return;
+
+    int start_index = line * m_width;
+    int end_index = start_index + (m_width - 1);
+    for (int i = 0; i < m_style_list.size(); i++) {
+        ensureStyleAlignWithLines(i);
+        TextStyleLine &current_style = m_style_list[i];
+        if (current_style.start_index >= start_index && current_style.end_index <= end_index) {
+            m_style_list.remove(i);
+            i--;
+        } else if (current_style.start_index > end_index) {
+            break;
+        }
+    }
+    m_text_line.remove(start_index, m_width);
 }
 
 void Block::dispatchEvents()

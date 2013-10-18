@@ -36,9 +36,11 @@ ScreenData::ScreenData(size_t max_scrollback, Screen *screen)
     : QObject(screen)
     , m_screen(screen)
     , m_scrollback(new Scrollback(max_scrollback, this))
+    , m_screen_height(0)
     , m_height(0)
+    , m_width(0)
     , m_block_count(0)
-    , m_total_lines(0)
+    , m_old_total_lines(0)
 {
     connect(screen, SIGNAL(heightAboutToChange(int, int, int)), this, SLOT(setHeight(int, int, int)));
     connect(screen, SIGNAL(widthAboutToChange(int)), this, SLOT(setWidth(int)));
@@ -55,16 +57,18 @@ ScreenData::~ScreenData()
 
 int ScreenData::contentHeight() const
 {
-    return m_screen->height() + m_scrollback->height();
+    return m_height + m_scrollback->height();
 }
 
 void ScreenData::setHeight(int height, int currentCursorBlock, int currentContentHeight)
 {
     Q_UNUSED(currentContentHeight);
-    if (height == m_block_count)
+    m_screen_height = height;
+    if (height == m_height)
         return;
 
-    if (m_block_count > height) {
+
+    if (m_height > height) {
         const int to_remove = m_block_count - height;
         const int remove_from_end = std::min((m_block_count - 1) - currentCursorBlock, to_remove);
         const int remove_from_begin = to_remove - remove_from_end;
@@ -73,6 +77,7 @@ void ScreenData::setHeight(int height, int currentCursorBlock, int currentConten
             for (int i = 0; i < remove_from_end; --it) {
                 i += (*it)->lineCount();
                 delete *it;
+                m_block_count--;
             }
             m_screen_blocks.erase(++it, m_screen_blocks.end());
         }
@@ -81,10 +86,10 @@ void ScreenData::setHeight(int height, int currentCursorBlock, int currentConten
             for (int i = 0; i < remove_from_begin; ++it) {
                 i += (*it)->lineCount();
                 m_scrollback->addBlock(*it);
+                m_block_count--;
             }
             m_screen_blocks.erase(m_screen_blocks.begin(), it);
         }
-        m_block_count -= to_remove;
     } else {
         int rowsToAdd = height - m_block_count;
         m_block_count += rowsToAdd;
@@ -104,10 +109,12 @@ void ScreenData::setHeight(int height, int currentCursorBlock, int currentConten
 
 void ScreenData::setWidth(int width)
 {
+    m_width = width;
     for (auto it = m_screen_blocks.begin(); it != m_screen_blocks.end(); ++it) {
         (*it)->setWidth(width);
     }
     m_scrollback->setWidth(width);
+
 }
 
 
@@ -170,15 +177,16 @@ void ScreenData::deleteCharacters(int block, int from, int to)
     block_item->deleteCharacters(from,to);
 }
 
-//void ScreenData::insert(int line, int from, const QString &text, const TextStyle &style)
-//{
-//
-//}
+CursorDiff ScreenData::replace(int line, int from_char, const QString &text, const TextStyle &style)
+{
+    return modify(line,from_char,text,style,true);
+}
 
-//void ScreenData::replace(int line, int from, const QString &text, const TextStyle &style)
-//{
-//
-//}
+CursorDiff ScreenData::insert(int line, int from_char, const QString &text, const TextStyle &style)
+{
+    return modify(line,from_char,text,style,false);
+}
+
 
 void ScreenData::moveLine(int from, int to)
 {
@@ -198,14 +206,19 @@ void ScreenData::moveLine(int from, int to)
 
 void ScreenData::insertLine(int row)
 {
-    auto row_it = m_screen_blocks.end();
-    std::advance(row_it, row - (m_block_count - 1));
+    auto row_it = it_for_row(row + 1);
 
     Block *block_to_insert = new Block(m_screen);
     m_screen_blocks.insert(row_it,block_to_insert);
+    m_height++;
+    m_block_count++;
 
-    m_scrollback->addBlock(*m_screen_blocks.begin());
-    m_screen_blocks.pop_front();
+    if (m_height - m_screen_blocks.front()->lineCount() >= m_screen_height) {
+        m_block_count--;
+        m_height -= m_screen_blocks.front()->lineCount();
+        m_scrollback->addBlock(m_screen_blocks.front());
+        m_screen_blocks.pop_front();
+    }
 }
 
 
@@ -314,18 +327,17 @@ void ScreenData::dispatchLineEvents()
 {
     if (!m_block_count)
         return;
-    auto it = --m_screen_blocks.end();
     const int content_height = contentHeight();
-    for (int i = 0; i < m_block_count; --it, i++) {
-        int line = (content_height - 1) - i;
+    int i = 0;
+    for (auto it = m_screen_blocks.begin(); it != m_screen_blocks.end(); ++it) {
+        int line = content_height - m_height + i;
         (*it)->setIndex(line);
         (*it)->dispatchEvents();
-        if (it == m_screen_blocks.begin())
-            break;
+        i+= (*it)->lineCount();
     }
 
-    if (content_height != m_total_lines) {
-        m_total_lines = contentHeight();
+    if (content_height != m_old_total_lines) {
+        m_old_total_lines = contentHeight();
         emit contentHeightChanged();
     }
 }
@@ -361,3 +373,49 @@ Scrollback *ScreenData::scrollback() const
     return m_scrollback;
 }
 
+CursorDiff ScreenData::modify(int line, int from_char, const QString &text, const TextStyle &style, bool replace)
+{
+    auto it = it_for_row(line);
+    Block *block = *it;
+    size_t lines_before = block->lineCount();
+    int start_char = (line - block->index()) * m_width + from_char;
+    if (replace) {
+        block->replaceAtPos(start_char, text, style);
+    } else {
+        block->insertAtPos(start_char, text, style);
+    }
+    int lines_changed = block->lineCount() - lines_before;
+    int end_char = (start_char + text.size()) % m_width;
+    if (lines_changed > 0) {
+        int removed = 0;
+        for(auto to_remove = --m_screen_blocks.end();
+                removed < lines_changed && to_remove != it; --to_remove) {
+            if (removed + (*to_remove)->lineCount() <= lines_changed) {
+                removed += (*to_remove)->lineCount();
+                delete *to_remove;
+                to_remove = m_screen_blocks.erase(to_remove);
+                m_block_count--;
+            } else {
+                int lines_to_remove = (removed + (*to_remove)->lineCount()) - lines_changed;
+                for (int i = 0; i < lines_to_remove; i++) {
+                    (*it)->removeLine((*it)->lineCount()-1);
+                }
+                removed += lines_to_remove;
+                break;
+            }
+        }
+        for (auto to_remove = m_screen_blocks.begin();
+                removed < lines_changed && to_remove != m_screen_blocks.end();) {
+            if (removed + (*to_remove)->lineCount() <= lines_changed) {
+                removed += (*to_remove)->lineCount();
+                m_scrollback->addBlock(*to_remove);
+                m_block_count--;
+                to_remove = m_screen_blocks.erase(to_remove);
+            } else {
+                break;
+            }
+        }
+        m_height += lines_changed - removed;
+    }
+    return { lines_changed, end_char - start_char };
+}

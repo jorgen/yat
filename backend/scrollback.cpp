@@ -33,6 +33,7 @@
 Scrollback::Scrollback(size_t max_size, ScreenData *screen_data)
     : m_screen_data(screen_data)
     , m_height(0)
+    , m_block_count(0)
     , m_max_size(max_size)
     , m_adjust_visible_pages(0)
 {
@@ -42,12 +43,14 @@ void Scrollback::addBlock(Block *block)
 {
     m_blocks.push_back(block);
     block->releaseTextObjects();
+    m_block_count++;
+    m_height += m_blocks.back()->lineCount();
     if (!m_max_size || m_height == m_max_size - 1) {
+        m_block_count--;
+        m_height -= m_blocks.front()->lineCount();
         delete m_blocks.front();
         m_blocks.pop_front();
         m_adjust_visible_pages++;
-    } else {
-        m_height++;
     }
 }
 
@@ -57,8 +60,9 @@ Block *Scrollback::reclaimBlock()
         return nullptr;
 
     Block *last = m_blocks.back();
+    m_block_count--;
+    m_height -= last->lineCount();
     m_blocks.pop_back();
-    m_height--;
     return last;
 }
 

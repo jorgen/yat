@@ -59,6 +59,7 @@ private:
     std::list<Block *> m_blocks;
     std::list<Page> m_visible_pages;
     size_t m_height;
+    size_t m_block_count;
     size_t m_max_size;
     size_t m_adjust_visible_pages;
 };

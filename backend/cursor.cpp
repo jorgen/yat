@@ -449,34 +449,22 @@ void Cursor::addAtCursor(const QByteArray &data)
 
 void Cursor::replaceAtCursor(const QByteArray &data)
 {
-    //if (m_selection_valid ) {
-    //    if (current_cursor_new_y() >= m_selection_start.new_y() && current_cursor_new_y() <= m_selection_end.new_y())
-    //        //don't need to schedule as event since it will only happen once
-    //        setSelectionEnabled(false);
-    //}
-
     const QString text = m_gl_text_codec->toUnicode(data);
 
-    if (new_x() + text.size() <= m_screen->width()) {
-        Block *block = screen_data()->blockContainingLine(new_y());
-        block->replaceAtPos(new_x(), text, m_current_text_style);
-        new_rx() += text.size();
-    } else if (m_wrap_around) {
-        Block *block = screen_data()->blockContainingLine(new_y());
-        block->replaceAtPos(new_x(), text, m_current_text_style);
-        int line_feeds = (new_x() + text.size()) / m_screen->width();
-        new_rx() = (new_x() + text.size()) % m_screen->width();
-        for (int i = 0; i < line_feeds; i++) {
-            lineFeed();
-        }
-    }else {
+    if (!m_wrap_around && new_x() + text.size() > m_screen->width()) {
         const int size = m_document_width - new_x();
         QString toBlock = text.mid(0,size);
         toBlock.replace(toBlock.size() - 1, 1, text.at(text.size()-1));
-        Block *block = screen_data()->blockContainingLine(new_y());
-        block->replaceAtPos(new_x(),toBlock, m_current_text_style);
+        screen_data()->replace(new_y(), new_x(), toBlock, m_current_text_style);
         new_rx() += toBlock.size();
+    } else {
+        auto diff = screen_data()->replace(new_y(), new_x(), text, m_current_text_style);
+        new_rx() += diff.character;
+        new_ry() += diff.line;
     }
+
+    if (new_y() >= m_document_height)
+        new_ry() = m_document_height - 1;
     if (new_x() >= m_document_width)
         new_rx() = m_document_width - 1;
     notifyChanged();
@@ -484,25 +472,20 @@ void Cursor::replaceAtCursor(const QByteArray &data)
 
 void Cursor::insertAtCursor(const QByteArray &data)
 {
-    //if (m_selection_valid) {
-    //    if (current_cursor_new_y() >= m_selection_start.new_y() && current_cursor_new_y() <= m_selection_end.new_y())
-    //        //don't need to schedule as event since it will only happen once
-    //        setSelectionEnabled(false);
-    //}
-
     const QString text = m_gl_text_codec->toUnicode(data);
-    Block *line = screen_data()->blockContainingLine(new_y());
-    line->insertAtPos(new_x(), text, m_screen->defaultTextStyle());
-    new_rx() += text.size();
+    auto diff = screen_data()->insert(new_y(), new_x(), text, m_current_text_style);
+    new_rx() += diff.character;
+    new_ry() += diff.line;
+    if (new_y() >= m_document_height)
+        new_ry() = m_document_height - 1;
+    if (new_x() >= m_document_width)
+        new_rx() = m_document_width - 1;
 }
 
 void Cursor::lineFeed()
 {
     int bottom = m_scroll_margins_set ? m_bottom_margin : m_document_height - 1;
     if(new_y() >= bottom) {
-        //m_selection_start.new_ry()--;
-        //m_selection_end.new_ry()--;
-        //m_selection_moved = true;
         screen_data()->insertLine(bottom);
     } else {
         new_ry()++;
@@ -514,9 +497,6 @@ void Cursor::reverseLineFeed()
 {
     int top = m_scroll_margins_set ? m_top_margin : 0;
     if (new_y() == top) {
-        //m_selection_start.new_ry()++;
-        //m_selection_end.new_ry()++;
-        //m_selection_moved = true;
         scrollUp(1);
     } else {
         new_ry()--;
