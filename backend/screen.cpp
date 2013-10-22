@@ -155,6 +155,7 @@ void Screen::useAlternateScreenBuffer()
     if (m_current_data == m_primary_data) {
         disconnect(m_primary_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
         m_current_data = m_alternate_data;
+        m_current_data->clear();
         connect(m_alternate_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
         emit contentHeightChanged();
     }

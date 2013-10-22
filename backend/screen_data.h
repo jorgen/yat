@@ -97,6 +97,9 @@ signals:
 private:
     CursorDiff modify(int line, int from_char, const QString &text, const TextStyle &style, bool replace);
     inline std::list<Block *>::const_iterator it_for_row(int row) const;
+    void clearBlock(std::list<Block *>::const_iterator line);
+    std::list<Block *>::const_iterator it_for_row_ensure_single_line_block(int row);
+    std::list<Block *>::const_iterator split_out_row_from_block(std::list<Block *>::const_iterator block_it, int row_in_block);
     Screen *m_screen;
     Scrollback *m_scrollback;
     int m_screen_height;

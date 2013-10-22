@@ -62,11 +62,11 @@ int ScreenData::contentHeight() const
 
 void ScreenData::setHeight(int height, int currentCursorBlock, int currentContentHeight)
 {
+    qDebug() << "HEIGHT IS:" << height;
     Q_UNUSED(currentContentHeight);
     m_screen_height = height;
     if (height == m_height)
         return;
-
 
     if (m_height > height) {
         const int to_remove = m_block_count - height;
@@ -109,6 +109,7 @@ void ScreenData::setHeight(int height, int currentCursorBlock, int currentConten
 
 void ScreenData::setWidth(int width)
 {
+    qDebug() << "Width is:" << width;
     m_width = width;
     for (auto it = m_screen_blocks.begin(); it != m_screen_blocks.end(); ++it) {
         (*it)->setWidth(width);
@@ -120,41 +121,45 @@ void ScreenData::setWidth(int width)
 
 void ScreenData::clearToEndOfLine(int row, int from_char)
 {
-    Block *block = blockContainingLine(row);
-    block->clearToEnd(from_char);
+    auto it = it_for_row_ensure_single_line_block(row);
+    (*it)->clearToEnd(from_char);
 }
 
 void ScreenData::clearToEndOfScreen(int row)
 {
-    auto it = --m_screen_blocks.end();
-    int lines_back = m_block_count - row;
-    for(int i = 0; i < lines_back; --it, i++) {
-        (*it)->clear();
+    auto it = it_for_row_ensure_single_line_block(row);
+    while(it != m_screen_blocks.end()) {
+        clearBlock(it);
+        ++it;
     }
 }
 
 void ScreenData::clearToBeginningOfLine(int row, int from_char)
 {
-    blockContainingLine(row)->clearCharacters(0,from_char);
+    auto it = it_for_row_ensure_single_line_block(row);
+    (*it)->clearCharacters(0,from_char);
 }
+
 void ScreenData::clearToBeginningOfScreen(int row)
 {
-    for (int i = row; i >= 0; i--) {
-        Block *block = blockContainingLine(i);
-        block->clear();
+    auto it = it_for_row_ensure_single_line_block(row);
+    if (it != m_screen_blocks.end())
+        (*it)->clear();
+    while(it != m_screen_blocks.begin()) {
+        --it;
+        clearBlock(it);
     }
 }
 
 void ScreenData::clearLine(int index)
 {
-    blockContainingLine(index)->clear();
+    (*it_for_row_ensure_single_line_block(index))->clear();
 }
 
 void ScreenData::clear()
 {
-    auto it = --m_screen_blocks.end();
-    for (int i = 0; i < m_block_count; --it, i++) {
-        (*it)->clear();
+    for (auto it = m_screen_blocks.begin(); it != m_screen_blocks.end(); ++it) {
+        clearBlock(it);
     }
 }
 
@@ -167,14 +172,20 @@ void ScreenData::releaseTextObjects()
 
 void ScreenData::clearCharacters(int block, int from, int to)
 {
-    Block *block_item = blockContainingLine(block);
-    block_item->clearCharacters(from,to);
+    auto it = it_for_row_ensure_single_line_block(block);
+    (*it)->clearCharacters(from,to);
 }
 
 void ScreenData::deleteCharacters(int block, int from, int to)
 {
-    Block *block_item = blockContainingLine(block);
-    block_item->deleteCharacters(from,to);
+    auto it = it_for_row(block);
+    if (it  == m_screen_blocks.end())
+        return;
+
+    int line_in_block = block - (*it)->index();
+    int chars_to_line = line_in_block * m_width;
+
+    (*it)->deleteCharacters(chars_to_line + from, chars_to_line + to);
 }
 
 CursorDiff ScreenData::replace(int line, int from_char, const QString &text, const TextStyle &style)
@@ -194,14 +205,26 @@ void ScreenData::moveLine(int from, int to)
         return;
 
     auto from_it = it_for_row(from);
-    (*from_it)->clear();
+    auto to_it = it_for_row(to);
 
-    auto to_it = m_screen_blocks.end();
-    if (to < from)
-        --to_it;
-    std::advance(to_it, to - m_block_count);
+    if ((*to_it)->lineCount() > 1 && (*to_it)->index() != to) {
+        auto after_block = (*to_it)->split(to - (*to_it)->index());
+        ++to_it;
+        to_it = m_screen_blocks.insert(to_it, after_block);
+    }
 
-    m_screen_blocks.splice(++to_it, m_screen_blocks, from_it);
+    Block *from_block = nullptr;
+    if ((*from_it)->lineCount() > 1) {
+        from_block = (*from_it)->takeLine(from - (*from_it)->index());
+        from_block->clear();
+        m_screen_blocks.insert(to_it, from_block);
+        m_block_count++;
+    } else {
+        (*from_it)->clear();
+        m_screen_blocks.splice(to_it, m_screen_blocks, from_it);
+
+    }
+
 }
 
 void ScreenData::insertLine(int row)
@@ -347,13 +370,12 @@ void ScreenData::printStyleInformation() const
     auto it = m_screen_blocks.end();
     std::advance(it, -m_block_count);
     for (int i = 0; it != m_screen_blocks.end(); ++it, i++) {
-        QDebug debug = qDebug();
         if (i % 5 == 0) {
-            debug << "Ruler:" << i;
+            QDebug debug = qDebug();
+            debug << "Ruler:";
             (*it)->printRuler(debug);
-            debug << "\n";
         }
-        debug << "Line: " << i;
+        QDebug debug = qDebug();
         (*it)->printStyleList(debug);
     }
 }
@@ -417,5 +439,59 @@ CursorDiff ScreenData::modify(int line, int from_char, const QString &text, cons
         }
         m_height += lines_changed - removed;
     }
-    return { lines_changed, end_char - start_char };
+    //qDebug() << "modify:" << line << block->index() << lines_changed  << block->textLine()->size() << text.size() << text << "AFTER:" <<  *block->textLine();
+    return { lines_changed, end_char - from_char};
+}
+
+void ScreenData::clearBlock(std::list<Block *>::const_iterator line)
+{
+    int before_count = (*line)->lineCount();
+    (*line)->clear();
+    int diff_line = before_count - (*line)->lineCount();
+    if (diff_line > 0) {
+        ++line;
+        for (int i = 0; i < diff_line; i++) {
+            m_screen_blocks.insert(line, new Block(m_screen));
+        }
+    }
+}
+
+std::list<Block *>::const_iterator ScreenData::it_for_row_ensure_single_line_block(int row)
+{
+    auto it = it_for_row(row);
+    int index = (*it)->index();
+    int lines = (*it)->lineCount();
+
+    if (index == row && lines == 1) {
+        return it;
+    }
+
+    int line_diff = row - index;
+    return split_out_row_from_block(it, line_diff);
+
+}
+
+std::list<Block *>::const_iterator ScreenData::split_out_row_from_block(std::list<Block *>::const_iterator it, int row_in_block)
+{
+    int lines = (*it)->lineCount();
+
+    if (row_in_block == 0 && lines == 1)
+        return it;
+
+    if (row_in_block == 0) {
+        auto insert_before = (*it)->takeLine(0);
+        insert_before->setIndex(row_in_block);
+        return m_screen_blocks.insert(it,insert_before);
+    } else if (row_in_block == lines -1) {
+        auto insert_after = (*it)->takeLine(lines -1);
+        insert_after->setIndex(row_in_block);
+        ++it;
+        return m_screen_blocks.insert(it, insert_after);
+    }
+
+    auto half = (*it)->split(row_in_block);
+    ++it;
+    auto it_width_first = m_screen_blocks.insert(it, half);
+    auto the_one = half->takeLine(0);
+    return m_screen_blocks.insert(it_width_first,the_one);
 }

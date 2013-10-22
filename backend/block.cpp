@@ -171,8 +171,6 @@ void Block::replaceAtPos(int pos, const QString &text, const TextStyle &style)
         m_style_list.append(TextStyleLine(style, pos, pos + text.size()-1));
         return;
     } else if (pos + text.size() > m_text_line.size()) {
-        QString filling(pos + text.size() - m_text_line.size(), QChar(' '));
-        m_text_line.append(filling);
         m_style_list.append(TextStyleLine(m_screen->defaultTextStyle(), pos + text.size() - m_text_line.size(), pos + text.size() -1));
     }
 
@@ -333,6 +331,26 @@ bool Block::visible() const
     return m_visible;
 }
 
+Block *Block::split(int line)
+{
+    if (line >= lineCount())
+        return nullptr;
+    Block *to_return = new Block(m_screen);
+    int start_index = line * m_width;
+    for (int i = 0; i < m_style_list.size(); i++) {
+        ensureStyleAlignWithLines(i);
+        TextStyleLine &current_style = m_style_list[i];
+        if (current_style.start_index >= start_index) {
+            to_return->m_style_list.append(current_style);
+            m_style_list.remove(i);
+            i--;
+        }
+    }
+    to_return->m_text_line = m_text_line.mid(start_index, m_text_line.size() - start_index);
+    m_text_line.remove(start_index, m_text_line.size() - start_index);
+    return to_return;
+}
+
 Block *Block::takeLine(int line)
 {
     if (line >= lineCount())
@@ -344,11 +362,14 @@ Block *Block::takeLine(int line)
         ensureStyleAlignWithLines(i);
         TextStyleLine &current_style = m_style_list[i];
         if (current_style.start_index >= start_index && current_style.end_index <= end_index) {
+            current_style.start_index -= start_index;
+            current_style.end_index -= start_index;
             to_return->m_style_list.append(current_style);
             m_style_list.remove(i);
             i--;
         } else if (current_style.start_index > end_index) {
-            break;
+            current_style.start_index -= start_index;
+            current_style.end_index -= start_index;
         }
     }
     to_return->m_text_line = m_text_line.mid(start_index, m_width);
@@ -370,7 +391,8 @@ void Block::removeLine(int line)
             m_style_list.remove(i);
             i--;
         } else if (current_style.start_index > end_index) {
-            break;
+            current_style.start_index -= start_index;
+            current_style.end_index -= start_index;
         }
     }
     m_text_line.remove(start_index, m_width);
@@ -434,12 +456,12 @@ void Block::printStyleList() const
     QDebug debug = qDebug();
     printStyleList(debug);
 }
+
 void Block::printStyleList(QDebug &debug) const
 {
     QString text_line = m_text_line;
     text_line.remove(QRegExp("\\s+$"));
-    debug << "Block:" << (void *) this << text_line << "\n";
-    debug << "\t";
+    debug << "Block:" << m_line << (void *) this << text_line << "\n"; debug << "\t";
     for (int i= 0; i < m_style_list.size(); i++) {
         debug << m_style_list.at(i);
     }
@@ -453,7 +475,7 @@ void Block::printRuler() const
 void Block::printRuler(QDebug &debug) const
 {
     QString ruler = QString("|----i----").repeated((m_text_line.size()/10)+1).append("|");
-    debug << "      " << (void *) this << ruler;
+    debug << "  " << (void *) this << ruler;
 }
 
 void Block::mergeCompatibleStyles()
