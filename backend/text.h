@@ -96,7 +96,7 @@ private:
     int m_old_start_index;
     int m_end_index;
     int m_line;
-    int m_new_line;
+    int m_old_line;
     int m_width;
 
     TextStyle m_style;

@@ -80,6 +80,7 @@ public:
 
     void dispatchLineEvents();
 
+    void printRuler(QDebug &debug) const;
     void printStyleInformation() const;
 
     Screen *screen() const;

@@ -34,7 +34,7 @@ Text::Text(Screen *screen)
     , m_old_start_index(0)
     , m_end_index(0)
     , m_line(0)
-    , m_new_line(0)
+    , m_old_line(0)
     , m_width(1)
     , m_style_dirty(true)
     , m_text_dirty(true)
@@ -63,7 +63,7 @@ int Text::line() const
 
 void Text::setLine(int line, int width, const QString *textLine)
 {
-    m_new_line = line;
+    m_line = line;
     m_width = width;
     m_text_dirty = true;
     m_text_line = textLine;
@@ -131,14 +131,17 @@ static bool differentStyle(TextStyle::Styles a, TextStyle::Styles b, TextStyle::
 
 void Text::dispatchEvents()
 {
-    if (m_line != m_new_line) {
-        m_line = m_new_line;
+    int old_line = m_old_line + (m_old_start_index / m_width);
+    int new_line = m_line + (m_start_index / m_width);
+    if (old_line != new_line) {
+        m_old_line = m_line;
         emit lineChanged();
     }
 
     if (m_old_start_index != m_start_index
             || m_text_dirty) {
         m_text_dirty = false;
+        QString old_text = m_text;
         m_text = m_text_line->mid(m_start_index, m_end_index - m_start_index + 1);
         if (m_old_start_index != m_start_index) {
             m_old_start_index = m_start_index;

@@ -58,6 +58,11 @@ public:
     int width() const { return m_width; }
     void setWidth(int width) { m_width = width; }
     int lineCount() const { return ((m_text_line.size() - 1) / m_width) + 1; }
+    int lineCountAfterModified(int from_char, int text_size, bool replace) {
+        int new_size = replace ? std::max(from_char + text_size, m_text_line.size())
+            : std::max(from_char, m_text_line.size()) + text_size;
+        return ((new_size - 1) / m_width) + 1;
+    }
 
     void setVisible(bool visible);
     bool visible() const;
@@ -66,6 +71,8 @@ public:
     Block *takeLine(int line);
     void removeLine(int line);
 
+    void moveLinesFromBlock(Block *block, int start_line, int count);
+
     void dispatchEvents();
     void releaseTextObjects();
 
@@ -73,8 +80,7 @@ public:
 
     void printStyleList() const;
     void printStyleList(QDebug &debug) const;
-    void printRuler() const;
-    void printRuler(QDebug &debug) const;
+    void printStyleListWidthText() const;
 
 private:
     void mergeCompatibleStyles();
