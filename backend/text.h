@@ -35,14 +35,14 @@ class Text : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(int index READ index NOTIFY indexChanged)
-    Q_PROPERTY(int line READ line NOTIFY lineChanged);
+    Q_PROPERTY(int line READ line NOTIFY lineChanged)
     Q_PROPERTY(bool visible READ visible NOTIFY visibleChanged)
     Q_PROPERTY(QString text READ text NOTIFY textChanged)
     Q_PROPERTY(QColor foregroundColor READ foregroundColor NOTIFY forgroundColorChanged)
     Q_PROPERTY(QColor backgroundColor READ backgroundColor NOTIFY backgroundColorChanged)
     Q_PROPERTY(bool bold READ bold NOTIFY boldChanged)
     Q_PROPERTY(bool blinking READ blinking NOTIFY blinkingChanged)
-    Q_PROPERTY(bool underline READ underline NOTIFY underlineChanged);
+    Q_PROPERTY(bool underline READ underline NOTIFY underlineChanged)
 public:
     Text(Screen *screen);
     ~Text();

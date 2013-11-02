@@ -63,7 +63,7 @@ public:
     int x() const;
     int y() const;
     int new_x() const { return m_new_position.x(); }
-    int new_y() const { return m_new_position.y(); };
+    int new_y() const { return m_new_position.y(); }
 
     void moveOrigin();
     void moveBeginningOfLine();
