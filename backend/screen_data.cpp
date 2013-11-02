@@ -377,6 +377,7 @@ CursorDiff ScreenData::modify(int line, int from_char, const QString &text, cons
     size_t lines_before = block->lineCount();
     int lines_changed =
         block->lineCountAfterModified(start_char, text.size(), replace)  - lines_before;
+    m_height += lines_changed;
     if (lines_changed > 0) {
         int removed = 0;
         auto to_merge_inn = it;
@@ -397,10 +398,10 @@ CursorDiff ScreenData::modify(int line, int from_char, const QString &text, cons
         }
 
         m_height -= removed;
-
-        if (lines_changed < removed)
-            push_at_most_to_scrollback(lines_changed - removed);
     }
+
+    if (m_height > m_screen_height)
+        push_at_most_to_scrollback(m_height - m_screen_height);
 
     if (replace) {
         block->replaceAtPos(start_char, text, style);
