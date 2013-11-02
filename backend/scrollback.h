@@ -49,6 +49,8 @@ public:
     size_t height() const;
 
     void setWidth(int width);
+
+    size_t blockCount() { return m_block_count; }
 private:
     void ensurePageVisible(Page &page, int new_height);
     void ensurePageNotVisible(Page &page);
@@ -59,6 +61,7 @@ private:
     std::list<Block *> m_blocks;
     std::list<Page> m_visible_pages;
     size_t m_height;
+    size_t m_width;
     size_t m_block_count;
     size_t m_max_size;
     size_t m_adjust_visible_pages;

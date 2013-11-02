@@ -33,6 +33,7 @@
 Scrollback::Scrollback(size_t max_size, ScreenData *screen_data)
     : m_screen_data(screen_data)
     , m_height(0)
+    , m_width(0)
     , m_block_count(0)
     , m_max_size(max_size)
     , m_adjust_visible_pages(0)
@@ -52,6 +53,7 @@ void Scrollback::addBlock(Block *block)
         m_blocks.pop_front();
         m_adjust_visible_pages++;
     }
+    m_visible_pages.clear();
 }
 
 Block *Scrollback::reclaimBlock()
@@ -60,15 +62,22 @@ Block *Scrollback::reclaimBlock()
         return nullptr;
 
     Block *last = m_blocks.back();
+    last->setWidth(m_width);
     m_block_count--;
     m_height -= last->lineCount();
     m_blocks.pop_back();
+
+    m_visible_pages.clear();
     return last;
 }
 
 void Scrollback::ensureVisiblePages(int top_line)
 {
-    adjustVisiblePages();
+    if (top_line < 0)
+        return;
+    if (size_t(top_line) >= m_height)
+        return;
+
     uint height = std::max(m_screen_data->screen()->height(), 1);
 
     int complete_pages = m_height / height;
@@ -112,7 +121,7 @@ void Scrollback::ensureVisiblePages(int top_line)
 
 void Scrollback::ensurePageVisible(Page &page, int new_height)
 {
-    if (page.size == new_height)
+    if (page.size == new_height || !m_block_count)
         return;
 
     int line_no = page.page_no * m_screen_data->screen()->height();
@@ -188,5 +197,5 @@ size_t Scrollback::height() const
 
 void Scrollback::setWidth(int width)
 {
-    Q_UNUSED(width);
+    m_width = width;
 }

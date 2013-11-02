@@ -101,6 +101,10 @@ private:
     void clearBlock(std::list<Block *>::const_iterator line);
     std::list<Block *>::const_iterator it_for_row_ensure_single_line_block(int row);
     std::list<Block *>::const_iterator split_out_row_from_block(std::list<Block *>::const_iterator block_it, int row_in_block);
+    void push_at_most_to_scrollback(int lines);
+    void reclaim_at_least(int lines);
+    void remove_lines_from_end(int lines);
+    void ensure_at_least_height(int height);
     Screen *m_screen;
     Scrollback *m_scrollback;
     int m_screen_height;
