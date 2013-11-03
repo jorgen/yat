@@ -32,10 +32,9 @@
 #include <QtCore/QObject>
 #include <QtGui/QClipboard>
 
-#include <functional>
-
 class Screen;
 class Scrollback;
+class Cursor;
 
 class CursorDiff
 {
@@ -53,19 +52,19 @@ public:
 
     int contentHeight() const;
 
-    void clearToEndOfLine(int row, int from_char);
-    void clearToEndOfScreen(int row);
-    void clearToBeginningOfLine(int row, int from_char);
-    void clearToBeginningOfScreen(int row);
-    void clearLine(int index);
+    void clearToEndOfLine(Cursor *cursor);
+    void clearToEndOfScreen(Cursor *cursor);
+    void clearToBeginningOfLine(Cursor *cursor);
+    void clearToBeginningOfScreen(Cursor *cursor);
+    void clearLine(Cursor *cursor);
     void clear();
     void releaseTextObjects();
 
-    void clearCharacters(int line, int from, int to);
-    void deleteCharacters(int line, int from, int to);
+    void clearCharacters(Cursor *cursor, int to);
+    void deleteCharacters(Cursor *cursor, int to);
 
-    CursorDiff replace(int line, int from_char, const QString &text, const TextStyle &style);
-    CursorDiff insert(int line, int from_char, const QString &text, const TextStyle &style);
+    CursorDiff replace(Cursor *cursor, const QString &text, const TextStyle &style);
+    CursorDiff insert(Cursor *cursor, const QString &text, const TextStyle &style);
 
     void moveLine(int from, int to);
     void insertLine(int row);
@@ -90,7 +89,7 @@ signals:
     void contentHeightChanged();
 
 private:
-    CursorDiff modify(int line, int from_char, const QString &text, const TextStyle &style, bool replace);
+    CursorDiff modify(Cursor *cursor, const QString &text, const TextStyle &style, bool replace);
     inline std::list<Block *>::const_iterator it_for_row(int row) const;
     void clearBlock(std::list<Block *>::const_iterator line);
     std::list<Block *>::const_iterator it_for_row_ensure_single_line_block(int row);

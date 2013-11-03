@@ -401,36 +401,36 @@ void Cursor::clearTabStops()
 
 void Cursor::clearToBeginningOfLine()
 {
-    screen_data()->clearToBeginningOfLine(new_y(),new_x());
+    screen_data()->clearToBeginningOfLine(this);
 }
 
 void Cursor::clearToEndOfLine()
 {
-    screen_data()->clearToEndOfLine(new_y(), new_x());
+    screen_data()->clearToEndOfLine(this);
 }
 
 void Cursor::clearToBeginningOfScreen()
 {
     clearToBeginningOfLine();
     if (new_y() > 0)
-        screen_data()->clearToBeginningOfScreen(new_y() - 1);
+        screen_data()->clearToBeginningOfScreen(this);
 }
 
 void Cursor::clearToEndOfScreen()
 {
     clearToEndOfLine();
     if (new_y() < m_screen->height() -1)
-        screen_data()->clearToEndOfScreen(new_y() + 1);
+        screen_data()->clearToEndOfScreen(this);
 }
 
 void Cursor::clearLine()
 {
-    screen_data()->clearLine(new_y());
+    screen_data()->clearLine(this);
 }
 
 void Cursor::deleteCharacters(int characters)
 {
-    screen_data()->deleteCharacters(new_y(), new_x(), new_x() + characters -1);
+    screen_data()->deleteCharacters(this, new_x() + characters -1);
 }
 
 void Cursor::setWrapAround(bool wrap)
@@ -455,10 +455,10 @@ void Cursor::replaceAtCursor(const QByteArray &data)
         const int size = m_document_width - new_x();
         QString toBlock = text.mid(0,size);
         toBlock.replace(toBlock.size() - 1, 1, text.at(text.size()-1));
-        screen_data()->replace(new_y(), new_x(), toBlock, m_current_text_style);
+        screen_data()->replace(this, toBlock, m_current_text_style);
         new_rx() += toBlock.size();
     } else {
-        auto diff = screen_data()->replace(new_y(), new_x(), text, m_current_text_style);
+        auto diff = screen_data()->replace(this, text, m_current_text_style);
         new_rx() += diff.character;
         new_ry() += diff.line;
     }
@@ -473,7 +473,7 @@ void Cursor::replaceAtCursor(const QByteArray &data)
 void Cursor::insertAtCursor(const QByteArray &data)
 {
     const QString text = m_gl_text_codec->toUnicode(data);
-    auto diff = screen_data()->insert(new_y(), new_x(), text, m_current_text_style);
+    auto diff = screen_data()->insert(this, text, m_current_text_style);
     new_rx() += diff.character;
     new_ry() += diff.line;
     if (new_y() >= m_document_height)
