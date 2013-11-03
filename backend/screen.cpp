@@ -272,12 +272,12 @@ void Screen::setSelectionEnabled(bool enabled)
 
 void Screen::sendSelectionToClipboard() const
 {
-    currentScreenData()->sendSelectionToClipboard(m_selection_start, m_selection_end, QClipboard::Clipboard);
+    //currentScreenData()->sendSelectionToClipboard(m_selection_start, m_selection_end, QClipboard::Clipboard);
 }
 
 void Screen::sendSelectionToSelection() const
 {
-    currentScreenData()->sendSelectionToClipboard(m_selection_start, m_selection_end, QClipboard::Selection);
+    //currentScreenData()->sendSelectionToClipboard(m_selection_start, m_selection_end, QClipboard::Selection);
 }
 
 void Screen::pasteFromSelection()
@@ -292,10 +292,11 @@ void Screen::pasteFromClipboard()
 
 void Screen::doubleClicked(const QPointF &clicked)
 {
-    int start, end;
-    currentScreenData()->getDoubleClickSelectionArea(clicked, &start, &end);
-    setSelectionAreaStart(QPointF(start,clicked.y()));
-    setSelectionAreaEnd(QPointF(end,clicked.y()));
+    Q_UNUSED(clicked);
+    //int start, end;
+    //currentScreenData()->getDoubleClickSelectionArea(clicked, &start, &end);
+    //setSelectionAreaStart(QPointF(start,clicked.y()));
+    //setSelectionAreaEnd(QPointF(end,clicked.y()));
 }
 
 void Screen::setTitle(const QString &title)

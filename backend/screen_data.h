@@ -74,10 +74,6 @@ public:
 
     void fill(const QChar &character);
 
-    void sendSelectionToClipboard(const QPointF &start, const QPointF &end, QClipboard::Mode clipboard);
-
-    void getDoubleClickSelectionArea(const QPointF &cliked, int *start_ret, int *end_ret) const;
-
     void dispatchLineEvents();
 
     void printRuler(QDebug &debug) const;
