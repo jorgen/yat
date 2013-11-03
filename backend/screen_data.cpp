@@ -214,6 +214,7 @@ void ScreenData::insertLine(int row)
 
 void ScreenData::fill(const QChar &character)
 {
+    clear();
     auto it = --m_screen_blocks.end();
     for (int i = 0; i < m_block_count; --it, i++) {
         QString fill_str(m_screen->width(), character);
