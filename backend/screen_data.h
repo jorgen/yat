@@ -53,8 +53,6 @@ public:
 
     int contentHeight() const;
 
-    inline Block *blockContainingLine(int line) const;
-
     void clearToEndOfLine(int row, int from_char);
     void clearToEndOfScreen(int row);
     void clearToBeginningOfLine(int row, int from_char);
@@ -111,15 +109,6 @@ private:
 
     std::list<Block *> m_screen_blocks;
 };
-
-Block *ScreenData::blockContainingLine(int line) const
-{
-    auto it = it_for_row(line);
-    if (it == m_screen_blocks.end())
-        return nullptr;
-
-    return *it;
-}
 
 std::list<Block *>::const_iterator ScreenData::it_for_row(int row) const
 {
