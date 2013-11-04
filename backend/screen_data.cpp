@@ -55,7 +55,6 @@ ScreenData::~ScreenData()
     delete m_scrollback;
 }
 
-
 int ScreenData::contentHeight() const
 {
     return m_height + m_scrollback->height();
@@ -163,7 +162,7 @@ void ScreenData::clearCharacters(Cursor *cursor, int to)
 
 void ScreenData::deleteCharacters(Cursor *cursor, int to)
 {
-    auto it = it_for_row(cursor->new_y());
+    auto it = itForRow(cursor->new_y());
     if (it  == m_screen_blocks.end())
         return;
 
@@ -200,7 +199,7 @@ void ScreenData::moveLine(int from, int to)
 
 void ScreenData::insertLine(int row)
 {
-    auto row_it = it_for_row(row + 1);
+    auto row_it = itForRow(row + 1);
 
     Block *block_to_insert = new Block(m_screen);
     m_screen_blocks.insert(row_it,block_to_insert);
@@ -281,7 +280,7 @@ Scrollback *ScreenData::scrollback() const
 
 CursorDiff ScreenData::modify(Cursor *cursor, const QString &text, const TextStyle &style, bool replace)
 {
-    auto it = it_for_row(cursor->new_y());
+    auto it = itForRow(cursor->new_y());
     Block *block = *it;
     int start_char = (cursor->new_y() - block->index()) * m_width + cursor->new_x();
     size_t lines_before = block->lineCount();
@@ -338,7 +337,7 @@ void ScreenData::clearBlock(std::list<Block *>::iterator line)
 
 std::list<Block *>::iterator ScreenData::it_for_row_ensure_single_line_block(int row)
 {
-    auto it = it_for_row(row);
+    auto it = itForRow(row);
     int index = (*it)->index();
     int lines = (*it)->lineCount();
 

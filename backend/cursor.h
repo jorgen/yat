@@ -123,6 +123,8 @@ signals:
 private slots:
     void contentHeightChanged();
 
+public:
+    void setScreenData(ScreenData *data);
 private:
     ScreenData *screen_data() const { return m_screen->currentScreenData(); }
     int &new_rx() { return m_new_position.rx(); }
@@ -134,6 +136,8 @@ private:
     int adjusted_top() const { return m_origin_at_margin ? m_top_margin : 0; }
     int adjusted_bottom() const { return m_origin_at_margin ? m_bottom_margin : m_document_height - 1; }
     Screen *m_screen;
+    ScreenData *m_screen_data;
+    std::list<Block *>::const_iterator it;
     TextStyle m_current_text_style;
     QPoint m_position;
     QPoint m_new_position;

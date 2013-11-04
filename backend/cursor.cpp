@@ -31,6 +31,7 @@
 Cursor::Cursor(Screen* screen)
     : QObject(screen)
     , m_screen(screen)
+    , m_screen_data(m_screen->currentScreenData())
     , m_current_text_style(screen->defaultTextStyle())
     , m_position(0,0)
     , m_new_position(0,0)
@@ -61,6 +62,13 @@ Cursor::Cursor(Screen* screen)
             m_tab_stops.append(i);
         }
     }
+
+    it = m_screen_data->itForRow(0);
+    move(0,0);
+
+    the idea is that the cursors register with the block their on
+    the screen_data validates that blocks going out of bounds are handled for cursors
+    blocks give handles positioning events to cursors
 }
 
 Cursor::~Cursor()

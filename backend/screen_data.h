@@ -50,6 +50,9 @@ public:
     ScreenData(size_t max_scrollback, Screen *screen);
     ~ScreenData();
 
+    void setScreenDataOn(Cursor *cursor);
+    void deRegisterCursor(Cursor *cursor);
+
     int contentHeight() const;
 
     void clearToEndOfLine(Cursor *cursor);
@@ -81,6 +84,8 @@ public:
     void ensureVisiblePages(int top_line);
 
     Scrollback *scrollback() const;
+
+    inline std::list<Block *>::iterator itForRow(int row);
 public slots:
     void setHeight(int height, int currentCursorLine, int currentContentHeight);
     void setWidth(int width);
@@ -90,7 +95,6 @@ signals:
 
 private:
     CursorDiff modify(Cursor *cursor, const QString &text, const TextStyle &style, bool replace);
-    inline std::list<Block *>::iterator it_for_row(int row);
     void clearBlock(std::list<Block *>::iterator line);
     std::list<Block *>::iterator it_for_row_ensure_single_line_block(int row);
     std::list<Block *>::iterator split_out_row_from_block(std::list<Block *>::iterator block_it, int row_in_block);
@@ -109,7 +113,7 @@ private:
     std::list<Block *> m_screen_blocks;
 };
 
-std::list<Block *>::iterator ScreenData::it_for_row(int row)
+std::list<Block *>::iterator ScreenData::itForRow(int row) const
 {
     auto it = m_screen_blocks.end();
     int line_for_block = m_screen_height;
