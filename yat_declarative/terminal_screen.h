@@ -26,6 +26,8 @@
 
 #include <QtCore/QObject>
 #include <QtQuick/QQuickItem>
+#include <QInputMethodEvent>
+#include <QKeyEvent>
 
 #include "screen.h"
 
@@ -38,6 +40,12 @@ public:
     TerminalScreen(QQuickItem *parent = 0);
 
     Screen *screen() const;
+
+    QVariant inputMethodQuery(Qt::InputMethodQuery query);
+
+protected:
+    void inputMethodEvent(QInputMethodEvent *event);
+    void keyPressEvent(QKeyEvent *event);
 
 private:
     Screen *m_screen;

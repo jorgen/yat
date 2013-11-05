@@ -24,9 +24,42 @@ TerminalScreen::TerminalScreen(QQuickItem *parent)
     : QQuickItem(parent)
     , m_screen(new Screen(this))
 {
+    setFlag(QQuickItem::ItemAcceptsInputMethod);
 }
 
 Screen *TerminalScreen::screen() const
 {
     return m_screen;
+}
+
+QVariant TerminalScreen::inputMethodQuery(Qt::InputMethodQuery query)
+{
+    switch (query) {
+    case Qt::ImEnabled:
+        return QVariant(true);
+    case Qt::ImHints:
+        return QVariant(Qt::ImhNoAutoUppercase | Qt::ImhNoPredictiveText);
+    default:
+        return QVariant();
+    }
+}
+
+void TerminalScreen::inputMethodEvent(QInputMethodEvent *event)
+{
+    QString commitString = event->commitString();
+    if (commitString.isEmpty()) {
+        return;
+    }
+
+    Qt::Key key = Qt::Key_unknown;
+    if (commitString == " ") {
+        key = Qt::Key_Space; // screen requires
+    }
+
+    m_screen->sendKey(commitString, key, 0);
+}
+
+void TerminalScreen::keyPressEvent(QKeyEvent *event)
+{
+    m_screen->sendKey(event->text(), Qt::Key(event->key()), event->modifiers());
 }
