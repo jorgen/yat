@@ -14,6 +14,19 @@ TerminalScreen {
     property var cursorComponent : Qt.createComponent("TerminalCursor.qml")
 
     font.family: "menlo"
+    focus: true
+
+    onActiveFocusChanged: {
+        if (activeFocus) {
+            Qt.inputMethod.show();
+        }
+    }
+
+    Keys.onPressed: {
+        if (event.text === "?") {
+            terminal.screen.printScreen()
+        }
+    }
 
     Text {
         id: fontMetricText
@@ -129,18 +142,6 @@ TerminalScreen {
             var pty_height = Math.floor(height / fontHeight);
             flickable.height = pty_height * fontHeight;
             screen.height = pty_height;
-        }
-    }
-
-
-    Item {
-        id: keyHandler
-        focus: true
-        Keys.onPressed: {
-            terminal.screen.sendKey(event.text, event.key, event.modifiers);
-            if (event.text === "?") {
-                terminal.screen.printScreen()
-            }
         }
     }
 

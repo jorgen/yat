@@ -322,7 +322,7 @@ CursorDiff ScreenData::modify(Cursor *cursor, const QString &text, const TextSty
     return { lines_changed, end_char - cursor->new_x()};
 }
 
-void ScreenData::clearBlock(std::list<Block *>::const_iterator line)
+void ScreenData::clearBlock(std::list<Block *>::iterator line)
 {
     int before_count = (*line)->lineCount();
     (*line)->clear();
@@ -336,7 +336,7 @@ void ScreenData::clearBlock(std::list<Block *>::const_iterator line)
     }
 }
 
-std::list<Block *>::const_iterator ScreenData::it_for_row_ensure_single_line_block(int row)
+std::list<Block *>::iterator ScreenData::it_for_row_ensure_single_line_block(int row)
 {
     auto it = it_for_row(row);
     int index = (*it)->index();
@@ -348,10 +348,9 @@ std::list<Block *>::const_iterator ScreenData::it_for_row_ensure_single_line_blo
 
     int line_diff = row - index;
     return split_out_row_from_block(it, line_diff);
-
 }
 
-std::list<Block *>::const_iterator ScreenData::split_out_row_from_block(std::list<Block *>::const_iterator it, int row_in_block)
+std::list<Block *>::iterator ScreenData::split_out_row_from_block(std::list<Block *>::iterator it, int row_in_block)
 {
     int lines = (*it)->lineCount();
 

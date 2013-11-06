@@ -90,10 +90,10 @@ signals:
 
 private:
     CursorDiff modify(Cursor *cursor, const QString &text, const TextStyle &style, bool replace);
-    inline std::list<Block *>::const_iterator it_for_row(int row) const;
-    void clearBlock(std::list<Block *>::const_iterator line);
-    std::list<Block *>::const_iterator it_for_row_ensure_single_line_block(int row);
-    std::list<Block *>::const_iterator split_out_row_from_block(std::list<Block *>::const_iterator block_it, int row_in_block);
+    inline std::list<Block *>::iterator it_for_row(int row);
+    void clearBlock(std::list<Block *>::iterator line);
+    std::list<Block *>::iterator it_for_row_ensure_single_line_block(int row);
+    std::list<Block *>::iterator split_out_row_from_block(std::list<Block *>::iterator block_it, int row_in_block);
     void push_at_most_to_scrollback(int lines);
     void reclaim_at_least(int lines);
     void remove_lines_from_end(int lines);
@@ -109,7 +109,7 @@ private:
     std::list<Block *> m_screen_blocks;
 };
 
-std::list<Block *>::const_iterator ScreenData::it_for_row(int row) const
+std::list<Block *>::iterator ScreenData::it_for_row(int row)
 {
     auto it = m_screen_blocks.end();
     int line_for_block = m_screen_height;
