@@ -41,7 +41,7 @@ public:
 
     Screen *screen() const;
 
-    QVariant inputMethodQuery(Qt::InputMethodQuery query);
+    QVariant inputMethodQuery(Qt::InputMethodQuery query) const;
 
 protected:
     void inputMethodEvent(QInputMethodEvent *event);
