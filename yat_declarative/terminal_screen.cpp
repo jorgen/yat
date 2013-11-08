@@ -32,7 +32,7 @@ Screen *TerminalScreen::screen() const
     return m_screen;
 }
 
-QVariant TerminalScreen::inputMethodQuery(Qt::InputMethodQuery query)
+QVariant TerminalScreen::inputMethodQuery(Qt::InputMethodQuery query) const
 {
     switch (query) {
     case Qt::ImEnabled:
