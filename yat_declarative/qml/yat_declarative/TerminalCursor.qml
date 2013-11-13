@@ -27,7 +27,7 @@ ObjectDestructItem {
             "varying highp vec2 qt_TexCoord0;" +
 
             "void main() {" +
-            "   vec4 color = texture2D(source, qt_TexCoord0 ) * qt_Opacity;" +
+            "   lowp vec4 color = texture2D(source, qt_TexCoord0 ) * qt_Opacity;" +
             "   gl_FragColor = vec4(1.0 - color.r, 1.0 - color.g, 1.0 - color.b, color.a);" +
             "}"
 
