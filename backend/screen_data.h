@@ -26,13 +26,14 @@
 
 #include "text_style.h"
 #include "block.h"
+#include "screen.h"
+#include "scrollback.h"
 
 #include <QtCore/QVector>
 #include <QtCore/QPoint>
 #include <QtCore/QObject>
 #include <QtGui/QClipboard>
 
-class Screen;
 class Scrollback;
 class Cursor;
 
@@ -53,7 +54,8 @@ public:
     void setScreenDataOn(Cursor *cursor);
     void deRegisterCursor(Cursor *cursor);
 
-    int contentHeight() const;
+    size_t contentHeight() const { return m_height + m_scrollback->height(); }
+    size_t dataHeight() const { return m_height; }
 
     void clearToEndOfLine(Cursor *cursor);
     void clearToEndOfScreen(Cursor *cursor);
@@ -70,7 +72,7 @@ public:
     CursorDiff insert(Cursor *cursor, const QString &text, const TextStyle &style);
 
     void moveLine(int from, int to);
-    void insertLine(int row);
+    void insertLine(Cursor *cursor);
 
     void fill(const QChar &character);
 
@@ -86,26 +88,30 @@ public:
     Scrollback *scrollback() const;
 
     inline std::list<Block *>::iterator itForRow(int row);
+    inline std::list<Block *>::iterator itForBegin() { return m_screen_blocks.begin(); }
 public slots:
-    void setHeight(int height, int currentCursorLine, int currentContentHeight);
+    void setHeight(size_t height, int currentCursorLine, int currentContentHeight);
     void setWidth(int width);
 
 signals:
     void contentHeightChanged();
 
-private:
+public:
     CursorDiff modify(Cursor *cursor, const QString &text, const TextStyle &style, bool replace);
     void clearBlock(std::list<Block *>::iterator line);
     std::list<Block *>::iterator it_for_row_ensure_single_line_block(int row);
+    std::list<Block *>::iterator it_for_cursor_ensure_single_line_block(Cursor *cursor);
     std::list<Block *>::iterator split_out_row_from_block(std::list<Block *>::iterator block_it, int row_in_block);
-    void push_at_most_to_scrollback(int lines);
+    void push_at_most_to_scrollback(size_t lines);
     void reclaim_at_least(int lines);
     void remove_lines_from_end(int lines);
-    void ensure_at_least_height(int height);
+    void ensure_at_least_height(size_t height);
+    void adjust_indexes(std::list<Block *>::iterator it, int startIndex);
+    size_t abs_screen_start() const { return contentHeight() - m_screen->height(); }
     Screen *m_screen;
     Scrollback *m_scrollback;
-    int m_screen_height;
-    int m_height;
+    size_t m_screen_height;
+    size_t m_height;
     int m_width;
     int m_block_count;
     int m_old_total_lines;
@@ -113,7 +119,7 @@ private:
     std::list<Block *> m_screen_blocks;
 };
 
-std::list<Block *>::iterator ScreenData::itForRow(int row) const
+std::list<Block *>::iterator ScreenData::itForRow(int row)
 {
     auto it = m_screen_blocks.end();
     int line_for_block = m_screen_height;

@@ -78,7 +78,7 @@ void Scrollback::ensureVisiblePages(int top_line)
     if (size_t(top_line) >= m_height)
         return;
 
-    uint height = std::max(m_screen_data->screen()->height(), 1);
+    uint height = std::max(m_screen_data->screen()->height(), size_t(1));
 
     int complete_pages = m_height / height;
     int remainder = m_height - (complete_pages * height);

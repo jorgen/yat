@@ -33,7 +33,6 @@
 #include <QtCore/QStack>
 #include <QtCore/QElapsedTimer>
 
-class Block;
 class Cursor;
 class Text;
 class ScreenData;
@@ -42,7 +41,7 @@ class Screen : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(int height READ height WRITE setHeight NOTIFY heightChanged)
+    Q_PROPERTY(size_t height READ height WRITE setHeight NOTIFY heightChanged)
     Q_PROPERTY(int width READ width WRITE setWidth NOTIFY widthChanged)
     Q_PROPERTY(int contentHeight READ contentHeight NOTIFY contentHeightChanged)
     Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY screenTitleChanged)
@@ -55,10 +54,10 @@ public:
     explicit Screen(QObject *parent = 0);
     ~Screen();
 
-    void emitRequestHeight(int newHeight);
-    void setHeight(int height);
-    int height() const;
-    int contentHeight() const;
+    void emitRequestHeight(size_t newHeight);
+    void setHeight(size_t height);
+    size_t height() const;
+    size_t contentHeight() const;
 
     void emitRequestWidth(int newWidth);
     void setWidth(int width);
@@ -68,7 +67,7 @@ public:
     void useAlternateScreenBuffer();
     void useNormalScreenBuffer();
 
-    Cursor *currentCursor() const { return  m_cursor_stack.last(); }
+    Cursor *currentCursor() const { return  m_cursor_stack.size()? m_cursor_stack.last():nullptr; }
     void saveCursor();
     void restoreCursor();
 
@@ -147,8 +146,8 @@ signals:
     void textCreated(Text *text);
     void cursorCreated(Cursor *cursor);
 
-    void requestHeightChange(int newHeight);
-    void heightAboutToChange(int height, int currentCursorLine, int currentScrollBackHeight);
+    void requestHeightChange(size_t newHeight);
+    void heightAboutToChange(size_t height, int currentCursorLine, int currentScrollBackHeight);
     void heightChanged();
     void contentHeightChanged();
 
@@ -171,7 +170,7 @@ private:
 
     int m_timer_event_id;
     int m_width;
-    int m_height;
+    size_t m_height;
 
     ScreenData *m_primary_data;
     ScreenData *m_alternate_data;

@@ -26,8 +26,120 @@
 
 #include "text_style.h"
 #include "screen.h"
+#include "screen_data.h"
+#include "scrollback.h"
 
+#include <list>
 #include <QtCore/QObject>
+#include <QtCore/QPoint>
+
+class Block;
+
+class Position
+{
+public:
+    Position(ScreenData *data)
+        : m_screen_data(data)
+        , m_it(data->itForBegin())
+    {
+    }
+
+    int x() const { return m_pos.x(); }
+    int y() const { return m_pos.y(); }
+
+    void move(int lines)
+    {
+        if (!lines)
+            return;
+
+        if (y() + lines < 0)
+            lines = -y();
+        if (abs_screen_start() + y() + lines > contentHeight()) {
+            lines = (contentHeight() - 1) - abs_y();
+        }
+        const size_t abs_end_line = abs_y() + lines;
+        m_pos.ry() += lines;
+        if (lines < 0) {
+            while ((*m_it)->index() > abs_end_line) {
+                --m_it;
+            }
+        } else {
+            while ( (*m_it)->index() + (*m_it)->lineCount() <= abs_end_line) {
+                ++m_it;
+            }
+        }
+
+    }
+
+    void moveDown(int lines)
+    {
+        move(lines);
+    }
+    void moveUp(int lines)
+    {
+        move(-lines);
+    }
+
+    void setX(int x) {
+        m_pos.setX(x);
+    }
+
+    void moveX(int x) {
+        m_pos.rx() += x;
+    }
+
+    void setY(int y) {
+        setPos(x(), y);
+    }
+
+    void setPos(int x, int y)
+    {
+        if (y < 0)
+            y = 0;
+        if (y > height() -1)
+            y = height() -1;
+
+        size_t to_abs_y = abs_screen_start() + y;
+        int move_lines = to_abs_y - abs_y();
+
+        if (move_lines)
+            move(move_lines);
+        m_pos.setX(x);
+    }
+
+    void linesAddedToEnd(int lines)
+    {
+        lines = std::min(lines,m_pos.ry());
+        m_pos.ry() -= lines;
+    }
+
+    void linesAddedTop(int lines)
+    {
+        m_pos.ry() += lines;
+    }
+
+    QPoint point() const { return m_pos; }
+
+    std::list<Block *>::iterator it() const { return m_it; }
+
+    void assert_cursor_position() const
+    {
+        size_t cursor_it_abs_y = (*m_it)->index();
+        size_t cursor_abs_y = abs_screen_start() + y();
+        Q_ASSERT(cursor_abs_y >= cursor_it_abs_y);
+        Q_ASSERT(cursor_abs_y < cursor_it_abs_y + (*m_it)->lineCount());
+    }
+public:
+    size_t scrollbackHeight() const { return m_screen_data->scrollback()->height(); }
+    size_t contentHeight() const { return m_screen_data->contentHeight(); }
+    int height() const { return m_screen_data->dataHeight(); }
+    size_t abs_y() const { return abs_screen_start() + y(); }
+    size_t abs_screen_start() const { return contentHeight() - m_screen_data->screen()->height(); }
+
+    ScreenData *m_screen_data;
+    std::list<Block *>::iterator m_it;
+    QPoint m_pos;
+};
 
 class Cursor : public QObject
 {
@@ -59,11 +171,11 @@ public:
     void setTextStyleColor(ushort color);
     ColorPalette *colorPalette() const;
 
-    QPoint position() const;
+    //QPoint position() const;
     int x() const;
     int y() const;
-    int new_x() const { return m_new_position.x(); }
-    int new_y() const { return m_new_position.y(); }
+    int new_x() const { return m_position.x(); }
+    int new_y() const { return m_position.y(); }
 
     void moveOrigin();
     void moveBeginningOfLine();
@@ -97,7 +209,7 @@ public:
     void reverseLineFeed();
 
     void setOriginAtMargin(bool atMargin);
-    void setScrollArea(int from, int to);
+    void setScrollArea(size_t from, size_t to);
     void resetScrollArea();
 
     void scrollUp(int lines);
@@ -110,9 +222,10 @@ public:
     inline void notifyChanged();
     void dispatchEvents();
 
+    std::list<Block *>::iterator it();
 public slots:
     void setDocumentWidth(int width);
-    void setDocumentHeight(int height, int currentCursorBlock, int currentScrollBackHeight);
+    void setDocumentHeight(size_t height, int currentCursorBlock, int currentScrollBackHeight);
 
 signals:
     void xChanged();
@@ -127,23 +240,23 @@ public:
     void setScreenData(ScreenData *data);
 private:
     ScreenData *screen_data() const { return m_screen->currentScreenData(); }
-    int &new_rx() { return m_new_position.rx(); }
-    int &new_ry() { return m_new_position.ry(); }
-    int adjusted_new_x() const { return m_origin_at_margin ?
-        m_new_position.x() - m_top_margin : m_new_position.x(); }
     int adjusted_new_y() const { return m_origin_at_margin ?
-        m_new_position.y() - m_top_margin : m_new_position.y(); }
+        new_y() - m_top_margin : new_y(); }
     int adjusted_top() const { return m_origin_at_margin ? m_top_margin : 0; }
-    int adjusted_bottom() const { return m_origin_at_margin ? m_bottom_margin : m_document_height - 1; }
+    int adjusted_bottom() const { return m_origin_at_margin ? m_bottom_margin : m_height - 1; }
+    int get_current_line_in_block(std::list<Block *>::iterator it, int y_pos) const
+    { return (m_screen_data->scrollback()->height() + y_pos) - (*it)->index(); }
+    void setCursorIterator(int y);
+    void moveCursorIterator(int lines, int current_line_in_block);
+    void moveCursorIteratorToLine(int line);
     Screen *m_screen;
     ScreenData *m_screen_data;
-    std::list<Block *>::const_iterator it;
     TextStyle m_current_text_style;
-    QPoint m_position;
-    QPoint m_new_position;
+    QPoint m_old_position;
+    Position m_position;
 
-    int m_document_width;
-    int m_document_height;
+    int m_width;
+    size_t m_height;
 
     int m_top_margin;
     int m_bottom_margin;

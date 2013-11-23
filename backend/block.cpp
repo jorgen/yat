@@ -33,10 +33,10 @@
 
 #include <algorithm>
 
-Block::Block(Screen *screen)
+Block::Block(Screen *screen, int index)
     : m_screen(screen)
-    , m_line(0)
-    , m_new_line(-1)
+    , m_line(-1)
+    , m_new_line(index)
     , m_width(m_screen->width())
     , m_visible(true)
     , m_changed(true)
@@ -304,7 +304,7 @@ void Block::insertAtPos(int pos, const QString &text, const TextStyle &style)
     }
 }
 
-void Block::setIndex(int index)
+void Block::setIndex(size_t index)
 {
     if (index != m_new_line) {
         m_changed = true;
@@ -340,7 +340,7 @@ Block *Block::split(int line)
     if (line >= lineCount())
         return nullptr;
     m_changed = true;
-    Block *to_return = new Block(m_screen);
+    Block *to_return = new Block(m_screen, -1);
     int start_index = line * m_width;
     for (int i = 0; i < m_style_list.size(); i++) {
         ensureStyleAlignWithLines(i);
@@ -368,7 +368,7 @@ Block *Block::takeLine(int line)
     if (line >= lineCount())
         return nullptr;
     m_changed = true;
-    Block *to_return = new Block(m_screen);
+    Block *to_return = new Block(m_screen, -1);
     int start_index = line * m_width;
     int end_index = start_index + (m_width - 1);
     for (int i = 0; i < m_style_list.size(); i++) {
@@ -528,6 +528,23 @@ void Block::printStyleListWidthText() const
         QDebug debug = qDebug();
         debug << m_text_line.mid(currentStyle.start_index, (currentStyle.end_index + 1) - currentStyle.start_index) << currentStyle;
     }
+}
+
+void Block::addCursor(Cursor *cursor)
+{
+    m_cursor_set.insert(cursor);
+}
+
+void Block::removeCursor(Cursor *cursor)
+{
+    auto it = m_cursor_set.find(cursor);
+    if (it != m_cursor_set.end())
+        m_cursor_set.erase(it);
+}
+
+void Block::clearCursorList()
+{
+    m_cursor_set.clear();
 }
 
 void Block::mergeCompatibleStyles()

@@ -26,15 +26,18 @@
 
 #include <QtCore/QObject>
 
+#include <set>
 #include "text_style.h"
 
+#include <QDebug>
 class Text;
 class Screen;
+class Cursor;
 
 class Block
 {
 public:
-    Block(Screen *screen);
+    Block(Screen *screen, int index);
     ~Block();
 
     Q_INVOKABLE Screen *screen() const;
@@ -49,8 +52,8 @@ public:
     void replaceAtPos(int i, const QString &text, const TextStyle &style);
     void insertAtPos(int i, const QString &text, const TextStyle &style);
 
-    void setIndex(int index);
-    int index() const { return m_new_line; }
+    void setIndex(size_t index);
+    size_t index() const { return m_new_line; }
 
     QString *textLine();
     int textSize() { return m_text_line.size(); }
@@ -82,14 +85,19 @@ public:
     void printStyleList(QDebug &debug) const;
     void printStyleListWidthText() const;
 
+    void addCursor(Cursor *cursor);
+    void removeCursor(Cursor *cursor);
+    void clearCursorList();
+
 private:
     void mergeCompatibleStyles();
     void ensureStyleAlignWithLines(int i);
     Screen *m_screen;
     QString m_text_line;
     QVector<TextStyleLine> m_style_list;
-    int m_line;
-    int m_new_line;
+    std::set<Cursor *> m_cursor_set;
+    size_t m_line;
+    size_t m_new_line;
     int m_width;
 
     bool m_visible;

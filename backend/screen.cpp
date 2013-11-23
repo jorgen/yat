@@ -59,15 +59,15 @@ Screen::Screen(QObject *parent)
     , m_fast_scroll(true)
     , m_default_background(m_palette->normalColor(ColorPalette::DefaultBackground))
 {
-    Cursor *cursor = new Cursor(this);
-    m_cursor_stack << cursor;
-    m_new_cursors << cursor;
-
     connect(m_primary_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
     connect(m_palette, SIGNAL(changed()), this, SLOT(paletteChanged()));
 
     setHeight(25);
     setWidth(80);
+
+    Cursor *cursor = new Cursor(this);
+    m_cursor_stack << cursor;
+    m_new_cursors << cursor;
 
     connect(&m_pty, &YatPty::readyRead, this, &Screen::readData);
     connect(&m_pty, SIGNAL(hangupReceived()),qGuiApp, SLOT(quit()));
@@ -97,17 +97,18 @@ QColor Screen::defaultBackgroundColor() const
     return m_palette->normalColor(ColorPalette::DefaultBackground);
 }
 
-void Screen::emitRequestHeight(int newHeight)
+void Screen::emitRequestHeight(size_t newHeight)
 {
     emit requestHeightChange(newHeight);
 }
 
-void Screen::setHeight(int height)
+void Screen::setHeight(size_t height)
 {
     if (height == m_height)
         return;
 
-    emit heightAboutToChange(height, currentCursor()->new_y(), currentScreenData()->scrollback()->height());
+    int cursor_y = currentCursor() ? currentCursor()->new_y():0;
+    emit heightAboutToChange(height, cursor_y, currentScreenData()->scrollback()->height());
 
     m_height = height;
 
@@ -116,12 +117,12 @@ void Screen::setHeight(int height)
     emit heightChanged();
 }
 
-int Screen::height() const
+size_t Screen::height() const
 {
     return m_height;
 }
 
-int Screen::contentHeight() const
+size_t Screen::contentHeight() const
 {
     return currentScreenData()->contentHeight();
 }
@@ -157,6 +158,7 @@ void Screen::useAlternateScreenBuffer()
         m_current_data = m_alternate_data;
         m_current_data->clear();
         connect(m_alternate_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
+        currentCursor()->setScreenData(currentScreenData());
         emit contentHeightChanged();
     }
 }
@@ -167,6 +169,7 @@ void Screen::useNormalScreenBuffer()
         disconnect(m_alternate_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
         m_current_data = m_primary_data;
         connect(m_primary_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
+        currentCursor()->setScreenData(currentScreenData());
         emit contentHeightChanged();
     }
 }

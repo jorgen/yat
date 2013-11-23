@@ -23,13 +23,16 @@
 #include <QtCore/QThread>
 
 #include <QQmlEngine>
+#include <QMetaType>
 
 #include "register_qml_types.h"
 #include "terminal_screen.h"
 #include "yat_pty.h"
 
+Q_DECLARE_METATYPE(size_t);
 int main(int argc, char **argv)
 {
+    qRegisterMetaType<size_t>("size_t");
     QGuiApplication app(argc, argv);
 
     register_qml_types();
