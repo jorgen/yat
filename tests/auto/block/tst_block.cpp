@@ -12,7 +12,7 @@ public:
         screen.setHeight(5);
         int width = 100;
         screen.setWidth(width);
-        screen.currentScreenData()->blockContainingLine(0)->clear();
+        (*screen.currentScreenData()->it_for_row(0))->clear();
         if (fill) {
             QString spaces(width, QChar(' '));
             block()->replaceAtPos(0, spaces, screen.defaultTextStyle());
@@ -24,7 +24,7 @@ public:
 
     Block *block() const
     {
-        return screen.currentScreenData()->blockContainingLine(0);
+        return *screen.currentScreenData()->it_for_row(0);
     }
 
     void doneChanges()
@@ -911,6 +911,7 @@ void tst_Block::insertCharacters3Segments()
     int expected_size = block_size + insert_text.size();
     QCOMPARE(block->textLine()->size(), expected_size);
 
+    block->printStyleList();
     QVector<TextStyleLine> style_list = block->style_list();
     QCOMPARE(style_list.size(), 6);
 
