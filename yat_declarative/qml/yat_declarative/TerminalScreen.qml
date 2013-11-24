@@ -76,7 +76,7 @@ TerminalScreen {
             Rectangle {
                 id: background
                 anchors.fill: parent
-                color: "black"
+                color: terminal.screen.defaultBackgroundColor
             }
         }
         onContentYChanged: {

@@ -52,9 +52,9 @@ public:
     int contentHeight() const;
 
     void clearToEndOfLine(const QPoint &pos);
-    void clearToEndOfScreen(const QPoint &pos);
+    void clearToEndOfScreen(int y);
     void clearToBeginningOfLine(const QPoint &pos);
-    void clearToBeginningOfScreen(const QPoint &pos);
+    void clearToBeginningOfScreen(int y);
     void clearLine(const QPoint &pos);
     void clear();
     void releaseTextObjects();
@@ -66,7 +66,7 @@ public:
     CursorDiff insert(const QPoint &pos, const QString &text, const TextStyle &style);
 
     void moveLine(int from, int to);
-    void insertLine(int row);
+    void insertLine(int insertAt, int topMargin);
 
     void fill(const QChar &character);
 

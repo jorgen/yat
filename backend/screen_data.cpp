@@ -110,9 +110,9 @@ void ScreenData::clearToEndOfLine(const QPoint &point)
     (*it)->clearToEnd(point.x());
 }
 
-void ScreenData::clearToEndOfScreen(const QPoint &point)
+void ScreenData::clearToEndOfScreen(int y)
 {
-    auto it = it_for_row_ensure_single_line_block(point.y() + 1);
+    auto it = it_for_row_ensure_single_line_block(y);
     while(it != m_screen_blocks.end()) {
         clearBlock(it);
         ++it;
@@ -125,9 +125,9 @@ void ScreenData::clearToBeginningOfLine(const QPoint &point)
     (*it)->clearCharacters(0,point.x());
 }
 
-void ScreenData::clearToBeginningOfScreen(const QPoint &point)
+void ScreenData::clearToBeginningOfScreen(int y)
 {
-    auto it = it_for_row_ensure_single_line_block(point.y() - 1);
+    auto it = it_for_row_ensure_single_line_block(y);
     if (it != m_screen_blocks.end())
         (*it)->clear();
     while(it != m_screen_blocks.begin()) {
@@ -138,6 +138,7 @@ void ScreenData::clearToBeginningOfScreen(const QPoint &point)
 
 void ScreenData::clearLine(const QPoint &point)
 {
+    qDebug() << Q_FUNC_INFO << point.y();
     (*it_for_row_ensure_single_line_block(point.y()))->clear();
 }
 
@@ -198,18 +199,29 @@ void ScreenData::moveLine(int from, int to)
     m_screen_blocks.splice(to_it, m_screen_blocks, from_it);
 }
 
-void ScreenData::insertLine(int row)
+void ScreenData::insertLine(int row, int topMargin)
 {
     auto row_it = it_for_row(row + 1);
+
+    qDebug() << Q_FUNC_INFO << row << topMargin;
+    if (!topMargin && m_height - m_screen_blocks.front()->lineCount() >= m_screen_height) {
+        push_at_most_to_scrollback(1);
+    } else {
+        auto row_top_margin = it_for_row_ensure_single_line_block(topMargin);
+        if (row == topMargin) {
+            (*row_top_margin)->clear();
+            return;
+        }
+        delete (*row_top_margin);
+        m_screen_blocks.erase(row_top_margin);
+        m_height--;
+        m_block_count--;
+    }
 
     Block *block_to_insert = new Block(m_screen);
     m_screen_blocks.insert(row_it,block_to_insert);
     m_height++;
     m_block_count++;
-
-    if (m_height - m_screen_blocks.front()->lineCount() >= m_screen_height) {
-        push_at_most_to_scrollback(1);
-    }
 }
 
 
@@ -284,6 +296,7 @@ CursorDiff ScreenData::modify(const QPoint &point, const QString &text, const Te
     auto it = it_for_row(point.y());
     Block *block = *it;
     int start_char = (point.y() - block->index()) * m_width + point.x();
+    qDebug() << Q_FUNC_INFO << point << start_char;
     size_t lines_before = block->lineCount();
     int lines_changed =
         block->lineCountAfterModified(start_char, text.size(), replace)  - lines_before;
@@ -319,6 +332,8 @@ CursorDiff ScreenData::modify(const QPoint &point, const QString &text, const Te
         block->insertAtPos(start_char, text, style);
     }
     int end_char = (start_char + text.size()) % m_width;
+    if (end_char == 0)
+        end_char = m_width -1;
     return { lines_changed, end_char - point.x()};
 }
 

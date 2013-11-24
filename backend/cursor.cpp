@@ -413,16 +413,14 @@ void Cursor::clearToBeginningOfScreen()
 {
     clearToBeginningOfLine();
     if (new_y() > 0)
-        screen_data()->clearToBeginningOfScreen(m_new_position);
+        screen_data()->clearToBeginningOfScreen(m_new_position.y()-1);
 }
 
 void Cursor::clearToEndOfScreen()
 {
     clearToEndOfLine();
     if (new_y() < m_screen->height() -1) {
-        QPoint pos(m_new_position);
-        pos.ry()++;
-        screen_data()->clearToEndOfScreen(pos);
+        screen_data()->clearToEndOfScreen(m_new_position.y()+1);
     }
 }
 
@@ -468,8 +466,7 @@ void Cursor::replaceAtCursor(const QByteArray &data)
 
     if (new_y() >= m_document_height)
         new_ry() = m_document_height - 1;
-    if (new_x() >= m_document_width)
-        new_rx() = m_document_width - 1;
+
     notifyChanged();
 }
 
@@ -487,9 +484,8 @@ void Cursor::insertAtCursor(const QByteArray &data)
 
 void Cursor::lineFeed()
 {
-    int bottom = m_scroll_margins_set ? m_bottom_margin : m_document_height - 1;
-    if(new_y() >= bottom) {
-        screen_data()->insertLine(bottom);
+    if(new_y() >= adjusted_bottom()) {
+        screen_data()->insertLine(adjusted_bottom(), adjusted_top());
     } else {
         new_ry()++;
         notifyChanged();
@@ -555,3 +551,4 @@ void Cursor::contentHeightChanged()
 {
     m_content_height_changed = true;
 }
+
