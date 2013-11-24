@@ -138,7 +138,6 @@ void ScreenData::clearToBeginningOfScreen(int y)
 
 void ScreenData::clearLine(const QPoint &point)
 {
-    qDebug() << Q_FUNC_INFO << point.y();
     (*it_for_row_ensure_single_line_block(point.y()))->clear();
 }
 
@@ -203,7 +202,6 @@ void ScreenData::insertLine(int row, int topMargin)
 {
     auto row_it = it_for_row(row + 1);
 
-    qDebug() << Q_FUNC_INFO << row << topMargin;
     if (!topMargin && m_height - m_screen_blocks.front()->lineCount() >= m_screen_height) {
         push_at_most_to_scrollback(1);
     } else {
@@ -296,7 +294,6 @@ CursorDiff ScreenData::modify(const QPoint &point, const QString &text, const Te
     auto it = it_for_row(point.y());
     Block *block = *it;
     int start_char = (point.y() - block->index()) * m_width + point.x();
-    qDebug() << Q_FUNC_INFO << point << start_char;
     size_t lines_before = block->lineCount();
     int lines_changed =
         block->lineCountAfterModified(start_char, text.size(), replace)  - lines_before;

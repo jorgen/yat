@@ -156,31 +156,19 @@ void Cursor::resetStyle()
 
 void Cursor::scrollUp(int lines)
 {
-    if (m_scroll_margins_set) {
-        if (new_y() < m_top_margin || new_y() > m_bottom_margin)
+    if (new_y() < top() || new_y() > bottom())
             return;
-        for (int i = 0; i < lines; i++) {
-            screen_data()->moveLine(m_bottom_margin, m_top_margin);
-        }
-    } else {
-        for (int i = 0; i < lines; i++) {
-            screen_data()->moveLine(m_document_height -1, 0);
-        }
+    for (int i = 0; i < lines; i++) {
+        screen_data()->moveLine(bottom(), top());
     }
 }
 
 void Cursor::scrollDown(int lines)
 {
-    if (m_scroll_margins_set) {
-        if (new_y() < m_top_margin || new_y() > m_bottom_margin)
-            return;
-        for (int i = 0; i < lines; i++) {
-            screen_data()->moveLine(m_top_margin, m_bottom_margin);
-        }
-    } else {
-        for (int i = 0; i < lines; i++) {
-            screen_data()->moveLine(0,m_document_height - 1);
-        }
+    if (new_y() < top() || new_y() > bottom())
+        return;
+    for (int i = 0; i < lines; i++) {
+        screen_data()->moveLine(top(), bottom());
     }
 }
 
@@ -484,8 +472,8 @@ void Cursor::insertAtCursor(const QByteArray &data)
 
 void Cursor::lineFeed()
 {
-    if(new_y() >= adjusted_bottom()) {
-        screen_data()->insertLine(adjusted_bottom(), adjusted_top());
+    if(new_y() >= bottom()) {
+        screen_data()->insertLine(bottom(), top());
     } else {
         new_ry()++;
         notifyChanged();
@@ -494,8 +482,7 @@ void Cursor::lineFeed()
 
 void Cursor::reverseLineFeed()
 {
-    int top = m_scroll_margins_set ? m_top_margin : 0;
-    if (new_y() == top) {
+    if (new_y() == top()) {
         scrollUp(1);
     } else {
         new_ry()--;

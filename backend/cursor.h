@@ -133,6 +133,8 @@ private:
         m_new_position.y() - m_top_margin : m_new_position.y(); }
     int adjusted_top() const { return m_origin_at_margin ? m_top_margin : 0; }
     int adjusted_bottom() const { return m_origin_at_margin ? m_bottom_margin : m_document_height - 1; }
+    int top() const { return m_scroll_margins_set ? m_top_margin : 0; }
+    int bottom() const { return m_scroll_margins_set ? m_bottom_margin : m_document_height - 1; }
     Screen *m_screen;
     TextStyle m_current_text_style;
     QPoint m_position;

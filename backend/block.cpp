@@ -423,7 +423,6 @@ void Block::removeLine(int line)
 void Block::moveLinesFromBlock(Block *block, int start_line, int count)
 {
     Q_ASSERT(block);
-    qDebug() << Q_FUNC_INFO << block->lineCount() << start_line + count;
     Q_ASSERT(block->lineCount() >= start_line + count);
 
     int start_char = block->width() * start_line;
