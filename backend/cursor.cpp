@@ -401,36 +401,39 @@ void Cursor::clearTabStops()
 
 void Cursor::clearToBeginningOfLine()
 {
-    screen_data()->clearToBeginningOfLine(this);
+    screen_data()->clearToBeginningOfLine(m_new_position);
 }
 
 void Cursor::clearToEndOfLine()
 {
-    screen_data()->clearToEndOfLine(this);
+    screen_data()->clearToEndOfLine(m_new_position);
 }
 
 void Cursor::clearToBeginningOfScreen()
 {
     clearToBeginningOfLine();
     if (new_y() > 0)
-        screen_data()->clearToBeginningOfScreen(this);
+        screen_data()->clearToBeginningOfScreen(m_new_position);
 }
 
 void Cursor::clearToEndOfScreen()
 {
     clearToEndOfLine();
-    if (new_y() < m_screen->height() -1)
-        screen_data()->clearToEndOfScreen(this);
+    if (new_y() < m_screen->height() -1) {
+        QPoint pos(m_new_position);
+        pos.ry()++;
+        screen_data()->clearToEndOfScreen(pos);
+    }
 }
 
 void Cursor::clearLine()
 {
-    screen_data()->clearLine(this);
+    screen_data()->clearLine(m_new_position);
 }
 
 void Cursor::deleteCharacters(int characters)
 {
-    screen_data()->deleteCharacters(this, new_x() + characters -1);
+    screen_data()->deleteCharacters(m_new_position, new_x() + characters -1);
 }
 
 void Cursor::setWrapAround(bool wrap)
@@ -455,10 +458,10 @@ void Cursor::replaceAtCursor(const QByteArray &data)
         const int size = m_document_width - new_x();
         QString toBlock = text.mid(0,size);
         toBlock.replace(toBlock.size() - 1, 1, text.at(text.size()-1));
-        screen_data()->replace(this, toBlock, m_current_text_style);
+        screen_data()->replace(m_new_position, toBlock, m_current_text_style);
         new_rx() += toBlock.size();
     } else {
-        auto diff = screen_data()->replace(this, text, m_current_text_style);
+        auto diff = screen_data()->replace(m_new_position, text, m_current_text_style);
         new_rx() += diff.character;
         new_ry() += diff.line;
     }
@@ -473,7 +476,7 @@ void Cursor::replaceAtCursor(const QByteArray &data)
 void Cursor::insertAtCursor(const QByteArray &data)
 {
     const QString text = m_gl_text_codec->toUnicode(data);
-    auto diff = screen_data()->insert(this, text, m_current_text_style);
+    auto diff = screen_data()->insert(m_new_position, text, m_current_text_style);
     new_rx() += diff.character;
     new_ry() += diff.line;
     if (new_y() >= m_document_height)

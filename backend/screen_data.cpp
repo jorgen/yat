@@ -104,30 +104,30 @@ void ScreenData::setWidth(int width)
 }
 
 
-void ScreenData::clearToEndOfLine(Cursor *cursor)
+void ScreenData::clearToEndOfLine(const QPoint &point)
 {
-    auto it = it_for_row_ensure_single_line_block(cursor->new_y());
-    (*it)->clearToEnd(cursor->new_x());
+    auto it = it_for_row_ensure_single_line_block(point.y());
+    (*it)->clearToEnd(point.x());
 }
 
-void ScreenData::clearToEndOfScreen(Cursor *cursor)
+void ScreenData::clearToEndOfScreen(const QPoint &point)
 {
-    auto it = it_for_row_ensure_single_line_block(cursor->new_y() + 1);
+    auto it = it_for_row_ensure_single_line_block(point.y() + 1);
     while(it != m_screen_blocks.end()) {
         clearBlock(it);
         ++it;
     }
 }
 
-void ScreenData::clearToBeginningOfLine(Cursor *cursor)
+void ScreenData::clearToBeginningOfLine(const QPoint &point)
 {
-    auto it = it_for_row_ensure_single_line_block(cursor->new_y());
-    (*it)->clearCharacters(0,cursor->new_x());
+    auto it = it_for_row_ensure_single_line_block(point.y());
+    (*it)->clearCharacters(0,point.x());
 }
 
-void ScreenData::clearToBeginningOfScreen(Cursor *cursor)
+void ScreenData::clearToBeginningOfScreen(const QPoint &point)
 {
-    auto it = it_for_row_ensure_single_line_block(cursor->new_y() - 1);
+    auto it = it_for_row_ensure_single_line_block(point.y() - 1);
     if (it != m_screen_blocks.end())
         (*it)->clear();
     while(it != m_screen_blocks.begin()) {
@@ -136,9 +136,9 @@ void ScreenData::clearToBeginningOfScreen(Cursor *cursor)
     }
 }
 
-void ScreenData::clearLine(Cursor *cursor)
+void ScreenData::clearLine(const QPoint &point)
 {
-    (*it_for_row_ensure_single_line_block(cursor->new_y()))->clear();
+    (*it_for_row_ensure_single_line_block(point.y()))->clear();
 }
 
 void ScreenData::clear()
@@ -155,32 +155,32 @@ void ScreenData::releaseTextObjects()
     }
 }
 
-void ScreenData::clearCharacters(Cursor *cursor, int to)
+void ScreenData::clearCharacters(const QPoint &point, int to)
 {
-    auto it = it_for_row_ensure_single_line_block(cursor->new_y());
-    (*it)->clearCharacters(cursor->new_x(),to);
+    auto it = it_for_row_ensure_single_line_block(point.y());
+    (*it)->clearCharacters(point.x(),to);
 }
 
-void ScreenData::deleteCharacters(Cursor *cursor, int to)
+void ScreenData::deleteCharacters(const QPoint &point, int to)
 {
-    auto it = it_for_row(cursor->new_y());
+    auto it = it_for_row(point.y());
     if (it  == m_screen_blocks.end())
         return;
 
-    int line_in_block = cursor->new_y() - (*it)->index();
+    int line_in_block = point.y() - (*it)->index();
     int chars_to_line = line_in_block * m_width;
 
-    (*it)->deleteCharacters(chars_to_line + cursor->new_x(), chars_to_line + to);
+    (*it)->deleteCharacters(chars_to_line + point.x(), chars_to_line + to);
 }
 
-CursorDiff ScreenData::replace(Cursor *cursor, const QString &text, const TextStyle &style)
+CursorDiff ScreenData::replace(const QPoint &point, const QString &text, const TextStyle &style)
 {
-    return modify(cursor,text,style,true);
+    return modify(point,text,style,true);
 }
 
-CursorDiff ScreenData::insert(Cursor *cursor, const QString &text, const TextStyle &style)
+CursorDiff ScreenData::insert(const QPoint &point, const QString &text, const TextStyle &style)
 {
-    return modify(cursor,text,style,false);
+    return modify(point,text,style,false);
 }
 
 
@@ -279,11 +279,11 @@ Scrollback *ScreenData::scrollback() const
     return m_scrollback;
 }
 
-CursorDiff ScreenData::modify(Cursor *cursor, const QString &text, const TextStyle &style, bool replace)
+CursorDiff ScreenData::modify(const QPoint &point, const QString &text, const TextStyle &style, bool replace)
 {
-    auto it = it_for_row(cursor->new_y());
+    auto it = it_for_row(point.y());
     Block *block = *it;
-    int start_char = (cursor->new_y() - block->index()) * m_width + cursor->new_x();
+    int start_char = (point.y() - block->index()) * m_width + point.x();
     size_t lines_before = block->lineCount();
     int lines_changed =
         block->lineCountAfterModified(start_char, text.size(), replace)  - lines_before;
@@ -319,7 +319,7 @@ CursorDiff ScreenData::modify(Cursor *cursor, const QString &text, const TextSty
         block->insertAtPos(start_char, text, style);
     }
     int end_char = (start_char + text.size()) % m_width;
-    return { lines_changed, end_char - cursor->new_x()};
+    return { lines_changed, end_char - point.x()};
 }
 
 void ScreenData::clearBlock(std::list<Block *>::iterator line)

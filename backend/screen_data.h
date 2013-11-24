@@ -34,7 +34,6 @@
 
 class Screen;
 class Scrollback;
-class Cursor;
 
 class CursorDiff
 {
@@ -52,19 +51,19 @@ public:
 
     int contentHeight() const;
 
-    void clearToEndOfLine(Cursor *cursor);
-    void clearToEndOfScreen(Cursor *cursor);
-    void clearToBeginningOfLine(Cursor *cursor);
-    void clearToBeginningOfScreen(Cursor *cursor);
-    void clearLine(Cursor *cursor);
+    void clearToEndOfLine(const QPoint &pos);
+    void clearToEndOfScreen(const QPoint &pos);
+    void clearToBeginningOfLine(const QPoint &pos);
+    void clearToBeginningOfScreen(const QPoint &pos);
+    void clearLine(const QPoint &pos);
     void clear();
     void releaseTextObjects();
 
-    void clearCharacters(Cursor *cursor, int to);
-    void deleteCharacters(Cursor *cursor, int to);
+    void clearCharacters(const QPoint &pos, int to);
+    void deleteCharacters(const QPoint &pos, int to);
 
-    CursorDiff replace(Cursor *cursor, const QString &text, const TextStyle &style);
-    CursorDiff insert(Cursor *cursor, const QString &text, const TextStyle &style);
+    CursorDiff replace(const QPoint &pos, const QString &text, const TextStyle &style);
+    CursorDiff insert(const QPoint &pos, const QString &text, const TextStyle &style);
 
     void moveLine(int from, int to);
     void insertLine(int row);
@@ -81,6 +80,8 @@ public:
     void ensureVisiblePages(int top_line);
 
     Scrollback *scrollback() const;
+
+    inline std::list<Block *>::iterator it_for_row(int row);
 public slots:
     void setHeight(int height, int currentCursorLine, int currentContentHeight);
     void setWidth(int width);
@@ -89,8 +90,7 @@ signals:
     void contentHeightChanged();
 
 private:
-    CursorDiff modify(Cursor *cursor, const QString &text, const TextStyle &style, bool replace);
-    inline std::list<Block *>::iterator it_for_row(int row);
+    CursorDiff modify(const QPoint &pos, const QString &text, const TextStyle &style, bool replace);
     void clearBlock(std::list<Block *>::iterator line);
     std::list<Block *>::iterator it_for_row_ensure_single_line_block(int row);
     std::list<Block *>::iterator split_out_row_from_block(std::list<Block *>::iterator block_it, int row_in_block);
