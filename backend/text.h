@@ -43,6 +43,7 @@ class Text : public QObject
     Q_PROPERTY(bool bold READ bold NOTIFY boldChanged)
     Q_PROPERTY(bool blinking READ blinking NOTIFY blinkingChanged)
     Q_PROPERTY(bool underline READ underline NOTIFY underlineChanged)
+    Q_PROPERTY(bool latin READ latin NOTIFY latinChanged)
 public:
     Text(Screen *screen);
     ~Text();
@@ -66,6 +67,9 @@ public:
     bool blinking() const;
     bool underline() const;
 
+    void setLatin(bool latin);
+    bool latin() const;
+
     QObject *item() const;
 
 public slots:
@@ -81,6 +85,7 @@ signals:
     void boldChanged();
     void blinkingChanged();
     void underlineChanged();
+    void latinChanged();
 
 private slots:
     void paletteChanged();
@@ -106,6 +111,8 @@ private:
     bool m_text_dirty;
     bool m_visible;
     bool m_visible_old;
+    bool m_latin;
+    bool m_latin_old;
 
     QColor m_forgroundColor;
     QColor m_backgroundColor;

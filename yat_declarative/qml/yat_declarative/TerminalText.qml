@@ -45,7 +45,7 @@ ObjectDestructItem {
     }
 
 
-    Text {
+    MonoText {
         id: textElement
         anchors.fill: parent
         text: objectHandle.text
@@ -55,7 +55,7 @@ ObjectDestructItem {
         font.pointSize: textItem.font.pointSize
         font.bold: objectHandle.bold
         font.underline: objectHandle.underline
-        textFormat: Text.PlainText
+        //textFormat: Text.PlainText
 
         SequentialAnimation {
             running: objectHandle.blinking
@@ -78,5 +78,4 @@ ObjectDestructItem {
             }
         }
     }
-
 }

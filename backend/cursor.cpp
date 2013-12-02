@@ -427,16 +427,16 @@ void Cursor::setWrapAround(bool wrap)
     m_wrap_around = wrap;
 }
 
-void Cursor::addAtCursor(const QByteArray &data)
+void Cursor::addAtCursor(const QByteArray &data, bool only_latin)
 {
     if (m_insert_mode == Replace) {
-        replaceAtCursor(data);
+        replaceAtCursor(data, only_latin);
     } else {
-        insertAtCursor(data);
+        insertAtCursor(data, only_latin);
     }
 }
 
-void Cursor::replaceAtCursor(const QByteArray &data)
+void Cursor::replaceAtCursor(const QByteArray &data, bool only_latin)
 {
     const QString text = m_gl_text_codec->toUnicode(data);
 
@@ -444,10 +444,10 @@ void Cursor::replaceAtCursor(const QByteArray &data)
         const int size = m_document_width - new_x();
         QString toBlock = text.mid(0,size);
         toBlock.replace(toBlock.size() - 1, 1, text.at(text.size()-1));
-        screen_data()->replace(m_new_position, toBlock, m_current_text_style);
+        screen_data()->replace(m_new_position, toBlock, m_current_text_style, only_latin);
         new_rx() += toBlock.size();
     } else {
-        auto diff = screen_data()->replace(m_new_position, text, m_current_text_style);
+        auto diff = screen_data()->replace(m_new_position, text, m_current_text_style, only_latin);
         new_rx() += diff.character;
         new_ry() += diff.line;
     }
@@ -458,10 +458,10 @@ void Cursor::replaceAtCursor(const QByteArray &data)
     notifyChanged();
 }
 
-void Cursor::insertAtCursor(const QByteArray &data)
+void Cursor::insertAtCursor(const QByteArray &data, bool only_latin)
 {
     const QString text = m_gl_text_codec->toUnicode(data);
-    auto diff = screen_data()->insert(m_new_position, text, m_current_text_style);
+    auto diff = screen_data()->insert(m_new_position, text, m_current_text_style, only_latin);
     new_rx() += diff.character;
     new_ry() += diff.line;
     if (new_y() >= m_document_height)

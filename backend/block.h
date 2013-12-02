@@ -46,8 +46,8 @@ public:
     void deleteToEnd(int from);
     void deleteLines(int from);
 
-    void replaceAtPos(int i, const QString &text, const TextStyle &style);
-    void insertAtPos(int i, const QString &text, const TextStyle &style);
+    void replaceAtPos(int i, const QString &text, const TextStyle &style, bool only_latin = true);
+    void insertAtPos(int i, const QString &text, const TextStyle &style, bool only_latin = true);
 
     void setIndex(int index);
     int index() const { return m_new_line; }
@@ -94,6 +94,7 @@ private:
 
     bool m_visible;
     bool m_changed;
+    bool m_only_latin;
 };
 
 #endif // BLOCK_H

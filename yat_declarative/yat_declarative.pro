@@ -1,4 +1,4 @@
-QT += gui quick
+QT += core-private gui-private qml-private quick quick-private
 TARGET = yat
 
 include(../backend/backend.pri)
@@ -7,11 +7,13 @@ SOURCES += main.cpp \
     terminal_screen.cpp \
     object_destruct_item.cpp \
     register_qml_types.cpp \
+    mono_text.cpp \
 
 HEADERS += \
     terminal_screen.h \
     object_destruct_item.h \
     register_qml_types.h \
+    mono_text.h \
 
 QML_IMPORT_PATH =
 

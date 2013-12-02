@@ -40,6 +40,8 @@ Text::Text(Screen *screen)
     , m_text_dirty(true)
     , m_visible(true)
     , m_visible_old(true)
+    , m_latin(true)
+    , m_latin_old(true)
     , m_forgroundColor(m_screen->defaultForgroundColor())
     , m_backgroundColor(m_screen->defaultBackgroundColor())
 {
@@ -124,6 +126,16 @@ bool Text::underline() const
     return m_style.style & TextStyle::Underlined;
 }
 
+void Text::setLatin(bool latin)
+{
+    m_latin = latin;
+}
+
+bool Text::latin() const
+{
+    return m_latin_old;
+}
+
 static bool differentStyle(TextStyle::Styles a, TextStyle::Styles b, TextStyle::Style style)
 {
     return (a & style) != (b & style);
@@ -136,6 +148,11 @@ void Text::dispatchEvents()
     if (old_line != new_line) {
         m_old_line = m_line;
         emit lineChanged();
+    }
+
+    if (m_latin != m_latin_old) {
+        m_latin_old = m_latin;
+        emit latinChanged();
     }
 
     if (m_old_start_index != m_start_index

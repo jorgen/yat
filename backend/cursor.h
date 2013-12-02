@@ -89,9 +89,9 @@ public:
     void deleteCharacters(int characters);
 
     void setWrapAround(bool wrap);
-    void addAtCursor(const QByteArray &text);
-    void insertAtCursor(const QByteArray &text);
-    void replaceAtCursor(const QByteArray &text);
+    void addAtCursor(const QByteArray &text, bool only_latin = true);
+    void insertAtCursor(const QByteArray &text, bool only_latin = true);
+    void replaceAtCursor(const QByteArray &text, bool only_latin = true);
 
     void lineFeed();
     void reverseLineFeed();

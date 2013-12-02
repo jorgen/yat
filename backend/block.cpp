@@ -40,6 +40,7 @@ Block::Block(Screen *screen)
     , m_width(m_screen->width())
     , m_visible(true)
     , m_changed(true)
+    , m_only_latin(true)
 {
     clear();
 }
@@ -66,6 +67,7 @@ void Block::clear()
 
     m_style_list.clear();
 
+    m_only_latin = true;
     m_changed = true;
 }
 
@@ -156,9 +158,10 @@ void Block::deleteLines(int from)
         return;
 }
 
-void Block::replaceAtPos(int pos, const QString &text, const TextStyle &style)
+void Block::replaceAtPos(int pos, const QString &text, const TextStyle &style, bool only_latin)
 {
     m_changed = true;
+    m_only_latin = m_only_latin && only_latin;
 
     if (pos >= m_text_line.size()) {
         if (pos > m_text_line.size()) {
@@ -254,9 +257,10 @@ void Block::replaceAtPos(int pos, const QString &text, const TextStyle &style)
     }
 }
 
-void Block::insertAtPos(int pos, const QString &text, const TextStyle &style)
+void Block::insertAtPos(int pos, const QString &text, const TextStyle &style, bool only_latin)
 {
     m_changed = true;
+    m_only_latin = m_only_latin && only_latin;
 
     m_text_line.insert(pos,text);
     bool found = false;
@@ -481,6 +485,7 @@ void Block::dispatchEvents()
             current_style.text_dirty = false;
         }
 
+        current_style.text_segment->setLatin(m_only_latin);
         current_style.text_segment->dispatchEvents();
     }
 

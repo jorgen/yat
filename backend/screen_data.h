@@ -62,8 +62,8 @@ public:
     void clearCharacters(const QPoint &pos, int to);
     void deleteCharacters(const QPoint &pos, int to);
 
-    CursorDiff replace(const QPoint &pos, const QString &text, const TextStyle &style);
-    CursorDiff insert(const QPoint &pos, const QString &text, const TextStyle &style);
+    CursorDiff replace(const QPoint &pos, const QString &text, const TextStyle &style, bool only_latin);
+    CursorDiff insert(const QPoint &pos, const QString &text, const TextStyle &style, bool only_latin);
 
     void moveLine(int from, int to);
     void insertLine(int insertAt, int topMargin);
@@ -90,7 +90,7 @@ signals:
     void contentHeightChanged();
 
 private:
-    CursorDiff modify(const QPoint &pos, const QString &text, const TextStyle &style, bool replace);
+    CursorDiff modify(const QPoint &pos, const QString &text, const TextStyle &style, bool replace, bool only_latin);
     void clearBlock(std::list<Block *>::iterator line);
     std::list<Block *>::iterator it_for_row_ensure_single_line_block(int row);
     std::list<Block *>::iterator split_out_row_from_block(std::list<Block *>::iterator block_it, int row_in_block);

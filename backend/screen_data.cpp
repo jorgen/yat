@@ -173,14 +173,14 @@ void ScreenData::deleteCharacters(const QPoint &point, int to)
     (*it)->deleteCharacters(chars_to_line + point.x(), chars_to_line + to);
 }
 
-CursorDiff ScreenData::replace(const QPoint &point, const QString &text, const TextStyle &style)
+CursorDiff ScreenData::replace(const QPoint &point, const QString &text, const TextStyle &style, bool only_latin)
 {
-    return modify(point,text,style,true);
+    return modify(point,text,style,true, only_latin);
 }
 
-CursorDiff ScreenData::insert(const QPoint &point, const QString &text, const TextStyle &style)
+CursorDiff ScreenData::insert(const QPoint &point, const QString &text, const TextStyle &style, bool only_latin)
 {
-    return modify(point,text,style,false);
+    return modify(point,text,style,false, only_latin);
 }
 
 
@@ -289,7 +289,7 @@ Scrollback *ScreenData::scrollback() const
     return m_scrollback;
 }
 
-CursorDiff ScreenData::modify(const QPoint &point, const QString &text, const TextStyle &style, bool replace)
+CursorDiff ScreenData::modify(const QPoint &point, const QString &text, const TextStyle &style, bool replace, bool only_latin)
 {
     auto it = it_for_row(point.y());
     Block *block = *it;
@@ -324,9 +324,9 @@ CursorDiff ScreenData::modify(const QPoint &point, const QString &text, const Te
         push_at_most_to_scrollback(m_height - m_screen_height);
 
     if (replace) {
-        block->replaceAtPos(start_char, text, style);
+        block->replaceAtPos(start_char, text, style, only_latin);
     } else {
-        block->insertAtPos(start_char, text, style);
+        block->insertAtPos(start_char, text, style, only_latin);
     }
     int end_char = (start_char + text.size()) % m_width;
     if (end_char == 0)
