@@ -1,22 +1,25 @@
-/**************************************************************************************************
+/*******************************************************************************
 * Copyright (c) 2012 Jørgen Lind
 *
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-* associated documentation files (the "Software"), to deal in the Software without restriction,
-* including without limitation the rights to use, copy, modify, merge, publish, distribute,
-* sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
 *
-* The above copyright notice and this permission notice shall be included in all copies or
-* substantial portions of the Software.
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
 *
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-* NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-* DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-* OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
 *
-***************************************************************************************************/
+*******************************************************************************/
 
 #include "parser.h"
 
@@ -141,6 +144,7 @@ Parser::Parser(Screen *screen)
     , m_dec_mode(false)
     , m_gt_param(false)
     , m_lnm_mode_set(false)
+    , m_contains_only_latin(true)
     , m_screen(screen)
 {
     for (uint i = 0; i < sizeof(m_graphic_codecs) / sizeof *m_graphic_codecs; i++) {
@@ -157,25 +161,23 @@ void Parser::addData(const QByteArray &data)
 
     for (m_current_position = 0; m_current_position < m_current_data.size(); m_current_position++) {
         uchar character = m_current_data.at(m_current_position);
+        if (character > 127)
+            m_utf8_decoder.addChar(character);
         switch (m_decode_state) {
         case PlainText:
-            //Not a controll char
-            if (character > 127)
-                continue;
-            if (character < C0::C0_END ||
-                    (character >= C1_8bit::C1_8bit_Start &&
-                     character <= C1_8bit::C1_8bit_Stop)) {
+            if (character < C0::C0_END || m_utf8_decoder.isC1()) {
                 if (m_current_position != m_current_token_start) {
                     const QByteArray to_insert = getByteArrayMidNoCopy(m_current_data, m_current_token_start, m_current_position - m_current_token_start);
                     if (yat_parser_debug)
                         qDebug() << "Parser Insert text:" << to_insert;
-                    m_screen->currentCursor()->addAtCursor(to_insert);
+                    m_screen->currentCursor()->addAtCursor(to_insert, m_contains_only_latin);
                     tokenFinished();
                     m_current_token_start--;
                 }
                 m_decode_state = DecodeC0;
                 decodeC0(m_current_data.at(m_current_position));
             }
+            m_contains_only_latin = m_contains_only_latin && m_utf8_decoder.isLatin();
             break;
         case DecodeC0:
             decodeC0(character);
@@ -203,7 +205,7 @@ void Parser::addData(const QByteArray &data)
         if (to_insert.size()) {
             if (yat_parser_debug)
                 qDebug() << "Parser Insert text:" << to_insert;
-            m_screen->currentCursor()->addAtCursor(to_insert);
+            m_screen->currentCursor()->addAtCursor(to_insert, m_contains_only_latin);
             tokenFinished();
         }
     }
@@ -1276,6 +1278,7 @@ void Parser::tokenFinished()
     m_parameters_expecting_more = false;
     m_dec_mode = false;
     m_gt_param = false;
+    m_contains_only_latin = true;
 }
 
 void Parser::appendParameter()

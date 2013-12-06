@@ -55,7 +55,7 @@ ObjectDestructItem {
         font.pointSize: textItem.font.pointSize
         font.bold: objectHandle.bold
         font.underline: objectHandle.underline
-        //textFormat: Text.PlainText
+        latin: objectHandle.latin
 
         SequentialAnimation {
             running: objectHandle.blinking

@@ -20,7 +20,8 @@ HEADERS += \
            $$PWD/screen_data.h \
            $$PWD/cursor.h \
            $$PWD/nrc_text_codec.h \
-           $$PWD/scrollback.h
+           $$PWD/scrollback.h \
+           $$PWD/utf8_decoder.h
 
 SOURCES += \
            $$PWD/yat_pty.cpp \

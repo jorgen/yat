@@ -73,6 +73,7 @@ private:
     QColor m_color;
     bool m_color_changed;
     bool m_latin;
+    bool m_old_latin;
     QSizeF m_text_size;
 };
 

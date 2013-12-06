@@ -26,11 +26,98 @@
 #include <QtQuick/private/qsgadaptationlayer_p.h>
 #include <QtQuick/private/qsgrenderer_p.h>
 #include <QtQuick/private/qquickitem_p.h>
+#include <QtQuick/private/qquicktextnode_p.h>
+#include <QtGui/QTextLayout>
+
+class MonoSGNode : public QSGNode
+{
+public:
+    MonoSGNode(QQuickItem *owner)
+        : m_owner(owner)
+    { }
+
+    void deleteContent()
+    {
+        while (firstChild() != 0)
+            delete firstChild();
+    }
+
+    void addLatin1Text(const QString &text, const QFont &font, const QColor &color) {
+        QRawFont raw_font = QRawFont::fromFont(font, QFontDatabase::Latin);
+
+        if (raw_font != m_raw_font) {
+            m_raw_font = raw_font;
+            m_positions.clear();
+        }
+
+        if (m_positions.size() < text.size()) {
+            qreal x_pos = 0;
+            qreal max_char_width = raw_font.averageCharWidth();
+            qreal ascent = raw_font.ascent();
+            if (m_positions.size())
+                x_pos = m_positions.last().x() + max_char_width;
+            int to_add = text.size() - m_positions.size();
+            for (int i = 0; i < to_add; i++) {
+                m_positions << QPointF(x_pos, ascent);
+                x_pos += max_char_width;
+            }
+        }
+        QSGRenderContext *sgr = QQuickItemPrivate::get(m_owner)->sceneGraphRenderContext();
+        QSGGlyphNode *node = sgr->sceneGraphContext()->createGlyphNode(sgr);
+        node->setOwnerElement(m_owner);
+        node->geometry()->setIndexDataPattern(QSGGeometry::StaticPattern);
+        node->geometry()->setVertexDataPattern(QSGGeometry::StaticPattern);
+        node->setStyle(QQuickText::Normal);
+        node->setStyleColor(color);
+        node->setColor(color);
+        QGlyphRun glyphrun;
+        glyphrun.setRawFont(raw_font);
+        glyphrun.setGlyphIndexes(raw_font.glyphIndexesForString(text));
+
+        glyphrun.setPositions(m_positions);
+        node->setGlyphs(QPointF(0, raw_font.ascent()), glyphrun);
+        node->update();
+        appendChildNode(node);
+    }
+
+    void addUnicodeText(const QString &text, const QFont &font, const QColor &color)
+    {
+        QRawFont raw_font = QRawFont::fromFont(font, QFontDatabase::Latin);
+        qreal line_width = raw_font.averageCharWidth() * text.size();
+        QSGRenderContext *sgr = QQuickItemPrivate::get(m_owner)->sceneGraphRenderContext();
+        QTextLayout layout(text,font);
+        layout.beginLayout();
+        QTextLine line = layout.createLine();
+        line.setLineWidth(line_width);
+        Q_ASSERT(!layout.createLine().isValid());
+        layout.endLayout();
+        QList<QGlyphRun> glyphRuns = line.glyphRuns();
+        qreal xpos = 0;
+        for (int i = 0; i < glyphRuns.size(); i++) {
+            QSGGlyphNode *node = sgr->sceneGraphContext()->createGlyphNode(sgr);
+            node->setOwnerElement(m_owner);
+            node->geometry()->setIndexDataPattern(QSGGeometry::StaticPattern);
+            node->geometry()->setVertexDataPattern(QSGGeometry::StaticPattern);
+            node->setGlyphs(QPointF(xpos, raw_font.ascent()), glyphRuns.at(i));
+            node->setStyle(QQuickText::Normal);
+            node->setStyleColor(color);
+            node->setColor(color);
+            //xpos += raw_font.averageCharWidth() * glyphRuns.at(i).positions().size();
+            node->update();
+            appendChildNode(node);
+        }
+    }
+private:
+    QQuickItem *m_owner;
+    QVector<QPointF> m_positions;
+    QRawFont m_raw_font;
+};
 
 MonoText::MonoText(QQuickItem *parent)
     : QQuickItem(parent)
     , m_color_changed(false)
     , m_latin(true)
+    , m_old_latin(true)
 {
     setFlag(ItemHasContents, true);
 }
@@ -101,45 +188,21 @@ void MonoText::setLatin(bool latin)
 
 QSGNode *MonoText::updatePaintNode(QSGNode *old, UpdatePaintNodeData *)
 {
-    QSGGlyphNode *node = static_cast<QSGGlyphNode *>(old);
+    MonoSGNode *node = static_cast<MonoSGNode *>(old);
     if (!node) {
-        QSGRenderContext *sg = QQuickItemPrivate::get(this)->sceneGraphRenderContext();
-        node = sg->sceneGraphContext()->createGlyphNode(sg);
-        node->setOwnerElement(this);
-        node->setStyle(QQuickText::Normal);
+        node = new MonoSGNode(this);
     }
+    node->deleteContent();
 
-    QGlyphRun glyphrun;
-    if (!m_raw_font.isValid())
-        m_raw_font = QRawFont::fromFont(m_font, QFontDatabase::Latin);
+    QRawFont raw_font = QRawFont::fromFont(m_font, QFontDatabase::Latin);
 
-    glyphrun.setRawFont(m_raw_font);
-    glyphrun.setGlyphIndexes(m_raw_font.glyphIndexesForString(m_text));
-
-    QVector<QPointF> positions;
-    positions.reserve(m_text.size());
-
-    qreal x_pos = 0;
-    qreal max_char_width = m_raw_font.averageCharWidth();
-    qreal height = m_raw_font.xHeight();
-    qreal ascent = m_raw_font.ascent();
-    setImplicitHeight(height);
-    setImplicitWidth(max_char_width * qreal(m_text.size()));
-    for (int i = 0; i < m_text.size(); i++) {
-        positions << QPointF(x_pos, height + ascent);
-        x_pos += max_char_width;
+    setImplicitHeight(raw_font.xHeight());
+    setImplicitWidth(raw_font.averageCharWidth() * qreal(m_text.size()));
+    if (m_latin) {
+        node->addLatin1Text(m_text, m_font, m_color);
+    } else {
+        node->addUnicodeText(m_text, m_font, m_color);
     }
-    glyphrun.setPositions(positions);
-
-    node->setGlyphs(QPointF(0,height), glyphrun);
-
-    if (m_color_changed) {
-        node->setColor(m_color);
-        node->setStyleColor(m_color);
-        m_color_changed = false;
-    }
-
-    node->update();
 
     return node;
 }
