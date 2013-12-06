@@ -89,7 +89,7 @@ public:
         layout.beginLayout();
         QTextLine line = layout.createLine();
         line.setLineWidth(line_width);
-        Q_ASSERT(!layout.createLine().isValid());
+        //Q_ASSERT(!layout.createLine().isValid());
         layout.endLayout();
         QList<QGlyphRun> glyphRuns = line.glyphRuns();
         qreal xpos = 0;
