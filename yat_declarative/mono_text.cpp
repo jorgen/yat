@@ -29,11 +29,12 @@
 #include <QtQuick/private/qquicktextnode_p.h>
 #include <QtGui/QTextLayout>
 
-class MonoSGNode : public QSGNode
+class MonoSGNode : public QSGTransformNode
 {
 public:
     MonoSGNode(QQuickItem *owner)
         : m_owner(owner)
+        , m_latin_node(0)
     { }
 
     void deleteContent()
@@ -42,7 +43,7 @@ public:
             delete firstChild();
     }
 
-    void addLatin1Text(const QString &text, const QFont &font, const QColor &color) {
+    void setLatin1Text(const QString &text, const QFont &font, const QColor &color) {
         QRawFont raw_font = QRawFont::fromFont(font, QFontDatabase::Latin);
 
         if (raw_font != m_raw_font) {
@@ -62,26 +63,38 @@ public:
                 x_pos += max_char_width;
             }
         }
-        QSGRenderContext *sgr = QQuickItemPrivate::get(m_owner)->sceneGraphRenderContext();
-        QSGGlyphNode *node = sgr->sceneGraphContext()->createGlyphNode(sgr);
-        node->setOwnerElement(m_owner);
-        node->geometry()->setIndexDataPattern(QSGGeometry::StaticPattern);
-        node->geometry()->setVertexDataPattern(QSGGeometry::StaticPattern);
-        node->setStyle(QQuickText::Normal);
-        node->setStyleColor(color);
-        node->setColor(color);
+
+        bool created_node = !m_latin_node;
+        if (!m_latin_node) {
+            deleteContent();
+            QSGRenderContext *sgr = QQuickItemPrivate::get(m_owner)->sceneGraphRenderContext();
+            m_latin_node = sgr->sceneGraphContext()->createGlyphNode(sgr);
+            m_latin_node->setOwnerElement(m_owner);
+            m_latin_node->geometry()->setIndexDataPattern(QSGGeometry::StaticPattern);
+            m_latin_node->geometry()->setVertexDataPattern(QSGGeometry::StaticPattern);
+            m_latin_node->setStyle(QQuickText::Normal);
+        }
+
+        m_latin_node->setColor(color);
         QGlyphRun glyphrun;
         glyphrun.setRawFont(raw_font);
         glyphrun.setGlyphIndexes(raw_font.glyphIndexesForString(text));
 
         glyphrun.setPositions(m_positions);
-        node->setGlyphs(QPointF(0, raw_font.ascent()), glyphrun);
-        node->update();
-        appendChildNode(node);
+        m_latin_node->setGlyphs(QPointF(0, raw_font.ascent()), glyphrun);
+        m_latin_node->update();
+        if (created_node)
+            appendChildNode(m_latin_node);
     }
 
-    void addUnicodeText(const QString &text, const QFont &font, const QColor &color)
+    void setUnicodeText(const QString &text, const QFont &font, const QColor &color)
     {
+        if (m_latin_node) {
+            delete m_latin_node;
+            m_latin_node = 0;
+        } else {
+            deleteContent();
+        }
         QRawFont raw_font = QRawFont::fromFont(font, QFontDatabase::Latin);
         qreal line_width = raw_font.averageCharWidth() * text.size();
         QSGRenderContext *sgr = QQuickItemPrivate::get(m_owner)->sceneGraphRenderContext();
@@ -100,9 +113,8 @@ public:
             node->geometry()->setVertexDataPattern(QSGGeometry::StaticPattern);
             node->setGlyphs(QPointF(xpos, raw_font.ascent()), glyphRuns.at(i));
             node->setStyle(QQuickText::Normal);
-            node->setStyleColor(color);
             node->setColor(color);
-            //xpos += raw_font.averageCharWidth() * glyphRuns.at(i).positions().size();
+            xpos += raw_font.averageCharWidth() * glyphRuns.at(i).positions().size();
             node->update();
             appendChildNode(node);
         }
@@ -111,6 +123,7 @@ private:
     QQuickItem *m_owner;
     QVector<QPointF> m_positions;
     QRawFont m_raw_font;
+    QSGGlyphNode *m_latin_node;
 };
 
 MonoText::MonoText(QQuickItem *parent)
@@ -118,6 +131,7 @@ MonoText::MonoText(QQuickItem *parent)
     , m_color_changed(false)
     , m_latin(true)
     , m_old_latin(true)
+    , m_dirty(true)
 {
     setFlag(ItemHasContents, true);
 }
@@ -134,8 +148,13 @@ QString MonoText::text() const
 
 void MonoText::setText(const QString &text)
 {
-    m_text = text;
-    update();
+    if (m_text != text) {
+        m_dirty = true;
+        m_text = text;
+        emit textChanged();
+        updateSize();
+        update();
+    }
 }
 
 QFont MonoText::font() const
@@ -145,9 +164,13 @@ QFont MonoText::font() const
 
 void MonoText::setFont(const QFont &font)
 {
-    m_font = font;
-    m_raw_font = QRawFont();
-    update();
+    if (font != m_font) {
+        m_dirty = true;
+        m_font = font;
+        emit fontChanged();
+        updateSize();
+        update();
+    }
 }
 
 QColor MonoText::color() const
@@ -157,19 +180,22 @@ QColor MonoText::color() const
 
 void MonoText::setColor(const QColor &color)
 {
-    m_color = color;
-    m_color_changed = true;
-    update();
+    if (m_color != color) {
+        m_dirty = true;
+        m_color = color;
+        emit colorChanged();
+        update();
+    }
 }
 
 qreal MonoText::textWidth() const
 {
-    return m_text_size.width();
+    return implicitWidth();
 }
 
 qreal MonoText::textHeight() const
 {
-    return m_text_size.height();
+    return implicitHeight();
 }
 
 bool MonoText::latin() const
@@ -192,18 +218,37 @@ QSGNode *MonoText::updatePaintNode(QSGNode *old, UpdatePaintNodeData *)
     if (!node) {
         node = new MonoSGNode(this);
     }
-    node->deleteContent();
 
-    QRawFont raw_font = QRawFont::fromFont(m_font, QFontDatabase::Latin);
-
-    setImplicitHeight(raw_font.xHeight());
-    setImplicitWidth(raw_font.averageCharWidth() * qreal(m_text.size()));
     if (m_latin) {
-        node->addLatin1Text(m_text, m_font, m_color);
+        node->setLatin1Text(m_text, m_font, m_color);
     } else {
-        node->addUnicodeText(m_text, m_font, m_color);
+        node->setUnicodeText(m_text, m_font, m_color);
     }
 
     return node;
 }
 
+void MonoText::updatePolish()
+{
+    updateSize();
+}
+
+void MonoText::updateSize()
+{
+    if (m_dirty) {
+        m_dirty = false;
+        QRawFont raw_font = QRawFont::fromFont(m_font, QFontDatabase::Latin);
+
+        qreal height = raw_font.descent() + raw_font.ascent() + raw_font.lineThickness();
+        qreal width = raw_font.averageCharWidth() * m_text.size();
+
+        bool emit_text_width_changed = width != implicitWidth();
+        bool emit_text_height_changed = height != implicitHeight();
+        setImplicitSize(width, height);
+
+        if (emit_text_width_changed)
+            emit textWidthChanged();
+        if (emit_text_height_changed)
+            emit textHeightChanged();
+    }
+}

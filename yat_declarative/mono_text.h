@@ -63,17 +63,19 @@ signals:
     void textHeightChanged();
     void latinChanged();
 protected:
-    QSGNode *updatePaintNode(QSGNode *old, UpdatePaintNodeData *data);
+    QSGNode *updatePaintNode(QSGNode *old, UpdatePaintNodeData *data) Q_DECL_OVERRIDE;
+    void updatePolish() Q_DECL_OVERRIDE;
 private:
     Q_DISABLE_COPY(MonoText);
+    void updateSize();
 
     QString m_text;
     QFont m_font;
-    QRawFont m_raw_font;
     QColor m_color;
     bool m_color_changed;
     bool m_latin;
     bool m_old_latin;
+    bool m_dirty;
     QSizeF m_text_size;
 };
 

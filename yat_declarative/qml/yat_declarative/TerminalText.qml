@@ -34,48 +34,48 @@ ObjectDestructItem {
     y: objectHandle.line * fontHeight;
     x: objectHandle.index * fontWidth;
 
-    width: textElement.paintedWidth
-    height: textElement.paintedHeight
+    width: textElement.textWidth
+    height: textElement.textHeight
 
     visible: objectHandle.visible
 
     Rectangle {
         anchors.fill: parent
-        color: textItem.objectHandle.backgroundColor
-    }
+        color: objectHandle.backgroundColor
 
+        MonoText {
+            id: textElement
+            anchors.fill: parent
+            text: objectHandle.text
+            color: objectHandle.foregroundColor
+            font.family: textItem.font.family
+            font.pixelSize: textItem.font.pixelSize
+            font.pointSize: textItem.font.pointSize
+            font.bold: objectHandle.bold
+            font.underline: objectHandle.underline
+            latin: objectHandle.latin
 
-    MonoText {
-        id: textElement
-        anchors.fill: parent
-        text: objectHandle.text
-        color: objectHandle.foregroundColor
-        font.family: textItem.font.family
-        font.pixelSize: textItem.font.pixelSize
-        font.pointSize: textItem.font.pointSize
-        font.bold: objectHandle.bold
-        font.underline: objectHandle.underline
-        latin: objectHandle.latin
-
-        SequentialAnimation {
-            running: objectHandle.blinking
-            loops: Animation.Infinite
-            onRunningChanged: {
-                if (running === false)
-                    textElement.opacity = 1
-            }
-            NumberAnimation {
-                target: textElement
-                property: "opacity"
-                to: 0
-                duration: 250
-            }
-            NumberAnimation {
-                target: textElement
-                property: "opacity"
-                to: 1
-                duration: 250
+            SequentialAnimation {
+                running: objectHandle.blinking
+                loops: Animation.Infinite
+                onRunningChanged: {
+                    if (running === false)
+                        textElement.opacity = 1
+                }
+                NumberAnimation {
+                    target: textElement
+                    property: "opacity"
+                    to: 0
+                    duration: 250
+                }
+                NumberAnimation {
+                    target: textElement
+                    property: "opacity"
+                    to: 1
+                    duration: 250
+                }
             }
         }
     }
+
 }
