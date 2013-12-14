@@ -185,12 +185,12 @@ void MonoText::setColor(const QColor &color)
     }
 }
 
-qreal MonoText::textWidth() const
+qreal MonoText::paintedWidth() const
 {
     return implicitWidth();
 }
 
-qreal MonoText::textHeight() const
+qreal MonoText::paintedHeight() const
 {
     return implicitHeight();
 }
@@ -241,9 +241,9 @@ void MonoText::updatePolish()
         setImplicitSize(width, height);
 
         if (emit_text_width_changed)
-            emit textWidthChanged();
+            emit paintedWidthChanged();
         if (emit_text_height_changed)
-            emit textHeightChanged();
-        if (emit_text_width_changed || emit_text_height_changed)
-            update();
+            emit paintedHeightChanged();
+
+        update();
 }

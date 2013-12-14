@@ -34,8 +34,8 @@ ObjectDestructItem {
     y: objectHandle.line * fontHeight;
     x: objectHandle.index * fontWidth;
 
-    width: textElement.textWidth
-    height: textElement.textHeight
+    width: textElement.paintedWidth
+    height: textElement.paintedHeight
 
     visible: objectHandle.visible
 

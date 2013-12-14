@@ -33,8 +33,8 @@ class MonoText : public QQuickItem
     Q_PROPERTY(QString text READ text WRITE setText NOTIFY textChanged)
     Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
     Q_PROPERTY(QColor color READ color WRITE setColor NOTIFY colorChanged)
-    Q_PROPERTY(qreal textWidth READ textWidth NOTIFY textWidthChanged)
-    Q_PROPERTY(qreal textHeight READ textHeight NOTIFY textHeightChanged)
+    Q_PROPERTY(qreal paintedWidth READ paintedWidth NOTIFY paintedWidthChanged)
+    Q_PROPERTY(qreal paintedHeight READ paintedHeight NOTIFY paintedHeightChanged)
     Q_PROPERTY(bool latin READ latin WRITE setLatin NOTIFY latinChanged);
 public:
     MonoText(QQuickItem *parent=0);
@@ -49,8 +49,8 @@ public:
     QColor color() const;
     void setColor(const QColor &color);
 
-    qreal textWidth() const;
-    qreal textHeight() const;
+    qreal paintedWidth() const;
+    qreal paintedHeight() const;
 
     bool latin() const;
     void setLatin(bool latin);
@@ -59,8 +59,8 @@ signals:
     void textChanged();
     void fontChanged();
     void colorChanged();
-    void textWidthChanged();
-    void textHeightChanged();
+    void paintedWidthChanged();
+    void paintedHeightChanged();
     void latinChanged();
 protected:
     QSGNode *updatePaintNode(QSGNode *old, UpdatePaintNodeData *data) Q_DECL_OVERRIDE;
