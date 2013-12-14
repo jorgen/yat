@@ -34,16 +34,28 @@ class MonoSGNode : public QSGTransformNode
 public:
     MonoSGNode(QQuickItem *owner)
         : m_owner(owner)
-        , m_latin_node(0)
-    { }
+    {
+    }
 
     void deleteContent()
     {
-        while (firstChild() != 0)
-            delete firstChild();
+        QSGNode *subnode = firstChild();
+        while (subnode) {
+            // We can't delete the node now as it might be in the preprocess list
+            // It will be deleted in the next preprocess
+            m_nodes_to_delete.append(subnode);
+            subnode = subnode->nextSibling();
+        }
+        removeAllChildNodes();
     }
 
-    void setLatin1Text(const QString &text, const QFont &font, const QColor &color) {
+    void preprocess()
+    {
+        while (m_nodes_to_delete.count())
+            delete m_nodes_to_delete.takeLast();
+    }
+
+    void setLatinText(const QString &text, const QFont &font, const QColor &color) {
         QRawFont raw_font = QRawFont::fromFont(font, QFontDatabase::Latin);
 
         if (raw_font != m_raw_font) {
@@ -64,37 +76,28 @@ public:
             }
         }
 
-        bool created_node = !m_latin_node;
-        if (!m_latin_node) {
-            deleteContent();
-            QSGRenderContext *sgr = QQuickItemPrivate::get(m_owner)->sceneGraphRenderContext();
-            m_latin_node = sgr->sceneGraphContext()->createGlyphNode(sgr);
-            m_latin_node->setOwnerElement(m_owner);
-            m_latin_node->geometry()->setIndexDataPattern(QSGGeometry::StaticPattern);
-            m_latin_node->geometry()->setVertexDataPattern(QSGGeometry::StaticPattern);
-            m_latin_node->setStyle(QQuickText::Normal);
-        }
+        deleteContent();
+        QSGRenderContext *sgr = QQuickItemPrivate::get(m_owner)->sceneGraphRenderContext();
+        QSGGlyphNode *node = sgr->sceneGraphContext()->createGlyphNode(sgr);
+        node->setOwnerElement(m_owner);
+        node->geometry()->setIndexDataPattern(QSGGeometry::StaticPattern);
+        node->geometry()->setVertexDataPattern(QSGGeometry::StaticPattern);
+        node->setStyle(QQuickText::Normal);
 
-        m_latin_node->setColor(color);
+        node->setColor(color);
         QGlyphRun glyphrun;
         glyphrun.setRawFont(raw_font);
         glyphrun.setGlyphIndexes(raw_font.glyphIndexesForString(text));
 
         glyphrun.setPositions(m_positions);
-        m_latin_node->setGlyphs(QPointF(0, raw_font.ascent()), glyphrun);
-        m_latin_node->update();
-        if (created_node)
-            appendChildNode(m_latin_node);
+        node->setGlyphs(QPointF(0, raw_font.ascent()), glyphrun);
+        node->update();
+        appendChildNode(node);
     }
 
     void setUnicodeText(const QString &text, const QFont &font, const QColor &color)
     {
-        if (m_latin_node) {
-            delete m_latin_node;
-            m_latin_node = 0;
-        } else {
-            deleteContent();
-        }
+        deleteContent();
         QRawFont raw_font = QRawFont::fromFont(font, QFontDatabase::Latin);
         qreal line_width = raw_font.averageCharWidth() * text.size();
         QSGRenderContext *sgr = QQuickItemPrivate::get(m_owner)->sceneGraphRenderContext();
@@ -122,8 +125,8 @@ public:
 private:
     QQuickItem *m_owner;
     QVector<QPointF> m_positions;
+    QLinkedList<QSGNode *> m_nodes_to_delete;
     QRawFont m_raw_font;
-    QSGGlyphNode *m_latin_node;
 };
 
 MonoText::MonoText(QQuickItem *parent)
@@ -131,7 +134,6 @@ MonoText::MonoText(QQuickItem *parent)
     , m_color_changed(false)
     , m_latin(true)
     , m_old_latin(true)
-    , m_dirty(true)
 {
     setFlag(ItemHasContents, true);
 }
@@ -149,11 +151,9 @@ QString MonoText::text() const
 void MonoText::setText(const QString &text)
 {
     if (m_text != text) {
-        m_dirty = true;
         m_text = text;
         emit textChanged();
-        updateSize();
-        update();
+        polish();
     }
 }
 
@@ -165,11 +165,9 @@ QFont MonoText::font() const
 void MonoText::setFont(const QFont &font)
 {
     if (font != m_font) {
-        m_dirty = true;
         m_font = font;
         emit fontChanged();
-        updateSize();
-        update();
+        polish();
     }
 }
 
@@ -181,7 +179,6 @@ QColor MonoText::color() const
 void MonoText::setColor(const QColor &color)
 {
     if (m_color != color) {
-        m_dirty = true;
         m_color = color;
         emit colorChanged();
         update();
@@ -214,13 +211,17 @@ void MonoText::setLatin(bool latin)
 
 QSGNode *MonoText::updatePaintNode(QSGNode *old, UpdatePaintNodeData *)
 {
+    if (m_text.size() == 0 || m_text.trimmed().size() == 0) {
+        delete old;
+        return 0;
+    }
     MonoSGNode *node = static_cast<MonoSGNode *>(old);
     if (!node) {
         node = new MonoSGNode(this);
     }
 
     if (m_latin) {
-        node->setLatin1Text(m_text, m_font, m_color);
+        node->setLatinText(m_text, m_font, m_color);
     } else {
         node->setUnicodeText(m_text, m_font, m_color);
     }
@@ -230,13 +231,6 @@ QSGNode *MonoText::updatePaintNode(QSGNode *old, UpdatePaintNodeData *)
 
 void MonoText::updatePolish()
 {
-    updateSize();
-}
-
-void MonoText::updateSize()
-{
-    if (m_dirty) {
-        m_dirty = false;
         QRawFont raw_font = QRawFont::fromFont(m_font, QFontDatabase::Latin);
 
         qreal height = raw_font.descent() + raw_font.ascent() + raw_font.lineThickness();
@@ -250,5 +244,6 @@ void MonoText::updateSize()
             emit textWidthChanged();
         if (emit_text_height_changed)
             emit textHeightChanged();
-    }
+        if (emit_text_width_changed || emit_text_height_changed)
+            update();
 }

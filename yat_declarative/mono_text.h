@@ -75,7 +75,6 @@ private:
     bool m_color_changed;
     bool m_latin;
     bool m_old_latin;
-    bool m_dirty;
     QSizeF m_text_size;
 };
 
