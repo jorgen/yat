@@ -28,15 +28,19 @@ Item {
 
     property real characterWidth: 0
     property real characterHeight: 0
-    property int screenWidth: width / characterWidth
+    property int screenWidth: 0
 
-    property point start
-    property point end
+    property int startX
+    property int startY
+
+    property int endX
+    property int endY
 
     property color color: "grey"
 
+    y: startY * characterHeight
     width: parent.width
-    height: parent.height
+    height: (endY - startY + 1) * characterHeight
 
     opacity: 0.8
 
@@ -71,27 +75,29 @@ Item {
     onCharacterHeightChanged: calculateRectangles();
     onScreenWidthChanged: calculateRectangles();
 
-    onStartChanged: calculateRectangles();
-    onEndChanged: calculateRectangles();
+    onStartXChanged: calculateRectangles();
+    onStartYChanged: calculateRectangles();
+    onEndXChanged: calculateRectangles();
+    onEndYChanged: calculateRectangles();
 
     function calculateRectangles() {
-        highlightArea.y = start.y * characterHeight;
-        begginning_rectangle.x = start.x * characterWidth;
-        if (start.y === end.y) {
+        highlightArea.y = startY * characterHeight;
+        begginning_rectangle.x = startX * characterWidth;
+        if (startY === endY) {
             middle_rectangle.visible = false;
             end_rectangle.visible = false
-            begginning_rectangle.width = (end.x - start.x) * characterWidth;
+            begginning_rectangle.width = (endX - startX) * characterWidth;
         } else {
-            begginning_rectangle.width = (screenWidth - start.x) * characterWidth;
-            if (start.y === end.y - 1) {
+            begginning_rectangle.width = (screenWidth - startX) * characterWidth;
+            if (startY === endY - 1) {
                 middle_rectangle.height = 0;
                 middle_rectangle.visible = false;
             }else {
                 middle_rectangle.visible = true;
-                middle_rectangle.height = (end.y - start.y - 1) * characterHeight;
+                middle_rectangle.height = (endY - startY - 1) * characterHeight;
             }
             end_rectangle.visible = true;
-            end_rectangle.width = end.x * characterWidth;
+            end_rectangle.width = endX * characterWidth;
         }
     }
 

@@ -28,6 +28,7 @@
 #include "cursor.h"
 #include "text.h"
 #include "scrollback.h"
+#include "selection.h"
 
 #include "controll_chars.h"
 #include "character_sets.h"
@@ -51,8 +52,7 @@ Screen::Screen(QObject *parent)
     , m_alternate_data(new ScreenData(0, this))
     , m_current_data(m_primary_data)
     , m_old_current_data(m_primary_data)
-    , m_selection_valid(false)
-    , m_selection_moved(0)
+    , m_selection(new Selection(this))
     , m_flash(false)
     , m_cursor_changed(false)
     , m_application_cursor_key_mode(false)
@@ -229,65 +229,9 @@ bool Screen::fastScroll() const
     return m_fast_scroll;
 }
 
-QPointF Screen::selectionAreaStart() const
+Selection *Screen::selection() const
 {
-    return m_selection_start;
-}
-
-void Screen::setSelectionAreaStart(const QPointF &start)
-{
-    bool emitChanged = m_selection_start != start;
-    m_selection_start = start;
-    setSelectionValidity();
-    if (emitChanged)
-        emit selectionAreaStartChanged();
-}
-
-QPointF Screen::selectionAreaEnd() const
-{
-    return m_selection_end;
-}
-
-void Screen::setSelectionAreaEnd(const QPointF &end)
-{
-    bool emitChanged = m_selection_end != end;
-    m_selection_end = end;
-    setSelectionValidity();
-    if (emitChanged)
-        emit selectionAreaEndChanged();
-}
-
-bool Screen::selectionEnabled() const
-{
-    return m_selection_valid;
-}
-
-void Screen::setSelectionEnabled(bool enabled)
-{
-    bool emitchanged = m_selection_valid != enabled;
-    m_selection_valid = enabled;
-    if (emitchanged)
-        emit selectionEnabledChanged();
-}
-
-void Screen::sendSelectionToClipboard() const
-{
-    //currentScreenData()->sendSelectionToClipboard(m_selection_start, m_selection_end, QClipboard::Clipboard);
-}
-
-void Screen::sendSelectionToSelection() const
-{
-    //currentScreenData()->sendSelectionToClipboard(m_selection_start, m_selection_end, QClipboard::Selection);
-}
-
-void Screen::pasteFromSelection()
-{
-    m_pty.write(QGuiApplication::clipboard()->text(QClipboard::Selection).toUtf8());
-}
-
-void Screen::pasteFromClipboard()
-{
-    m_pty.write(QGuiApplication::clipboard()->text(QClipboard::Clipboard).toUtf8());
+    return m_selection;
 }
 
 void Screen::doubleClicked(const QPointF &clicked)
@@ -367,16 +311,6 @@ void Screen::dispatchChanges()
 
     for (int i = 0; i < m_cursor_stack.size(); i++) {
         m_cursor_stack[i]->dispatchEvents();
-    }
-
-    if (m_selection_valid && m_selection_moved) {
-        if (m_selection_start.y() < 0 ||
-                m_selection_end.y() >= height()) {
-            setSelectionEnabled(false);
-        } else {
-            emit selectionAreaStartChanged();
-            emit selectionAreaEndChanged();
-        }
     }
 }
 
@@ -666,16 +600,6 @@ void Screen::paletteChanged()
     }
 }
 
-void Screen::setSelectionValidity()
-{
-    if (m_selection_end.y() > m_selection_start.y() ||
-            (m_selection_end.y() == m_selection_start.y() &&
-             m_selection_end.x() > m_selection_start.x())) {
-        setSelectionEnabled(true);
-    } else {
-        setSelectionEnabled(false);
-    }
-}
 
 
 void Screen::timerEvent(QTimerEvent *)

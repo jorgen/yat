@@ -49,8 +49,15 @@ public:
     void replaceAtPos(int i, const QString &text, const TextStyle &style, bool only_latin = true);
     void insertAtPos(int i, const QString &text, const TextStyle &style, bool only_latin = true);
 
-    void setIndex(int index);
-    int index() const { return m_new_line; }
+    void setScreenIndex(int index) { m_screen_index = index; }
+    int screenIndex() const { return m_screen_index; }
+    size_t line() { return m_new_line; }
+    void setLine(size_t line) {
+        if (line != m_new_line) {
+            m_changed = true;
+            m_new_line = line;
+        }
+    }
 
     QString *textLine();
     int textSize() { return m_text_line.size(); }
@@ -88,8 +95,10 @@ private:
     Screen *m_screen;
     QString m_text_line;
     QVector<TextStyleLine> m_style_list;
-    int m_line;
-    int m_new_line;
+    size_t m_line;
+    size_t m_new_line;
+    int m_screen_index;
+
     int m_width;
 
     bool m_visible;

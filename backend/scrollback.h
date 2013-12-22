@@ -28,6 +28,7 @@
 #include <list>
 
 #include <QtCore/qglobal.h>
+#include <QtCore/QPoint>
 class ScreenData;
 class Block;
 
@@ -51,6 +52,8 @@ public:
     void setWidth(int width);
 
     size_t blockCount() { return m_block_count; }
+
+    QString selection(const QPoint &start, const QPoint &end) const;
 private:
     void ensurePageVisible(Page &page, int new_height);
     void ensurePageNotVisible(Page &page);
