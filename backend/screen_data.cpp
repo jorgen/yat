@@ -320,12 +320,13 @@ void ScreenData::sendSelectionToClipboard(const QPoint &start, const QPoint &end
         end_in_screen.ry() -= m_scrollback->height();
 
         auto it = it_for_row(start_in_screen.y());
+        size_t screen_index = (*it)->screenIndex();
         int start_pos = (start_in_screen.y() - (*it)->screenIndex()) * m_width + start.x();
         for (; it != m_screen_blocks.end(); ++it, start_pos = 0) {
             int end_pos = (*it)->textSize();
             bool should_break = false;
-            if (size_t((*it)->screenIndex() + (*it)->lineCount()) - 1 >= size_t(end_in_screen.y())) {
-                end_pos = (end_in_screen.y() - (*it)->screenIndex()) * m_width + end_in_screen.x();
+            if (size_t(screen_index + (*it)->lineCount()) > size_t(end_in_screen.y())) {
+                end_pos = (end_in_screen.y() - screen_index) * m_width + end_in_screen.x();
                 should_break = true;
             }
             if (to_clip_board_buffer.size())
@@ -333,6 +334,7 @@ void ScreenData::sendSelectionToClipboard(const QPoint &start, const QPoint &end
             to_clip_board_buffer += (*it)->textLine()->mid(start_pos, end_pos - start_pos);
             if (should_break)
                 break;
+            screen_index += (*it)->lineCount();
         }
     }
     QGuiApplication::clipboard()->setText(to_clip_board_buffer, mode);

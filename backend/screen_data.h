@@ -84,6 +84,7 @@ public:
 
     void sendSelectionToClipboard(const QPoint &start, const QPoint &end, QClipboard::Mode mode);
 
+    inline std::list<Block *>::iterator it_for_row(int row);
 public slots:
     void setHeight(int height, int currentCursorLine, int currentContentHeight);
     void setWidth(int width);
@@ -94,7 +95,6 @@ signals:
 private:
     CursorDiff modify(const QPoint &pos, const QString &text, const TextStyle &style, bool replace, bool only_latin);
     void clearBlock(std::list<Block *>::iterator line);
-    inline std::list<Block *>::iterator it_for_row(int row);
     std::list<Block *>::iterator it_for_row_ensure_single_line_block(int row);
     std::list<Block *>::iterator split_out_row_from_block(std::list<Block *>::iterator block_it, int row_in_block);
     void push_at_most_to_scrollback(int lines);
