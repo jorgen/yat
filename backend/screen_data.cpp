@@ -202,6 +202,8 @@ void ScreenData::insertLine(int row, int topMargin)
 {
     auto row_it = it_for_row(row + 1);
 
+    const size_t old_content_height = contentHeight();
+
     if (!topMargin && m_height >= m_screen_height) {
         push_at_most_to_scrollback(1);
     } else {
@@ -220,6 +222,8 @@ void ScreenData::insertLine(int row, int topMargin)
     m_screen_blocks.insert(row_it,block_to_insert);
     m_height++;
     m_block_count++;
+
+    emit contentModified(m_scrollback->height() + row + 1, 1, content_height_diff(old_content_height));
 }
 
 
@@ -242,6 +246,7 @@ void ScreenData::dispatchLineEvents()
     for (auto it = m_screen_blocks.begin(); it != m_screen_blocks.end(); ++it) {
         int line = scrollback_height + i;
         (*it)->setLine(line);
+        //(*it)->setScreenIndex(i);
         (*it)->dispatchEvents();
         i+= (*it)->lineCount();
     }
@@ -348,6 +353,7 @@ CursorDiff ScreenData::modify(const QPoint &point, const QString &text, const Te
     const size_t lines_before = block->lineCount();
     const int lines_changed =
         block->lineCountAfterModified(start_char, text.size(), replace)  - lines_before;
+    const size_t old_content_height = contentHeight();
     m_height += lines_changed;
     if (lines_changed > 0) {
         int removed = 0;
@@ -382,6 +388,8 @@ CursorDiff ScreenData::modify(const QPoint &point, const QString &text, const Te
     int end_char = (start_char + text.size()) % m_width;
     if (end_char == 0)
         end_char = m_width -1;
+
+    emit contentModified(m_scrollback->height() + point.y(), lines_changed, content_height_diff(old_content_height));
     return { lines_changed, end_char - point.x()};
 }
 
@@ -508,4 +516,11 @@ void ScreenData::ensure_at_least_height(int height)
         m_height += to_insert;
         m_block_count += to_insert;
     }
+}
+
+int ScreenData::content_height_diff(size_t old_content_height)
+{
+    const size_t content_height = contentHeight();
+    return old_content_height < content_height ? content_height - old_content_height :
+        - int(old_content_height - content_height);
 }

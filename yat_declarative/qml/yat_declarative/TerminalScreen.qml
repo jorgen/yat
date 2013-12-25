@@ -103,7 +103,6 @@ TerminalScreen {
                 endY: screen.selection.endY
 
                 visible: screen.selection.enable
-                onStartYChanged: console.log("startY changed: " + startY)
             }
         }
 

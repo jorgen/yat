@@ -91,6 +91,7 @@ public slots:
 
 signals:
     void contentHeightChanged();
+    void contentModified(size_t lineModified, int lineDiff, int contentDiff);
 
 private:
     CursorDiff modify(const QPoint &pos, const QString &text, const TextStyle &style, bool replace, bool only_latin);
@@ -101,6 +102,7 @@ private:
     void reclaim_at_least(int lines);
     void remove_lines_from_end(int lines);
     void ensure_at_least_height(int height);
+    int content_height_diff(size_t old_content_height);
     Screen *m_screen;
     Scrollback *m_scrollback;
     int m_screen_height;

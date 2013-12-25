@@ -31,21 +31,26 @@
 Selection::Selection(Screen *screen)
     : QObject(screen)
     , m_screen(screen)
+    , m_new_start_x(0)
     , m_start_x(0)
+    , m_new_start_y(0)
     , m_start_y(0)
+    , m_new_end_x(0)
     , m_end_x(0)
+    , m_new_end_y(0)
     , m_end_y(0)
-    , m_enable(false)
+    , m_new_enable(false)
 {
+    connect(screen, &Screen::contentModified, this, &Selection::screenContentModified);
 
 }
 
 void Selection::setStartX(int x)
 {
-    if (x != m_start_x) {
-        m_start_x = x;
+    if (x != m_new_start_x) {
+        m_new_start_x = x;
         setValidity();
-        emit startXChanged();
+        m_screen->scheduleEventDispatch();
     }
 }
 
@@ -56,10 +61,10 @@ int Selection::startX() const
 
 void Selection::setStartY(int y)
 {
-    if (y != m_start_y) {
-        m_start_y = y;
+    if (y != m_new_start_y) {
+        m_new_start_y = y;
         setValidity();
-        emit startYChanged();
+        m_screen->scheduleEventDispatch();
     }
 }
 
@@ -70,10 +75,10 @@ int Selection::startY() const
 
 void Selection::setEndX(int x)
 {
-    if (m_end_x != x) {
-        m_end_x = x;
+    if (m_new_end_x != x) {
+        m_new_end_x = x;
         setValidity();
-        emit endXChanged();
+        m_screen->scheduleEventDispatch();
     }
 }
 
@@ -84,10 +89,10 @@ int Selection::endX() const
 
 void Selection::setEndY(int y)
 {
-    if (m_end_y != y) {
-        m_end_y = y;
+    if (m_new_end_y != y) {
+        m_new_end_y = y;
         setValidity();
-        emit endYChanged();
+        m_screen->scheduleEventDispatch();
     }
 }
 
@@ -98,17 +103,42 @@ int Selection::endY() const
 
 void Selection::setEnable(bool enable)
 {
-    if (m_enable != enable) {
-        m_enable = enable;
-        emit enableChanged();
+    if (m_new_enable != enable) {
+        m_new_enable = enable;
+        m_screen->scheduleEventDispatch();
+    }
+}
+
+void Selection::screenContentModified(size_t lineModified, int lineDiff, int contentDiff)
+{
+    Q_UNUSED(lineDiff);
+    if (!m_new_enable)
+        return;
+
+    if (lineModified >= size_t(m_new_start_y) && lineModified <= size_t(m_new_end_y)) {
+        setEnable(false);
+        return;
+    }
+
+    if (size_t(m_new_end_y) < lineModified && !contentDiff) {
+        m_new_end_y -= lineDiff;
+        m_new_start_y -= lineDiff;
+        if (m_new_end_y < 0) {
+            setEnable(false);
+            return;
+        }
+        if (m_new_start_y < 0) {
+            m_new_start_y = 0;
+        }
+        m_screen->scheduleEventDispatch();
     }
 }
 
 void Selection::setValidity()
 {
-    if (m_end_y > m_start_y ||
-            (m_end_y == m_start_y &&
-             m_end_x > m_start_x)) {
+    if (m_new_end_y > m_new_start_y ||
+            (m_new_end_y == m_new_start_y &&
+             m_new_end_x > m_new_start_x)) {
         setEnable(true);
     } else {
         setEnable(false);
@@ -117,12 +147,12 @@ void Selection::setValidity()
 
 void Selection::sendToClipboard() const
 {
-    m_screen->currentScreenData()->sendSelectionToClipboard(start_point(), end_point(), QClipboard::Clipboard);
+    m_screen->currentScreenData()->sendSelectionToClipboard(start_new_point(), end_new_point(), QClipboard::Clipboard);
 }
 
 void Selection::sendToSelection() const
 {
-    m_screen->currentScreenData()->sendSelectionToClipboard(start_point(), end_point(), QClipboard::Selection);
+    m_screen->currentScreenData()->sendSelectionToClipboard(start_new_point(), end_new_point(), QClipboard::Selection);
 }
 
 void Selection::pasteFromSelection()
@@ -133,6 +163,30 @@ void Selection::pasteFromSelection()
 void Selection::pasteFromClipboard()
 {
     m_screen->pty()->write(QGuiApplication::clipboard()->text(QClipboard::Clipboard).toUtf8());
+}
+
+void Selection::dispatchChanges()
+{
+    if (m_new_start_y != m_start_y) {
+        m_start_y = m_new_start_y;
+        emit startYChanged();
+    }
+    if (m_new_start_x != m_start_x) {
+        m_start_x = m_new_start_x;
+        emit startXChanged();
+    }
+    if (m_new_end_y != m_end_y) {
+        m_end_y = m_new_end_y;
+        emit endYChanged();
+    }
+    if (m_new_end_x != m_end_x) {
+        m_end_x = m_new_end_x;
+        emit endXChanged();
+    }
+    if (m_new_enable != m_enable) {
+        m_enable = m_new_enable;
+        emit enableChanged();
+    }
 }
 
 bool Selection::enable() const

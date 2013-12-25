@@ -64,6 +64,8 @@ Screen::Screen(QObject *parent)
     m_new_cursors << cursor;
 
     connect(m_primary_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
+    connect(m_primary_data, &ScreenData::contentModified,
+            this, &Screen::contentModified);
     connect(m_palette, SIGNAL(changed()), this, SLOT(paletteChanged()));
 
     setHeight(25);
@@ -154,9 +156,11 @@ void Screen::useAlternateScreenBuffer()
 {
     if (m_current_data == m_primary_data) {
         disconnect(m_primary_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
+        disconnect(m_primary_data, &ScreenData::contentModified, this, &Screen::contentModified);
         m_current_data = m_alternate_data;
         m_current_data->clear();
         connect(m_alternate_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
+        connect(m_primary_data, &ScreenData::contentModified, this, &Screen::contentModified);
         emit contentHeightChanged();
     }
 }
@@ -165,8 +169,10 @@ void Screen::useNormalScreenBuffer()
 {
     if (m_current_data == m_alternate_data) {
         disconnect(m_alternate_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
+        disconnect(m_alternate_data, &ScreenData::contentModified, this, &Screen::contentModified);
         m_current_data = m_primary_data;
         connect(m_primary_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
+        connect(m_alternate_data, &ScreenData::contentModified, this, &Screen::contentModified);
         emit contentHeightChanged();
     }
 }
@@ -312,6 +318,8 @@ void Screen::dispatchChanges()
     for (int i = 0; i < m_cursor_stack.size(); i++) {
         m_cursor_stack[i]->dispatchEvents();
     }
+
+    m_selection->dispatchChanges();
 }
 
 void Screen::sendPrimaryDA()

@@ -61,6 +61,8 @@ public:
     Q_INVOKABLE void sendToSelection() const;
     Q_INVOKABLE void pasteFromSelection();
     Q_INVOKABLE void pasteFromClipboard();
+
+    void dispatchChanges();
 signals:
     void startXChanged();
     void startYChanged();
@@ -68,16 +70,24 @@ signals:
     void endYChanged();
     void enableChanged();
 
+private slots:
+    void screenContentModified(size_t lineModified, int lineDiff, int contentDiff);
+
 private:
     void setValidity();
-    QPoint start_point() const { return QPoint(m_start_x, m_start_y); }
-    QPoint end_point() const { return QPoint(m_end_x, m_end_y); }
+    QPoint start_new_point() const { return QPoint(m_new_start_x, m_new_start_y); }
+    QPoint end_new_point() const { return QPoint(m_new_end_x, m_new_end_y); }
 
     Screen *m_screen;
+    int m_new_start_x;
     int m_start_x;
+    int m_new_start_y;
     int m_start_y;
+    int m_new_end_x;
     int m_end_x;
+    int m_new_end_y;
     int m_end_y;
+    bool m_new_enable;
     bool m_enable;
 };
 #endif

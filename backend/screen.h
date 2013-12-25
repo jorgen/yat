@@ -144,6 +144,8 @@ signals:
     void widthChanged();
 
     void defaultBackgroundColorChanged();
+
+    void contentModified(size_t lineModified, int lineDiff, int contentDiff);
 protected:
     void timerEvent(QTimerEvent *);
 
