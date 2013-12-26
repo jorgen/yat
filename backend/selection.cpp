@@ -111,7 +111,6 @@ void Selection::setEnable(bool enable)
 
 void Selection::screenContentModified(size_t lineModified, int lineDiff, int contentDiff)
 {
-    Q_UNUSED(lineDiff);
     if (!m_new_enable)
         return;
 
@@ -120,9 +119,9 @@ void Selection::screenContentModified(size_t lineModified, int lineDiff, int con
         return;
     }
 
-    if (size_t(m_new_end_y) < lineModified && !contentDiff) {
-        m_new_end_y -= lineDiff;
-        m_new_start_y -= lineDiff;
+    if (size_t(m_new_end_y) < lineModified && lineModified != contentDiff) {
+        m_new_end_y -= lineDiff - contentDiff;
+        m_new_start_y -= lineDiff - contentDiff;
         if (m_new_end_y < 0) {
             setEnable(false);
             return;
@@ -167,6 +166,9 @@ void Selection::pasteFromClipboard()
 
 void Selection::dispatchChanges()
 {
+    if (!m_new_enable && !m_enable)
+        return;
+
     if (m_new_start_y != m_start_y) {
         m_start_y = m_new_start_y;
         emit startYChanged();

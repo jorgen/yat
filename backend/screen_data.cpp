@@ -189,6 +189,8 @@ void ScreenData::moveLine(int from, int to)
     if (from == to)
         return;
 
+    const size_t old_content_height = contentHeight();
+    const int orig_to = to;
     if (to > from)
         to++;
     auto from_it = it_for_row_ensure_single_line_block(from);
@@ -196,6 +198,8 @@ void ScreenData::moveLine(int from, int to)
 
     (*from_it)->clear();
     m_screen_blocks.splice(to_it, m_screen_blocks, from_it);
+    qDebug() << Q_FUNC_INFO << to;
+    emit contentModified(m_scrollback->height() + to, 1, content_height_diff(old_content_height));
 }
 
 void ScreenData::insertLine(int row, int topMargin)
