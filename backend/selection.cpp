@@ -119,7 +119,7 @@ void Selection::screenContentModified(size_t lineModified, int lineDiff, int con
         return;
     }
 
-    if (size_t(m_new_end_y) < lineModified && lineModified != contentDiff) {
+    if (size_t(m_new_end_y) < lineModified && lineDiff != contentDiff) {
         m_new_end_y -= lineDiff - contentDiff;
         m_new_start_y -= lineDiff - contentDiff;
         if (m_new_end_y < 0) {

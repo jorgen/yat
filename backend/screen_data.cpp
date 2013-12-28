@@ -190,7 +190,6 @@ void ScreenData::moveLine(int from, int to)
         return;
 
     const size_t old_content_height = contentHeight();
-    const int orig_to = to;
     if (to > from)
         to++;
     auto from_it = it_for_row_ensure_single_line_block(from);
@@ -198,7 +197,6 @@ void ScreenData::moveLine(int from, int to)
 
     (*from_it)->clear();
     m_screen_blocks.splice(to_it, m_screen_blocks, from_it);
-    qDebug() << Q_FUNC_INFO << to;
     emit contentModified(m_scrollback->height() + to, 1, content_height_diff(old_content_height));
 }
 
@@ -330,7 +328,7 @@ void ScreenData::sendSelectionToClipboard(const QPoint &start, const QPoint &end
 
         auto it = it_for_row(start_in_screen.y());
         size_t screen_index = (*it)->screenIndex();
-        int start_pos = (start_in_screen.y() - (*it)->screenIndex()) * m_width + start.x();
+        int start_pos = (start_in_screen.y() - (*it)->screenIndex()) * m_width + start_in_screen.x();
         for (; it != m_screen_blocks.end(); ++it, start_pos = 0) {
             int end_pos = (*it)->textSize();
             bool should_break = false;

@@ -58,6 +58,7 @@ private:
     void ensurePageVisible(Page &page, int new_height);
     void ensurePageNotVisible(Page &page);
     std::list<Block *>::iterator findIteratorForPage(int page_no);
+    std::list<Block *>::iterator findIteratorForLine(size_t line);
     void adjustVisiblePages();
     ScreenData *m_screen_data;
 

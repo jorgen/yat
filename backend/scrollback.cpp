@@ -209,7 +209,40 @@ void Scrollback::setWidth(int width)
 
 QString Scrollback::selection(const QPoint &start, const QPoint &end) const
 {
-    Q_UNUSED(start);
-    Q_UNUSED(end);
-    return QString();
+    Q_ASSERT(start.y() > 0);
+    Q_ASSERT(end.y() > 0);
+    Q_ASSERT(size_t(end.y()) < m_height);
+    QString return_string;
+
+    size_t current_line = m_height;
+    auto it = m_blocks.end();
+
+    bool should_continue = true;
+    while (it != m_blocks.begin() && should_continue) {
+        --it;
+        const int block_height = (*it)->lineCount();
+        current_line -= block_height;
+        if (current_line > size_t(end.y())) {
+            continue;
+        }
+
+        int end_pos = (*it)->textSize();
+        if (current_line <= size_t(end.y()) && current_line + block_height >= size_t(end.y())) {
+            size_t end_line_count = end.y() - current_line;
+            end_pos = end_line_count * m_width + end.x();
+        }
+        int start_pos = 0;
+        if (current_line <= size_t(start.y()) && current_line + block_height >= size_t(start.y())) {
+            size_t start_line_count = start.y() - current_line;
+            start_pos = start_line_count * m_width + start.x();
+            should_continue = false;
+        } else if (current_line + block_height < size_t(start.y())) {
+            should_continue = false;
+        }
+        return_string.prepend((*it)->textLine()->mid(start_pos, end_pos));
+        if (should_continue)
+            return_string.prepend(QChar('\n'));
+    }
+
+    return return_string;
 }
