@@ -90,8 +90,7 @@ public:
     bool fastScroll() const;
 
     Selection *selection() const;
-
-    Q_INVOKABLE void doubleClicked(const QPointF &clicked);
+    Q_INVOKABLE void doubleClicked(double character, double line);
 
     void setTitle(const QString &title);
     QString title() const;

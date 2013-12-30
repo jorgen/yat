@@ -59,7 +59,7 @@ public:
         }
     }
 
-    QString *textLine();
+    const QString &textLine() const;
     int textSize() { return m_text_line.size(); }
 
     int width() const { return m_width; }

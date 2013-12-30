@@ -173,12 +173,12 @@ void ScreenData::deleteCharacters(const QPoint &point, int to)
     (*it)->deleteCharacters(chars_to_line + point.x(), chars_to_line + to);
 }
 
-CursorDiff ScreenData::replace(const QPoint &point, const QString &text, const TextStyle &style, bool only_latin)
+const CursorDiff ScreenData::replace(const QPoint &point, const QString &text, const TextStyle &style, bool only_latin)
 {
     return modify(point,text,style,true, only_latin);
 }
 
-CursorDiff ScreenData::insert(const QPoint &point, const QString &text, const TextStyle &style, bool only_latin)
+const CursorDiff ScreenData::insert(const QPoint &point, const QString &text, const TextStyle &style, bool only_latin)
 {
     return modify(point,text,style,false, only_latin);
 }
@@ -338,7 +338,7 @@ void ScreenData::sendSelectionToClipboard(const QPoint &start, const QPoint &end
             }
             if (to_clip_board_buffer.size())
                 to_clip_board_buffer += '\n';
-            to_clip_board_buffer += (*it)->textLine()->mid(start_pos, end_pos - start_pos);
+            to_clip_board_buffer += (*it)->textLine().mid(start_pos, end_pos - start_pos);
             if (should_break)
                 break;
             screen_index += (*it)->lineCount();
@@ -347,7 +347,18 @@ void ScreenData::sendSelectionToClipboard(const QPoint &start, const QPoint &end
     QGuiApplication::clipboard()->setText(to_clip_board_buffer, mode);
 }
 
-CursorDiff ScreenData::modify(const QPoint &point, const QString &text, const TextStyle &style, bool replace, bool only_latin)
+const SelectionRange ScreenData::getDoubleClickSelectionRange(size_t character, size_t line)
+{
+    if (line < m_scrollback->height())
+        return m_scrollback->getDoubleClickSelectionRange(character, line);
+    size_t screen_line = line - m_scrollback->height();
+    auto it = it_for_row(screen_line);
+    if (it != m_screen_blocks.end())
+        return Selection::getDoubleClickRange(it, character, line, m_width);
+    return { QPoint(), QPoint() };
+}
+
+const CursorDiff ScreenData::modify(const QPoint &point, const QString &text, const TextStyle &style, bool replace, bool only_latin)
 {
     auto it = it_for_row(point.y());
     Block *block = *it;

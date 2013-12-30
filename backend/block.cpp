@@ -309,9 +309,9 @@ void Block::insertAtPos(int pos, const QString &text, const TextStyle &style, bo
     }
 }
 
-QString *Block::textLine()
+const QString &Block::textLine() const
 {
-    return &m_text_line;
+    return m_text_line;
 }
 
 void Block::setVisible(bool visible)

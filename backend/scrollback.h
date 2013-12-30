@@ -24,7 +24,8 @@
 #ifndef SCROLLBACK_H
 #define SCROLLBACK_H
 
-#include <set>
+#include "selection.h"
+
 #include <list>
 
 #include <QtCore/qglobal.h>
@@ -54,6 +55,7 @@ public:
     size_t blockCount() { return m_block_count; }
 
     QString selection(const QPoint &start, const QPoint &end) const;
+    const SelectionRange getDoubleClickSelectionRange(size_t character, size_t line);
 private:
     void ensurePageVisible(Page &page, int new_height);
     void ensurePageNotVisible(Page &page);

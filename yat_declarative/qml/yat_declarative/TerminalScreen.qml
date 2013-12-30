@@ -278,7 +278,7 @@ TerminalScreen {
                 var transformed_mouse = mapToItem(textContainer, mouse.x, mouse.y);
                 var character = Math.floor(transformed_mouse.x / fontWidth);
                 var line = Math.floor(transformed_mouse.y / fontHeight);
-                screen.doubleClicked(Qt.point(character,line));
+                screen.doubleClicked(character,line);
             }
         }
     }

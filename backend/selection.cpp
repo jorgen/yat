@@ -25,6 +25,7 @@
 
 #include "screen.h"
 #include "screen_data.h"
+#include "block.h"
 
 #include <QtGui/QGuiApplication>
 
@@ -191,6 +192,43 @@ void Selection::dispatchChanges()
     }
 }
 
+static const QChar delimiter_array[] = { ' ', '\n', '{', '(', '[', '}', ')', ']' };
+static const size_t delimiter_array_size = sizeof(delimiter_array) / sizeof(delimiter_array[0]);
+const SelectionRange Selection::getDoubleClickRange(std::list<Block *>::iterator it, size_t character, size_t line, int width)
+{
+    const QString &string = (*it)->textLine();
+    size_t start_pos = ((line - (*it)->line()) * width) + character;
+    if (start_pos > size_t(string.size()))
+        return { QPoint(), QPoint() };
+    size_t end_pos = start_pos + 1;
+    for (bool found = false; start_pos > 0; start_pos--) {
+        for (size_t i = 0; i < delimiter_array_size; i++) {
+            if (string.at(start_pos - 1) == delimiter_array[i]) {
+                found = true;
+                break;
+            }
+        }
+        if (found)
+            break;
+    }
+
+    for (bool found = false; end_pos < size_t(string.size()); end_pos++) {
+        for (size_t i = 0; i < delimiter_array_size; i++) {
+            if (string.at(end_pos) == delimiter_array[i]) {
+                found = true;
+                break;
+            }
+        }
+        if (found)
+            break;
+    }
+
+    size_t start_line = (start_pos / width) + (*it)->line();
+    size_t end_line = (end_pos / width) + (*it)->line();
+
+    return { QPoint(static_cast<int>(start_pos), static_cast<int>(start_line)),
+             QPoint(static_cast<int>(end_pos)  , static_cast<int>(end_line)) };
+}
 bool Selection::enable() const
 {
     return m_enable;

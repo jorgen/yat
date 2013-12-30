@@ -27,6 +27,8 @@
 #include "screen.h"
 #include "block.h"
 
+#include <set>
+
 #define P_VAR(variable) \
     #variable ":" << variable
 
@@ -176,6 +178,19 @@ std::list<Block *>::iterator Scrollback::findIteratorForPage(int page_no)
     return to_return;
 }
 
+std::list<Block *>::iterator Scrollback::findIteratorForLine(size_t line)
+{
+    size_t current_line = m_height;
+    auto it = m_blocks.end();
+    while (it != m_blocks.begin()) {
+        --it;
+        current_line -= (*it)->lineCount();
+        if (current_line <= line)
+            return it;
+    }
+    return m_blocks.end();
+}
+
 void Scrollback::adjustVisiblePages()
 {
     if (!m_adjust_visible_pages)
@@ -209,8 +224,8 @@ void Scrollback::setWidth(int width)
 
 QString Scrollback::selection(const QPoint &start, const QPoint &end) const
 {
-    Q_ASSERT(start.y() > 0);
-    Q_ASSERT(end.y() > 0);
+    Q_ASSERT(start.y() >= 0);
+    Q_ASSERT(end.y() >= 0);
     Q_ASSERT(size_t(end.y()) < m_height);
     QString return_string;
 
@@ -239,10 +254,18 @@ QString Scrollback::selection(const QPoint &start, const QPoint &end) const
         } else if (current_line + block_height < size_t(start.y())) {
             should_continue = false;
         }
-        return_string.prepend((*it)->textLine()->mid(start_pos, end_pos));
+        return_string.prepend((*it)->textLine().mid(start_pos, end_pos));
         if (should_continue)
             return_string.prepend(QChar('\n'));
     }
 
     return return_string;
+}
+
+const SelectionRange Scrollback::getDoubleClickSelectionRange(size_t character, size_t line)
+{
+    auto it = findIteratorForLine(line);
+    if (it != m_blocks.end())
+        return Selection::getDoubleClickRange(it, character,line, m_width);
+    return { QPoint(), QPoint() };
 }

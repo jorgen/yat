@@ -28,6 +28,14 @@
 #include <QtCore/QPoint>
 
 class Screen;
+class Block;
+
+class SelectionRange
+{
+public:
+    QPoint start;
+    QPoint end;
+};
 
 class Selection : public QObject
 {
@@ -63,6 +71,8 @@ public:
     Q_INVOKABLE void pasteFromClipboard();
 
     void dispatchChanges();
+
+    static const SelectionRange getDoubleClickRange(std::list<Block *>::iterator it, size_t character, size_t line, int width);
 signals:
     void startXChanged();
     void startYChanged();

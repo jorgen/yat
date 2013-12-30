@@ -40,6 +40,7 @@
 #include <QtCore/QDebug>
 
 #include <float.h>
+#include <cmath>
 
 Screen::Screen(QObject *parent)
     : QObject(parent)
@@ -240,13 +241,20 @@ Selection *Screen::selection() const
     return m_selection;
 }
 
-void Screen::doubleClicked(const QPointF &clicked)
+void Screen::doubleClicked(double character, double line)
 {
-    Q_UNUSED(clicked);
-    //int start, end;
-    //currentScreenData()->getDoubleClickSelectionArea(clicked, &start, &end);
-    //setSelectionAreaStart(QPointF(start,clicked.y()));
-    //setSelectionAreaEnd(QPointF(end,clicked.y()));
+    QPoint start, end;
+    int64_t charInt = std::llround(character);
+    int64_t lineInt = std::llround(line);
+    Q_ASSERT(charInt >= 0);
+    //Q_ASSERT(charInt < std::numeric_limits<std::size_t>::max());
+    Q_ASSERT(lineInt >= 0);
+    //Q_ASSERT(lineInt < std::numeric_limits<std::size_t>::max());
+    auto selectionRange = currentScreenData()->getDoubleClickSelectionRange(charInt, lineInt);
+    m_selection->setStartX(selectionRange.start.x());
+    m_selection->setStartY(selectionRange.start.y());
+    m_selection->setEndX(selectionRange.end.x());
+    m_selection->setEndY(selectionRange.end.y());
 }
 
 void Screen::setTitle(const QString &title)
