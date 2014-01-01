@@ -620,7 +620,7 @@ void Screen::paletteChanged()
 
 void Screen::timerEvent(QTimerEvent *)
 {
-    if (m_timer_event_id && (m_time_since_parsed.elapsed() > 3 || m_time_since_initiated.elapsed() > 8)) {
+    if (m_timer_event_id && (m_time_since_parsed.elapsed() > 3 || m_time_since_initiated.elapsed() > 25)) {
         killTimer(m_timer_event_id);
         m_timer_event_id = 0;
         dispatchChanges();
