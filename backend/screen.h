@@ -52,6 +52,7 @@ class Screen : public QObject
     Q_PROPERTY(QString title READ title WRITE setTitle NOTIFY screenTitleChanged)
     Q_PROPERTY(Selection *selection READ selection CONSTANT)
     Q_PROPERTY(QColor defaultBackgroundColor READ defaultBackgroundColor NOTIFY defaultBackgroundColorChanged)
+    Q_PROPERTY(QString platformName READ platformName CONSTANT)
 
 public:
     explicit Screen(QObject *parent = 0);
@@ -94,6 +95,8 @@ public:
 
     void setTitle(const QString &title);
     QString title() const;
+
+    QString platformName() const;
 
     void scheduleFlash();
 

@@ -268,6 +268,11 @@ QString Screen::title() const
     return m_title;
 }
 
+QString Screen::platformName() const
+{
+    return qGuiApp->platformName();
+}
+
 void Screen::scheduleFlash()
 {
     m_flash = true;
