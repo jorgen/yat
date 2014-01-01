@@ -402,8 +402,10 @@ const CursorDiff ScreenData::modify(const QPoint &point, const QString &text, co
     if (end_char == 0)
         end_char = m_width -1;
 
+    int end_line = (start_char + text.size()) / m_width;
+    int line_diff = end_line - (start_char / m_width);
     emit contentModified(m_scrollback->height() + point.y(), lines_changed, content_height_diff(old_content_height));
-    return { lines_changed, end_char - point.x()};
+    return { line_diff, end_char - point.x()};
 }
 
 void ScreenData::clearBlock(std::list<Block *>::iterator line)
