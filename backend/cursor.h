@@ -111,8 +111,8 @@ public:
     void dispatchEvents();
 
 public slots:
-    void setDocumentWidth(int width);
-    void setDocumentHeight(int height, int currentCursorBlock, int currentScrollBackHeight);
+    void setScreenWidth(int newWidth, int currentCursorBlockSize, int removedBeginning, int reclaimed);
+    void setScreenHeight(int newHeight, int removedBeginning, int reclaimed);
 
 signals:
     void xChanged();
@@ -132,16 +132,16 @@ private:
     int adjusted_new_y() const { return m_origin_at_margin ?
         m_new_position.y() - m_top_margin : m_new_position.y(); }
     int adjusted_top() const { return m_origin_at_margin ? m_top_margin : 0; }
-    int adjusted_bottom() const { return m_origin_at_margin ? m_bottom_margin : m_document_height - 1; }
+    int adjusted_bottom() const { return m_origin_at_margin ? m_bottom_margin : m_screen_height - 1; }
     int top() const { return m_scroll_margins_set ? m_top_margin : 0; }
-    int bottom() const { return m_scroll_margins_set ? m_bottom_margin : m_document_height - 1; }
+    int bottom() const { return m_scroll_margins_set ? m_bottom_margin : m_screen_height - 1; }
     Screen *m_screen;
     TextStyle m_current_text_style;
     QPoint m_position;
     QPoint m_new_position;
 
-    int m_document_width;
-    int m_document_height;
+    int m_screen_width;
+    int m_screen_height;
 
     int m_top_margin;
     int m_bottom_margin;

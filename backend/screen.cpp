@@ -65,8 +65,9 @@ Screen::Screen(QObject *parent)
     m_new_cursors << cursor;
 
     connect(m_primary_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
-    connect(m_primary_data, &ScreenData::contentModified,
-            this, &Screen::contentModified);
+    connect(m_primary_data, &ScreenData::contentModified, this, &Screen::contentModified);
+    connect(m_primary_data, &ScreenData::dataHeightChanged, this, &Screen::dataHeightChanged);
+    connect(m_primary_data, &ScreenData::dataWidthChanged, this, &Screen::dataWidthChanged);
     connect(m_palette, SIGNAL(changed()), this, SLOT(paletteChanged()));
 
     setHeight(25);
@@ -139,7 +140,7 @@ void Screen::setWidth(int width)
     if (width == m_width)
         return;
 
-    emit widthAboutToChange(width);
+    emit widthAboutToChange(width, currentCursor()->new_y(), currentScreenData()->scrollback()->height());
 
     m_width = width;
 
@@ -158,10 +159,14 @@ void Screen::useAlternateScreenBuffer()
     if (m_current_data == m_primary_data) {
         disconnect(m_primary_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
         disconnect(m_primary_data, &ScreenData::contentModified, this, &Screen::contentModified);
+        disconnect(m_primary_data, &ScreenData::dataHeightChanged, this, &Screen::dataHeightChanged);
+        disconnect(m_primary_data, &ScreenData::dataWidthChanged, this, &Screen::dataWidthChanged);
         m_current_data = m_alternate_data;
         m_current_data->clear();
         connect(m_alternate_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
-        connect(m_primary_data, &ScreenData::contentModified, this, &Screen::contentModified);
+        connect(m_alternate_data, &ScreenData::contentModified, this, &Screen::contentModified);
+        connect(m_alternate_data, &ScreenData::dataHeightChanged, this, &Screen::dataHeightChanged);
+        connect(m_alternate_data, &ScreenData::dataWidthChanged, this, &Screen::dataWidthChanged);
         emit contentHeightChanged();
     }
 }
@@ -171,9 +176,13 @@ void Screen::useNormalScreenBuffer()
     if (m_current_data == m_alternate_data) {
         disconnect(m_alternate_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
         disconnect(m_alternate_data, &ScreenData::contentModified, this, &Screen::contentModified);
+        disconnect(m_alternate_data, &ScreenData::dataHeightChanged, this, &Screen::dataHeightChanged);
+        disconnect(m_alternate_data, &ScreenData::dataWidthChanged, this, &Screen::dataWidthChanged);
         m_current_data = m_primary_data;
         connect(m_primary_data, SIGNAL(contentHeightChanged()), this, SIGNAL(contentHeightChanged()));
-        connect(m_alternate_data, &ScreenData::contentModified, this, &Screen::contentModified);
+        connect(m_primary_data, &ScreenData::contentModified, this, &Screen::contentModified);
+        connect(m_primary_data, &ScreenData::dataHeightChanged, this, &Screen::dataHeightChanged);
+        connect(m_primary_data, &ScreenData::dataWidthChanged, this, &Screen::dataWidthChanged);
         emit contentHeightChanged();
     }
 }

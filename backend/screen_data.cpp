@@ -44,7 +44,7 @@ ScreenData::ScreenData(size_t max_scrollback, Screen *screen)
     , m_old_total_lines(0)
 {
     connect(screen, SIGNAL(heightAboutToChange(int, int, int)), this, SLOT(setHeight(int, int, int)));
-    connect(screen, SIGNAL(widthAboutToChange(int)), this, SLOT(setWidth(int)));
+    connect(screen, SIGNAL(widthAboutToChange(int, int, int)), this, SLOT(setWidth(int)));
 }
 
 ScreenData::~ScreenData()
@@ -64,32 +64,41 @@ int ScreenData::contentHeight() const
 void ScreenData::setHeight(int height, int currentCursorLine, int currentContentHeight)
 {
     Q_UNUSED(currentContentHeight);
-    m_screen_height = height;
-    if (height == m_height)
+    if (m_screen_height == height)
         return;
+
+    m_screen_height = height;
+
+    int removed_beginning = 0;
+    int removed_end = 0;
+    int reclaimed = 0;
 
     if (m_height > height) {
         const int to_remove = m_height - height;
-        const int remove_from_end = std::min((m_height -1) - currentCursorLine, to_remove);
+        const int remove_from_end = std::min(m_height - (currentCursorLine + 1), to_remove);
         const int remove_from_start = to_remove - remove_from_end;
 
         if (remove_from_end) {
-            remove_lines_from_end(remove_from_end);
+            removed_end = remove_lines_from_end(remove_from_end);
         }
         if (remove_from_start) {
-            push_at_most_to_scrollback(remove_from_start);
+            removed_beginning = push_at_most_to_scrollback(remove_from_start);
         }
     } else {
-        ensure_at_least_height(height);
+        reclaimed = ensure_at_least_height(height);
     }
+
+    emit dataHeightChanged(m_screen_height, removed_beginning, reclaimed);
 }
 
 void ScreenData::setWidth(int width)
 {
     m_width = width;
+    m_screen->scheduleEventDispatch();
 
     for (Block *block : m_screen_blocks) {
         int before_count = block->lineCount();
+
         block->setWidth(width);
         m_height += block->lineCount() - before_count;
     }
@@ -436,6 +445,24 @@ std::list<Block *>::iterator ScreenData::it_for_row_ensure_single_line_block(int
     return split_out_row_from_block(it, line_diff);
 }
 
+std::list<Block *>::iterator ScreenData::it_for_block(Block *block)
+{
+    if (!block)
+        return m_screen_blocks.end();
+
+    auto it = m_screen_blocks.end();
+    int line_for_block = m_screen_height;
+    while (it != m_screen_blocks.begin()) {
+        --it;
+        line_for_block -= (*it)->lineCount();
+        if ((*it) == block) {
+            (*it)->setScreenIndex(line_for_block);
+            (*it)->setLine(0);
+            return it;
+        }
+    }
+    return m_screen_blocks.end();
+}
 std::list<Block *>::iterator ScreenData::split_out_row_from_block(std::list<Block *>::iterator it, int row_in_block)
 {
     int lines = (*it)->lineCount();
@@ -464,8 +491,10 @@ std::list<Block *>::iterator ScreenData::split_out_row_from_block(std::list<Bloc
     return m_screen_blocks.insert(it_width_first,the_one);
 }
 
-void ScreenData::push_at_most_to_scrollback(int lines)
+int ScreenData::push_at_most_to_scrollback(int lines)
 {
+    if (lines >= m_height)
+        lines = m_height - 1;
     int pushed = 0;
     auto it = m_screen_blocks.begin();
     while (it != m_screen_blocks.end() && pushed + (*it)->lineCount() <= lines) {
@@ -476,9 +505,10 @@ void ScreenData::push_at_most_to_scrollback(int lines)
         m_scrollback->addBlock(*it);
         it = m_screen_blocks.erase(it);
     }
+    return pushed;
 }
 
-void ScreenData::reclaim_at_least(int lines)
+int ScreenData::reclaim_at_least(int lines)
 {
     int lines_reclaimed = 0;
     while (m_scrollback->blockCount() && lines_reclaimed < lines) {
@@ -488,9 +518,10 @@ void ScreenData::reclaim_at_least(int lines)
         m_block_count++;
         m_screen_blocks.push_front(block);
     }
+    return lines_reclaimed;
 }
 
-void ScreenData::remove_lines_from_end(int lines)
+int ScreenData::remove_lines_from_end(int lines)
 {
     int removed = 0;
     auto it = m_screen_blocks.end();
@@ -513,15 +544,16 @@ void ScreenData::remove_lines_from_end(int lines)
             }
         }
     }
+    return removed;
 }
 
-void ScreenData::ensure_at_least_height(int height)
+int ScreenData::ensure_at_least_height(int height)
 {
     if (m_height > height)
-        return;
+        return 0;
 
     int to_grow = height - m_height;
-    reclaim_at_least(to_grow);
+    int reclaimed = reclaim_at_least(to_grow);
 
     if (height > m_height) {
         int to_insert = height - m_height;
@@ -531,6 +563,7 @@ void ScreenData::ensure_at_least_height(int height)
         m_height += to_insert;
         m_block_count += to_insert;
     }
+    return reclaimed;
 }
 
 int ScreenData::content_height_diff(size_t old_content_height)

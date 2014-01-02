@@ -95,16 +95,19 @@ public slots:
 signals:
     void contentHeightChanged();
     void contentModified(size_t lineModified, int lineDiff, int contentDiff);
+    void dataHeightChanged(int newHeight, int removedBeginning, int reclaimed);
+    void dataWidthChanged(int newHeight, int currentCursorBlockSize, int removedBeginning, int reclaimed);
 
 private:
     const CursorDiff modify(const QPoint &pos, const QString &text, const TextStyle &style, bool replace, bool only_latin);
     void clearBlock(std::list<Block *>::iterator line);
     std::list<Block *>::iterator it_for_row_ensure_single_line_block(int row);
+    std::list<Block *>::iterator it_for_block(Block *block);
     std::list<Block *>::iterator split_out_row_from_block(std::list<Block *>::iterator block_it, int row_in_block);
-    void push_at_most_to_scrollback(int lines);
-    void reclaim_at_least(int lines);
-    void remove_lines_from_end(int lines);
-    void ensure_at_least_height(int height);
+    int push_at_most_to_scrollback(int lines);
+    int reclaim_at_least(int lines);
+    int remove_lines_from_end(int lines);
+    int ensure_at_least_height(int height);
     int content_height_diff(size_t old_content_height);
     Screen *m_screen;
     Scrollback *m_scrollback;
