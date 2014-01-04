@@ -48,10 +48,13 @@ Cursor::Cursor(Screen* screen)
     , m_wrap_around(true)
     , m_content_height_changed(false)
     , m_insert_mode(Replace)
+    , m_resize_block(0)
+    , m_current_pos_in_block(0)
 {
+    connect(screen, &Screen::widthAboutToChange, this, &Cursor::setScreenWidthAboutToChange);
     connect(screen, &Screen::dataWidthChanged, this, &Cursor::setScreenWidth);
     connect(screen, &Screen::dataHeightChanged, this, &Cursor::setScreenHeight);
-    connect(screen, SIGNAL(contentHeightChanged()), this, SLOT(contentHeightChanged()));
+    connect(screen, &Screen::contentHeightChanged, this, &Cursor::contentHeightChanged);
 
     m_gl_text_codec = QTextCodec::codecForName("utf-8")->makeDecoder();
     m_gr_text_codec = QTextCodec::codecForName("utf-8")->makeDecoder();
@@ -68,9 +71,20 @@ Cursor::~Cursor()
 
 }
 
-void Cursor::setScreenWidth(int newWidth, int currentCursorBlockSize, int removedBeginning, int reclaimed)
+void Cursor::setScreenWidthAboutToChange(int width)
 {
-    Q_UNUSED(currentCursorBlockSize);
+    Q_UNUSED(width);
+    auto it = m_screen->currentScreenData()->it_for_row(new_y());
+    if (m_screen->currentScreenData()->it_is_end(it))
+        return;
+
+    m_resize_block = *it;
+    int line_diff = new_y() - m_resize_block->screenIndex();
+    m_current_pos_in_block = (line_diff * m_screen_width) + new_x();
+}
+
+void Cursor::setScreenWidth(int newWidth, int removedBeginning, int reclaimed)
+{
     if (newWidth > m_screen_width) {
         for (int i = m_screen_width -1; i < newWidth; i++) {
             if (i % 8 == 0) {
@@ -80,13 +94,22 @@ void Cursor::setScreenWidth(int newWidth, int currentCursorBlockSize, int remove
     }
 
     m_screen_width = newWidth;
-    if (new_x() >= newWidth) {
-        new_rx() = newWidth - 1;
+
+    auto it = m_screen->currentScreenData()->it_for_block(m_resize_block);
+    if (m_screen->currentScreenData()->it_is_end(it)) {
+        if (removedBeginning > reclaimed) {
+            new_ry() = 0;
+            new_rx() = 0;
+        } else {
+            new_ry() = m_screen_height - 1;
+            new_rx() = 0;
+        }
+    } else {
+        new_ry() = (*it)->screenIndex() + m_current_pos_in_block / newWidth;
+        new_rx() = m_current_pos_in_block % newWidth;
     }
-
-    new_ry() += reclaimed;
-    new_ry() -= removedBeginning;
-
+    m_resize_block = 0;
+    m_current_pos_in_block = 0;
     notifyChanged();
 }
 

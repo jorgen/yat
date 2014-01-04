@@ -86,23 +86,24 @@ public:
     void sendSelectionToClipboard(const QPoint &start, const QPoint &end, QClipboard::Mode mode);
 
     inline std::list<Block *>::iterator it_for_row(int row);
+    inline std::list<Block *>::iterator it_for_block(Block *block);
+    bool it_is_end(std::list<Block *>::iterator it) const { return m_screen_blocks.end() == it; }
 
     const SelectionRange getDoubleClickSelectionRange(size_t character, size_t line);
 public slots:
-    void setHeight(int height, int currentCursorLine, int currentContentHeight);
+    void setHeight(int height, int currentCursorLine);
     void setWidth(int width);
 
 signals:
     void contentHeightChanged();
     void contentModified(size_t lineModified, int lineDiff, int contentDiff);
     void dataHeightChanged(int newHeight, int removedBeginning, int reclaimed);
-    void dataWidthChanged(int newHeight, int currentCursorBlockSize, int removedBeginning, int reclaimed);
+    void dataWidthChanged(int newHeight, int removedBeginning, int reclaimed);
 
 private:
     const CursorDiff modify(const QPoint &pos, const QString &text, const TextStyle &style, bool replace, bool only_latin);
     void clearBlock(std::list<Block *>::iterator line);
     std::list<Block *>::iterator it_for_row_ensure_single_line_block(int row);
-    std::list<Block *>::iterator it_for_block(Block *block);
     std::list<Block *>::iterator split_out_row_from_block(std::list<Block *>::iterator block_it, int row_in_block);
     int push_at_most_to_scrollback(int lines);
     int reclaim_at_least(int lines);
@@ -139,6 +140,25 @@ std::list<Block *>::iterator ScreenData::it_for_row(int row)
         }
     }
 
+    return m_screen_blocks.end();
+}
+inline std::list<Block *>::iterator ScreenData::it_for_block(Block *block)
+{
+    if (!block)
+        return m_screen_blocks.end();
+    auto it = m_screen_blocks.end();
+    int line_for_block = m_screen_height;
+    size_t abs_line = contentHeight();
+    while(it != m_screen_blocks.begin()) {
+        --it;
+        line_for_block -= (*it)->lineCount();
+        abs_line -= (*it)->lineCount();
+        if (*it == block) {
+            (*it)->setScreenIndex(line_for_block);
+            (*it)->setLine(abs_line);
+            return it;
+        }
+    }
     return m_screen_blocks.end();
 }
 #endif // SCREENDATA_H

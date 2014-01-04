@@ -111,7 +111,8 @@ public:
     void dispatchEvents();
 
 public slots:
-    void setScreenWidth(int newWidth, int currentCursorBlockSize, int removedBeginning, int reclaimed);
+    void setScreenWidthAboutToChange(int width);
+    void setScreenWidth(int newWidth, int removedBeginning, int reclaimed);
     void setScreenHeight(int newHeight, int removedBeginning, int reclaimed);
 
 signals:
@@ -162,6 +163,9 @@ private:
     QTextDecoder *m_gr_text_codec;
 
     InsertMode m_insert_mode;
+
+    Block *m_resize_block;
+    int m_current_pos_in_block;
 };
 
 void Cursor::notifyChanged()

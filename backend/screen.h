@@ -137,19 +137,18 @@ signals:
     void cursorCreated(Cursor *cursor);
 
     void requestHeightChange(int newHeight);
-    void heightAboutToChange(int height, int currentCursorLine, int currentScrollbackHeight);
     void heightChanged();
     void contentHeightChanged();
 
     void requestWidthChange(int newWidth);
-    void widthAboutToChange(int width, int currentCursorLine, int currentScrollbackHeight);
     void widthChanged();
 
     void defaultBackgroundColorChanged();
 
     void contentModified(size_t lineModified, int lineDiff, int contentDiff);
     void dataHeightChanged(int newHeight, int removedBeginning, int reclaimed);
-    void dataWidthChanged(int newWidth, int currentCursorBlockSize, int removedBeginning, int reclaimed);
+    void widthAboutToChange(int width);
+    void dataWidthChanged(int newWidth, int removedBeginning, int reclaimed);
 protected:
     void timerEvent(QTimerEvent *);
 

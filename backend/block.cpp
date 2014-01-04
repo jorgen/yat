@@ -314,6 +314,16 @@ const QString &Block::textLine() const
     return m_text_line;
 }
 
+void Block::setWidth(int width)
+{
+    m_width = width;
+
+    if (width > m_text_line.size())
+        return;
+
+    releaseTextObjects();
+}
+
 void Block::setVisible(bool visible)
 {
     if (visible != m_visible) {

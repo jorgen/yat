@@ -111,13 +111,15 @@ void Screen::setHeight(int height)
     if (height == m_height)
         return;
 
-    emit heightAboutToChange(height, currentCursor()->new_y(), currentScreenData()->scrollback()->height());
-
     m_height = height;
+
+    m_primary_data->setHeight(height, currentCursor()->new_y());
+    m_alternate_data->setHeight(height, currentCursor()->new_y());
 
     m_pty.setHeight(height, height * 10);
 
     emit heightChanged();
+    scheduleEventDispatch();
 }
 
 int Screen::height() const
@@ -140,13 +142,17 @@ void Screen::setWidth(int width)
     if (width == m_width)
         return;
 
-    emit widthAboutToChange(width, currentCursor()->new_y(), currentScreenData()->scrollback()->height());
+    emit widthAboutToChange(width);
 
     m_width = width;
+
+    m_primary_data->setWidth(width);
+    m_alternate_data->setWidth(width);
 
     m_pty.setWidth(width, width * 10);
 
     emit widthChanged();
+    scheduleEventDispatch();
 }
 
 int Screen::width() const

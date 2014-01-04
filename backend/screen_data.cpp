@@ -43,8 +43,6 @@ ScreenData::ScreenData(size_t max_scrollback, Screen *screen)
     , m_block_count(0)
     , m_old_total_lines(0)
 {
-    connect(screen, SIGNAL(heightAboutToChange(int, int, int)), this, SLOT(setHeight(int, int, int)));
-    connect(screen, SIGNAL(widthAboutToChange(int, int, int)), this, SLOT(setWidth(int)));
 }
 
 ScreenData::~ScreenData()
@@ -61,9 +59,8 @@ int ScreenData::contentHeight() const
     return m_height + m_scrollback->height();
 }
 
-void ScreenData::setHeight(int height, int currentCursorLine, int currentContentHeight)
+void ScreenData::setHeight(int height, int currentCursorLine)
 {
-    Q_UNUSED(currentContentHeight);
     if (m_screen_height == height)
         return;
 
@@ -94,22 +91,24 @@ void ScreenData::setHeight(int height, int currentCursorLine, int currentContent
 void ScreenData::setWidth(int width)
 {
     m_width = width;
-    m_screen->scheduleEventDispatch();
 
     for (Block *block : m_screen_blocks) {
         int before_count = block->lineCount();
-
         block->setWidth(width);
         m_height += block->lineCount() - before_count;
     }
 
+    int removed = 0;
+    int reclaimed = 0;
     if (m_height > m_screen_height) {
-        push_at_most_to_scrollback(m_height - m_screen_height);
+        removed = push_at_most_to_scrollback(m_height - m_screen_height);
     } else {
-        ensure_at_least_height(m_screen_height);
+        reclaimed = ensure_at_least_height(m_screen_height);
     }
 
     m_scrollback->setWidth(width);
+
+    emit dataWidthChanged(m_width, removed, reclaimed);
 }
 
 
@@ -445,24 +444,6 @@ std::list<Block *>::iterator ScreenData::it_for_row_ensure_single_line_block(int
     return split_out_row_from_block(it, line_diff);
 }
 
-std::list<Block *>::iterator ScreenData::it_for_block(Block *block)
-{
-    if (!block)
-        return m_screen_blocks.end();
-
-    auto it = m_screen_blocks.end();
-    int line_for_block = m_screen_height;
-    while (it != m_screen_blocks.begin()) {
-        --it;
-        line_for_block -= (*it)->lineCount();
-        if ((*it) == block) {
-            (*it)->setScreenIndex(line_for_block);
-            (*it)->setLine(0);
-            return it;
-        }
-    }
-    return m_screen_blocks.end();
-}
 std::list<Block *>::iterator ScreenData::split_out_row_from_block(std::list<Block *>::iterator it, int row_in_block)
 {
     int lines = (*it)->lineCount();

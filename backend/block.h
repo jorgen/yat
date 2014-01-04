@@ -63,7 +63,7 @@ public:
     int textSize() { return m_text_line.size(); }
 
     int width() const { return m_width; }
-    void setWidth(int width) { releaseTextObjects(); m_width = width; }
+    void setWidth(int width);
     int lineCount() const { return (std::max((m_text_line.size() - 1),0) / m_width) + 1; }
     int lineCountAfterModified(int from_char, int text_size, bool replace) {
         int new_size = replace ? std::max(from_char + text_size, m_text_line.size())
