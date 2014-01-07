@@ -62,5 +62,11 @@ void ColorPalette::setInverseDefaultColors(bool inverse)
     if (emit_changed) {
         m_inverse_default = inverse;
         emit changed();
+        emit defaultBackgroundColorChanged();
     }
+}
+
+QColor ColorPalette::defaultBackground() const
+{
+    return normalColor(DefaultBackground);
 }

@@ -56,7 +56,8 @@ ObjectDestructItem {
 
         ShaderEffectSource {
             id: fragmentSource
-            sourceItem: background
+
+            sourceItem: textContainer
             live: true
 
             sourceRect: Qt.rect(cursor.x,cursor.y,cursor.width,cursor.height);

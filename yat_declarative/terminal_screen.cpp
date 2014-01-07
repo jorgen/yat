@@ -59,7 +59,3 @@ void TerminalScreen::inputMethodEvent(QInputMethodEvent *event)
     m_screen->sendKey(commitString, key, 0);
 }
 
-void TerminalScreen::keyPressEvent(QKeyEvent *event)
-{
-    m_screen->sendKey(event->text(), Qt::Key(event->key()), event->modifiers());
-}

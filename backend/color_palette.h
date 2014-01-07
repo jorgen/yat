@@ -8,6 +8,7 @@
 class ColorPalette : public QObject
 {
 Q_OBJECT
+    Q_PROPERTY(QColor defaultBackground READ defaultBackground NOTIFY defaultBackgroundColorChanged)
 public:
     ColorPalette(QObject *parent = 0);
 
@@ -30,8 +31,12 @@ public:
     QColor lightColor(Color color) const;
 
     void setInverseDefaultColors(bool inverse);
+
+    QColor defaultBackground() const;
 signals:
     void changed();
+    void defaultBackgroundColorChanged();
+
 private:
     QVector<QColor> m_normalColors;
     QVector<QColor> m_lightColors;

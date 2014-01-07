@@ -38,6 +38,7 @@ TerminalScreen {
     property var cursorComponent : Qt.createComponent("TerminalCursor.qml")
 
     font.family: screen.platformName != "cocoa" ? "monospace" : "menlo"
+    anchors.fill: parent
     focus: true
 
     Action {
@@ -59,8 +60,9 @@ TerminalScreen {
 
     Keys.onPressed: {
         if (event.text === "?") {
-            terminal.screen.printScreen()
+            screen.printScreen()
         }
+        screen.sendKey(event.text, event.key, event.modifiers);
     }
 
     Text {
@@ -71,6 +73,11 @@ TerminalScreen {
         textFormat: Text.PlainText
     }
 
+    Rectangle {
+        id: background
+        anchors.fill: parent
+        color: screen.defaultBackgroundColor
+    }
     Flickable {
         id: flickable
         anchors.top: parent.top
@@ -85,16 +92,11 @@ TerminalScreen {
             id: textContainer
             width: parent.width
             height: screen.contentHeight * screenItem.fontHeight
-            Rectangle {
-                id: background
-                anchors.fill: parent
-                color: terminal.screen.defaultBackgroundColor
-            }
 
             HighlightArea {
                 characterHeight: fontHeight
                 characterWidth: fontWidth
-                screenWidth: terminalWindow.width
+                screenWidth: screenItem.width
 
                 startX: screen.selection.startX
                 startY: screen.selection.startY
@@ -105,6 +107,13 @@ TerminalScreen {
                 visible: screen.selection.enable
             }
         }
+
+        Item {
+            id: cursorContainer
+            width: textContainer.width
+            height: textContainer.height
+        }
+
 
         onContentYChanged: {
             if (!atYEnd) {
@@ -117,7 +126,7 @@ TerminalScreen {
     Connections {
         id: connections
 
-        target: terminal.screen
+        target: screen
 
         onFlash: {
             flashAnimation.start()
@@ -130,7 +139,7 @@ TerminalScreen {
         onTextCreated: {
             var textSegment = textComponent.createObject(screenItem,
                 {
-                    "parent" : background,
+                    "parent" : textContainer,
                     "objectHandle" : text,
                     "font" : screenItem.font,
                     "fontWidth" : screenItem.fontWidth,
@@ -145,7 +154,7 @@ TerminalScreen {
             }
             var cursorVariable = cursorComponent.createObject(screenItem,
                 {
-                    "parent" : textContainer,
+                    "parent" : cursorContainer,
                     "objectHandle" : cursor,
                     "fontWidth" : screenItem.fontWidth,
                     "fontHeight" : screenItem.fontHeight,

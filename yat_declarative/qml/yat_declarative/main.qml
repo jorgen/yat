@@ -23,15 +23,30 @@
 
 import QtQuick 2.0
 import QtQuick.Window 2.0
+import QtQuick.Controls 1.0
 
 Window {
     id: terminalWindow
-    TerminalScreen {
-        id: terminal
-        anchors.fill: parent
-        Component.onCompleted: terminalWindow.visible = true
+
+    TabView {
+        id: tabView
+        anchors.fill: contentItem
+        tabsVisible: count > 1
+        focus: true
+
+        Component.onCompleted: {
+            var tab = tabView.addTab("some text", Qt.createComponent("TerminalScreen.qml"));
+            tab.item.forceActiveFocus();
+            terminalWindow.color = Qt.binding(function() { return tabView.getTab(tabView.currentIndex).item.screen.defaultBackgroundColor;});
+            terminalWindow.show();
+        }
+
+        onCurrentIndexChanged: {
+            background.color = Qt.binding(function() { return tabView.getTab(tabView.currentIndex).item.screen.defaultBackgroundColor;})
+        }
     }
+
     width: 800
     height: 600
-    color: terminal.screen.defaultBackgroundColor
+
 }

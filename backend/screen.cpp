@@ -108,6 +108,7 @@ void Screen::emitRequestHeight(int newHeight)
 
 void Screen::setHeight(int height)
 {
+    height = std::max(1, height);
     if (height == m_height)
         return;
 
@@ -139,6 +140,7 @@ void Screen::emitRequestWidth(int newWidth)
 
 void Screen::setWidth(int width)
 {
+    width = std::max(1,width);
     if (width == m_width)
         return;
 

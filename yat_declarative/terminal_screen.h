@@ -45,7 +45,6 @@ public:
 
 protected:
     void inputMethodEvent(QInputMethodEvent *event);
-    void keyPressEvent(QKeyEvent *event);
 
 private:
     Screen *m_screen;
