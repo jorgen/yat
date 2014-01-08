@@ -136,10 +136,10 @@ static void printParameters(const QVector<int> &parameters, QDebug &debug, bool 
 
 Parser::Parser(Screen *screen)
     : m_decode_state(PlainText)
+    , m_decode_osc_state(None)
     , m_current_token_start(0)
     , m_current_position(0)
     , m_intermediate_char(QChar())
-    , m_parameters(10)
     , m_parameters_expecting_more(false)
     , m_dec_mode(false)
     , m_gt_param(false)
@@ -198,7 +198,6 @@ void Parser::addData(const QByteArray &data)
             decodeFontSize(character);
             break;
        }
-
     }
     if (m_decode_state == PlainText) {
         QByteArray to_insert = getByteArrayMidNoCopy(m_current_data, m_current_token_start, m_current_data.size() - m_current_token_start);
@@ -799,13 +798,17 @@ void Parser::decodeCSI(uchar character)
 
 void Parser::decodeOSC(uchar character)
 {
-    if (!m_parameters.size() &&
-            character >= 0x30 && character <= 0x3f) {
-        decodeParameters(character);
-    } else {
-        appendParameter();
-        if (m_decode_osc_state ==  None) {
-            if (m_parameters.size() != 1) {
+    if (m_decode_osc_state == None) {
+        if (!m_parameters.size() &&
+                character >= 0x30 && character <= 0x3f) {
+            decodeParameters(character);
+        } else {
+            m_osc_data.append(character);
+            appendParameter();
+            if (m_parameters.size() == 0) {
+                return;
+            } else if (m_parameters.size() > 1) {
+                qDebug() << m_parameters;
                 tokenFinished();
                 return;
             }
@@ -820,20 +823,33 @@ void Parser::decodeOSC(uchar character)
                 case 2:
                     m_decode_osc_state = ChangeWindowTitle;
                     break;
+                case 7:
+                    m_decode_osc_state = FilePath;
+                    break;
                 default:
                     m_decode_osc_state = Unknown;
+                    qDebug() << "Unknown parameter state" << m_parameters.at(0);
                     break;
             }
-        } else {
-            if (character == 0x07) {
-                if (m_decode_osc_state == ChangeWindowAndIconName ||
-                        m_decode_osc_state == ChangeWindowTitle) {
-                    QString title = QString::fromUtf8(m_current_data.mid(m_current_token_start+4,
-                                m_current_position - m_current_token_start -1));
-                    m_screen->setTitle(title);
-                }
-                tokenFinished();
+        }
+    } else {
+        if (character == 0x07) {
+            if (m_decode_osc_state == ChangeWindowAndIconName ||
+                    m_decode_osc_state == ChangeWindowTitle) {
+                m_screen->setTitle(QString::fromUtf8(m_osc_data));
             }
+            if (m_decode_osc_state == FilePath) {
+                if (m_osc_data.startsWith("file:/")) {
+                    int last_slash = m_osc_data.lastIndexOf(QChar('/'));
+                    if (last_slash >= 0 && last_slash < m_osc_data.size() - 1) {
+                        QString title = m_osc_data.mid(last_slash + 1).simplified();
+                        m_screen->setTitle(title);
+                    }
+                }
+            }
+            tokenFinished();
+        } else {
+            m_osc_data.append(character);
         }
     }
 }
@@ -1268,6 +1284,7 @@ void Parser::tokenFinished()
 {
     m_decode_state = PlainText;
     m_decode_osc_state = None;
+    m_osc_data.clear();
 
     m_parameters.clear();
     m_parameter_string.clear();

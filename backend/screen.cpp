@@ -74,7 +74,7 @@ Screen::Screen(QObject *parent)
     setWidth(80);
 
     connect(&m_pty, &YatPty::readyRead, this, &Screen::readData);
-    connect(&m_pty, SIGNAL(hangupReceived()),qGuiApp, SLOT(quit()));
+    connect(&m_pty, &YatPty::hangupReceived,this, &Screen::hangup);
 
 }
 
@@ -637,8 +637,6 @@ void Screen::paletteChanged()
         emit defaultBackgroundColorChanged();
     }
 }
-
-
 
 void Screen::timerEvent(QTimerEvent *)
 {

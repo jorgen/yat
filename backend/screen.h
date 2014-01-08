@@ -122,7 +122,6 @@ public:
 public slots:
     void readData(const QByteArray &data);
     void paletteChanged();
-
 signals:
     void reset();
 
@@ -149,6 +148,8 @@ signals:
     void dataHeightChanged(int newHeight, int removedBeginning, int reclaimed);
     void widthAboutToChange(int width);
     void dataWidthChanged(int newWidth, int removedBeginning, int reclaimed);
+
+    void hangup();
 protected:
     void timerEvent(QTimerEvent *);
 

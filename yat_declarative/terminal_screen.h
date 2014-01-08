@@ -38,10 +38,16 @@ class TerminalScreen : public QQuickItem
     Q_PROPERTY(Screen *screen READ screen CONSTANT)
 public:
     TerminalScreen(QQuickItem *parent = 0);
+    ~TerminalScreen();
 
     Screen *screen() const;
 
     QVariant inputMethodQuery(Qt::InputMethodQuery query) const;
+
+public slots:
+    void hangupReceived();
+signals:
+    void aboutToBeDestroyed(TerminalScreen *screen);
 
 protected:
     void inputMethodEvent(QInputMethodEvent *event);

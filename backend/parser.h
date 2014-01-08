@@ -57,6 +57,7 @@ private:
         ChangeWindowAndIconName,
         ChangeIconTitle,
         ChangeWindowTitle,
+        FilePath,
         Unknown
     };
 
@@ -82,6 +83,7 @@ private:
 
     DecodeState m_decode_state;
     DecodeOSCState m_decode_osc_state;
+    QByteArray m_osc_data;
 
     QByteArray m_current_data;
 

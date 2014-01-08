@@ -25,6 +25,12 @@ TerminalScreen::TerminalScreen(QQuickItem *parent)
     , m_screen(new Screen(this))
 {
     setFlag(QQuickItem::ItemAcceptsInputMethod);
+    connect(m_screen, &Screen::hangup, this, &TerminalScreen::hangupReceived);
+}
+
+TerminalScreen::~TerminalScreen()
+{
+    delete m_screen;
 }
 
 Screen *TerminalScreen::screen() const
@@ -59,3 +65,9 @@ void TerminalScreen::inputMethodEvent(QInputMethodEvent *event)
     m_screen->sendKey(commitString, key, 0);
 }
 
+void TerminalScreen::hangupReceived()
+{
+    qDebug() << "hangup received";
+    emit aboutToBeDestroyed(this);
+    deleteLater();
+}

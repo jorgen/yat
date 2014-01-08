@@ -23,7 +23,7 @@
 
 import QtQuick 2.0
 import QtQuick.Window 2.0
-import QtQuick.Controls 1.0
+import QtQuick.Controls 1.1
 
 Window {
     id: terminalWindow
@@ -35,14 +35,62 @@ Window {
         focus: true
 
         Component.onCompleted: {
-            var tab = tabView.addTab("some text", Qt.createComponent("TerminalScreen.qml"));
-            tab.item.forceActiveFocus();
-            terminalWindow.color = Qt.binding(function() { return tabView.getTab(tabView.currentIndex).item.screen.defaultBackgroundColor;});
+            add_terminal();
+            set_current_terminal_visible(0);
             terminalWindow.show();
         }
 
+        function add_terminal()
+        {
+            var tab = tabView.addTab("", Qt.createComponent("TerminalScreen.qml"));
+            tab.active = true;
+            tab.title = Qt.binding(function() { return tab.item.screen.title; } );
+            tab.item.aboutToBeDestroyed.connect(destroy_tab);
+
+        }
+        function destroy_tab(screenItem) {
+            for (var i = 0; i < tabView.count; i++) {
+                if (tabView.getTab(i).item === screenItem) {
+                    tabView.removeTab(i);
+                    break;
+                }
+            }
+        }
+
+        function set_current_terminal_visible(index) {
+            terminalWindow.color = Qt.binding(function() { return tabView.getTab(index).item.screen.defaultBackgroundColor;})
+            tabView.getTab(index).item.forceActiveFocus();
+        }
+
         onCurrentIndexChanged: {
-            background.color = Qt.binding(function() { return tabView.getTab(tabView.currentIndex).item.screen.defaultBackgroundColor;})
+            set_current_terminal_visible(tabView.current);
+        }
+
+        Action {
+            id: newTabAction
+            shortcut: "Ctrl+Shift+T"
+            onTriggered: {
+                tabView.add_terminal();
+                tabView.set_current_terminal_visible(tabView.count - 1);
+            }
+        }
+        Action {
+            id: nextTabAction
+            shortcut: "Ctrl+}" //Need to figure out how to allow the shift to be specified
+            onTriggered: {
+                tabView.currentIndex = (tabView.currentIndex + 1) % tabView.count;
+            }
+        }
+        Action {
+            id: previousTabAction
+            shortcut: "Ctrl+{"
+            onTriggered: {
+                if (tabView.currentIndex > 0) {
+                    tabView.currentIndex--;
+                } else {
+                    tabView.currentIndex = tabView.count -1;
+                }
+            }
         }
     }
 
