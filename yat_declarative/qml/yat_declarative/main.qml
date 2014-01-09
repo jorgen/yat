@@ -49,8 +49,13 @@ Window {
 
         }
         function destroy_tab(screenItem) {
+            if (tabView.count == 1) {
+                Qt.quit();
+                return;
+            }
             for (var i = 0; i < tabView.count; i++) {
                 if (tabView.getTab(i).item === screenItem) {
+                    tabView.getTab(i).item.parent = null;
                     tabView.removeTab(i);
                     break;
                 }
@@ -63,6 +68,10 @@ Window {
         }
 
         onCurrentIndexChanged: {
+            set_current_terminal_visible(tabView.current);
+        }
+
+        onCountChanged: {
             set_current_terminal_visible(tabView.current);
         }
 

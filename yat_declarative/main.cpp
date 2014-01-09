@@ -42,5 +42,6 @@ int main(int argc, char **argv)
     }
     component.create();
 
+    QObject::connect(&engine, &QQmlEngine::quit, &app, &QCoreApplication::quit);
     return app.exec();
 }

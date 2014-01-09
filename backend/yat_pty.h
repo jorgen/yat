@@ -27,6 +27,8 @@
 #include <QtCore/QLinkedList>
 #include <QtCore/QMutex>
 
+class QSocketNotifier;
+
 class YatPty : public QObject
 {
     Q_OBJECT
@@ -54,6 +56,7 @@ private:
     char m_slave_file_name[PATH_MAX];
     struct winsize *m_winsize;
     char m_data_buffer[1024];
+    QSocketNotifier *m_reader;
 };
 
 #endif //YAT_PTY_H

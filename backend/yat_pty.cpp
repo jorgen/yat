@@ -67,8 +67,8 @@ YatPty::YatPty()
         exit(0);
     }
 
-    QSocketNotifier *reader = new QSocketNotifier(m_master_fd,QSocketNotifier::Read,this);
-    connect(reader, &QSocketNotifier::activated, this, &YatPty::readData);
+    m_reader = new QSocketNotifier(m_master_fd,QSocketNotifier::Read,this);
+    connect(m_reader, &QSocketNotifier::activated, this, &YatPty::readData);
 }
 
 YatPty::~YatPty()
@@ -131,9 +131,8 @@ void YatPty::readData()
     if (read_size > 0) {
         QByteArray to_return = QByteArray::fromRawData(m_data_buffer,read_size);
         emit readyRead(to_return);
-    } else if (read_size < 0) {
-        emit hangupReceived();
-    } else {
+    } else if (read_size <= 0) {
+        delete m_reader;
         emit hangupReceived();
     }
 }
