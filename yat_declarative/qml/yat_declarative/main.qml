@@ -36,7 +36,7 @@ Window {
 
         Component.onCompleted: {
             add_terminal();
-            set_current_terminal_visible(0);
+            set_current_terminal_active(0);
             terminalWindow.show();
         }
 
@@ -46,6 +46,7 @@ Window {
             tab.active = true;
             tab.title = Qt.binding(function() { return tab.item.screen.title; } );
             tab.item.aboutToBeDestroyed.connect(destroy_tab);
+            tabView.currentIndex = tabView.count - 1;
 
         }
         function destroy_tab(screenItem) {
@@ -55,6 +56,8 @@ Window {
             }
             for (var i = 0; i < tabView.count; i++) {
                 if (tabView.getTab(i).item === screenItem) {
+                    if (i === 0)
+                        tabView.currentIndex = 1;
                     tabView.getTab(i).item.parent = null;
                     tabView.removeTab(i);
                     break;
@@ -62,17 +65,13 @@ Window {
             }
         }
 
-        function set_current_terminal_visible(index) {
+        function set_current_terminal_active(index) {
             terminalWindow.color = Qt.binding(function() { return tabView.getTab(index).item.screen.defaultBackgroundColor;})
             tabView.getTab(index).item.forceActiveFocus();
         }
 
         onCurrentIndexChanged: {
-            set_current_terminal_visible(tabView.current);
-        }
-
-        onCountChanged: {
-            set_current_terminal_visible(tabView.current);
+            set_current_terminal_active(tabView.currentIndex);
         }
 
         Action {
@@ -80,19 +79,18 @@ Window {
             shortcut: "Ctrl+Shift+T"
             onTriggered: {
                 tabView.add_terminal();
-                tabView.set_current_terminal_visible(tabView.count - 1);
             }
         }
         Action {
             id: nextTabAction
-            shortcut: "Ctrl+}" //Need to figure out how to allow the shift to be specified
+            shortcut: "Ctrl+Shift+]"
             onTriggered: {
                 tabView.currentIndex = (tabView.currentIndex + 1) % tabView.count;
             }
         }
         Action {
             id: previousTabAction
-            shortcut: "Ctrl+{"
+            shortcut: "Ctrl+Shift+["
             onTriggered: {
                 if (tabView.currentIndex > 0) {
                     tabView.currentIndex--;
