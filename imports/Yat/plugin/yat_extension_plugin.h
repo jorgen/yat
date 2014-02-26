@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2013 Jørgen Lind
+* Copyright (c) 2014 Jørgen Lind
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -21,47 +21,18 @@
 *
 *******************************************************************************/
 
-import QtQuick 2.0
+#ifndef YAT_EXTENSION_PLUGIN
+#define YAT_EXTENSION_PLUGIN
 
-import org.yat 1.0
+#include <QtQml/qqmlextensionplugin.h>
 
-ObjectDestructItem {
-    id: cursor
+class YatExtensionPlugin : public QQmlExtensionPlugin
+{
+    Q_OBJECT
+    Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QQmlExtensionInterface/1.0")
+public:
+    void registerTypes(const char *uri);
+    void initializeEngine(QQmlEngine *engine, const char *uri);
+};
 
-    property real fontHeight
-    property real fontWidth
-
-    height: fontHeight
-    width: fontWidth
-    x: objectHandle.x * fontWidth
-    y: objectHandle.y * fontHeight
-    z: 1.1
-
-    visible: objectHandle.visible
-
-    ShaderEffect {
-        anchors.fill: parent
-
-        property variant source: fragmentSource
-
-        fragmentShader:
-            "uniform lowp float qt_Opacity;" +
-            "uniform sampler2D source;" +
-            "varying highp vec2 qt_TexCoord0;" +
-
-            "void main() {" +
-            "   lowp vec4 color = texture2D(source, qt_TexCoord0 ) * qt_Opacity;" +
-            "   gl_FragColor = vec4(1.0 - color.r, 1.0 - color.g, 1.0 - color.b, color.a);" +
-            "}"
-
-        ShaderEffectSource {
-            id: fragmentSource
-
-            sourceItem: textContainer
-            live: true
-
-            sourceRect: Qt.rect(cursor.x,cursor.y,cursor.width,cursor.height);
-        }
-    }
-}
-
+#endif

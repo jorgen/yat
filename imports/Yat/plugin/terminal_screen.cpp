@@ -18,30 +18,55 @@
 *
 ***************************************************************************************************/
 
-#include <QtGui/QGuiApplication>
-#include <QtCore/QResource>
-#include <QtCore/QThread>
-
-#include <QQmlEngine>
-
-#include "register_qml_types.h"
 #include "terminal_screen.h"
-#include "yat_pty.h"
 
-int main(int argc, char **argv)
+TerminalScreen::TerminalScreen(QQuickItem *parent)
+    : QQuickItem(parent)
+    , m_screen(new Screen(this))
 {
-    QGuiApplication app(argc, argv);
+    setFlag(QQuickItem::ItemAcceptsInputMethod);
+    connect(m_screen, &Screen::hangup, this, &TerminalScreen::hangupReceived);
+}
 
-    register_qml_types();
+TerminalScreen::~TerminalScreen()
+{
+    delete m_screen;
+}
 
-    QQmlEngine engine;
-    QQmlComponent component(&engine, QUrl("qrc:/qml/yat_declarative/main.qml"));
-    auto errors = component.errors();
-    for (int i = 0; i < errors.size(); i++) {
-        qDebug() << errors.at(i).toString();
+Screen *TerminalScreen::screen() const
+{
+    return m_screen;
+}
+
+QVariant TerminalScreen::inputMethodQuery(Qt::InputMethodQuery query) const
+{
+    switch (query) {
+    case Qt::ImEnabled:
+        return QVariant(true);
+    case Qt::ImHints:
+        return QVariant(Qt::ImhNoAutoUppercase | Qt::ImhNoPredictiveText);
+    default:
+        return QVariant();
     }
-    component.create();
+}
 
-    QObject::connect(&engine, &QQmlEngine::quit, &app, &QCoreApplication::quit);
-    return app.exec();
+void TerminalScreen::inputMethodEvent(QInputMethodEvent *event)
+{
+    QString commitString = event->commitString();
+    if (commitString.isEmpty()) {
+        return;
+    }
+
+    Qt::Key key = Qt::Key_unknown;
+    if (commitString == " ") {
+        key = Qt::Key_Space; // screen requires
+    }
+
+    m_screen->sendKey(commitString, key, 0);
+}
+
+void TerminalScreen::hangupReceived()
+{
+    emit aboutToBeDestroyed(this);
+    deleteLater();
 }

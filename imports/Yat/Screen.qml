@@ -24,23 +24,29 @@
 import QtQuick 2.0
 import QtQuick.Controls 1.1
 
-import org.yat 1.0
+import Yat 1.0 as Yat
 
-TerminalScreen {
+Yat.TerminalScreen {
     id: screenItem
 
     property font font
     property real fontWidth: fontMetricText.paintedWidth
     property real fontHeight: fontMetricText.paintedHeight
 
-    property var lineComponent : Qt.createComponent("TerminalLine.qml")
-    property var textComponent : Qt.createComponent("TerminalText.qml")
-    property var cursorComponent : Qt.createComponent("TerminalCursor.qml")
-
     font.family: screen.platformName != "cocoa" ? "monospace" : "menlo"
     anchors.fill: parent
     focus: true
 
+    Component {
+        id: textComponent
+        Yat.Text {
+        }
+    }
+    Component {
+        id: cursorComponent
+        Yat.Cursor {
+        }
+    }
     Action {
         id: copyAction
         shortcut: "Ctrl+Shift+C"
@@ -93,7 +99,7 @@ TerminalScreen {
             width: parent.width
             height: screen.contentHeight * screenItem.fontHeight
 
-            HighlightArea {
+            Selection {
                 characterHeight: fontHeight
                 characterWidth: fontWidth
                 screenWidth: screenItem.width
@@ -144,7 +150,7 @@ TerminalScreen {
                     "font" : screenItem.font,
                     "fontWidth" : screenItem.fontWidth,
                     "fontHeight" : screenItem.fontHeight,
-                })
+                });
         }
 
         onCursorCreated: {
@@ -183,6 +189,7 @@ TerminalScreen {
     onHeightChanged: {
         setTerminalHeight();
     }
+
     Component.onCompleted: {
         setTerminalWidth();
         setTerminalHeight();
@@ -261,7 +268,7 @@ TerminalScreen {
                 screen.selection.startY = line;
                 screen.selection.endX = drag_start_x;
                 screen.selection.endY = drag_start_y;
-            }else {
+            } else {
                 screen.selection.startX = drag_start_x;
                 screen.selection.startY = drag_start_y;
                 screen.selection.endX = character;

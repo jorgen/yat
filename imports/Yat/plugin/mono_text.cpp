@@ -78,7 +78,7 @@ public:
 
         deleteContent();
         QSGRenderContext *sgr = QQuickItemPrivate::get(m_owner)->sceneGraphRenderContext();
-        QSGGlyphNode *node = sgr->sceneGraphContext()->createGlyphNode(sgr);
+        QSGGlyphNode *node = sgr->sceneGraphContext()->createGlyphNode(sgr, false);
         node->setOwnerElement(m_owner);
         node->geometry()->setIndexDataPattern(QSGGeometry::StaticPattern);
         node->geometry()->setVertexDataPattern(QSGGeometry::StaticPattern);
@@ -110,7 +110,7 @@ public:
         QList<QGlyphRun> glyphRuns = line.glyphRuns();
         qreal xpos = 0;
         for (int i = 0; i < glyphRuns.size(); i++) {
-            QSGGlyphNode *node = sgr->sceneGraphContext()->createGlyphNode(sgr);
+            QSGGlyphNode *node = sgr->sceneGraphContext()->createGlyphNode(sgr, false);
             node->setOwnerElement(m_owner);
             node->geometry()->setIndexDataPattern(QSGGeometry::StaticPattern);
             node->geometry()->setVertexDataPattern(QSGGeometry::StaticPattern);

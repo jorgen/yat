@@ -321,10 +321,10 @@ void Screen::dispatchChanges()
     currentScreenData()->dispatchLineEvents();
     emit dispatchTextSegmentChanges();
 
+    //be smarter than this
     static int max_to_delete_size = 0;
     if (max_to_delete_size < m_to_delete.size()) {
         max_to_delete_size = m_to_delete.size();
-        qDebug() << "TO DELETE SIZE :" << max_to_delete_size;
     }
 
     if (m_flash) {

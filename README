@@ -1,6 +1,6 @@
-YAT is a terminal emulator written in qml and c++
+Yat is a qml plugin for the a VT100 emulation screen and an example of how to use this plugin
 
-The main goal of the project was to find out if it was possible to use qml to
-write a terminal emulator which performed on par with xterm and konsole.
-
-Turns out, it's possible.
+Do
+$ qmake && make
+in the top level directory. Then you can run the example from the same directory with the command:
+$ qmlscene -I imports yat_app/main.qml

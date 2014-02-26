@@ -23,7 +23,7 @@
 
 import QtQuick 2.0
 
-import org.yat 1.0
+import Yat 1.0
 
 ObjectDestructItem {
     id: textItem
@@ -55,6 +55,8 @@ ObjectDestructItem {
             font.underline: objectHandle.underline
             latin: objectHandle.latin
 
+            onTextChanged: {
+            }
             SequentialAnimation {
                 running: objectHandle.blinking
                 loops: Animation.Infinite

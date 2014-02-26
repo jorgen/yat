@@ -25,6 +25,8 @@ import QtQuick 2.0
 import QtQuick.Window 2.0
 import QtQuick.Controls 1.1
 
+import Yat 1.0 as Yat
+
 Window {
     id: terminalWindow
 
@@ -40,9 +42,15 @@ Window {
             terminalWindow.show();
         }
 
+        Component {
+            id: terminalScreenComponent
+            Yat.Screen {
+            }
+        }
+
         function add_terminal()
         {
-            var tab = tabView.addTab("", Qt.createComponent("TerminalScreen.qml"));
+            var tab = tabView.addTab("", terminalScreenComponent);
             tab.active = true;
             tab.title = Qt.binding(function() { return tab.item.screen.title; } );
             tab.item.aboutToBeDestroyed.connect(destroy_tab);
