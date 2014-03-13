@@ -2,6 +2,8 @@ QT += core-private gui-private qml-private quick quick-private
 TARGET = yat_qml_plugin
 TEMPLATE = lib
 CONFIG += plugin
+TARGETPATH = Yat
+DESTDIR = ../../qml/$$TARGETPATH
 
 include(../../backend/backend.pri)
 
@@ -18,8 +20,23 @@ HEADERS += \
           plugin/yat_extension_plugin.h \
 
 OTHER_FILES = \
-              Line.qml \
-              Screen.qml \
+              qmldir \
+              Cursor.qml \
               Text.qml \
+              Screen.qml \
               Selection.qml
 
+isEmpty(YAT_INSTALL_QML):YAT_INSTALL_QML = $$[QT_INSTALL_QML]
+
+target.path = $$YAT_INSTALL_QML/$$TARGETPATH
+INSTALLS += target
+
+other_files.files = $$OTHER_FILES
+other_files.path = $$YAT_INSTALL_QML/$$TARGETPATH
+INSTALLS += other_files
+
+for(other_file, OTHER_FILES) {
+    ARGUMENTS = $${PWD}$${QMAKE_DIR_SEP}$$other_file $$DESTDIR
+    !isEmpty(QMAKE_POST_LINK):QMAKE_POST_LINK += &&
+    QMAKE_POST_LINK += $$QMAKE_COPY $$replace(ARGUMENTS, /, $$QMAKE_DIR_SEP)
+}
