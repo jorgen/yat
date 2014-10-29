@@ -7,7 +7,7 @@ CONFIG += ordered
     message(Tests are disabled)
 }
 
-SUBDIRS += imports
+SUBDIRS += qml
 
 CONFIG_VARS = $${OUT_PWD}$${QMAKE_DIR_SEP}.config.vars
 QMAKE_CACHE = $${OUT_PWD}$${QMAKE_DIR_SEP}.qmake.cache

@@ -8,4 +8,4 @@ yat.pro.user.2.6pre1
 yat_declarative/qrc_qml_sources.cpp
 *.o
 moc_*
-qml/Yat/*
+imports/Yat/*

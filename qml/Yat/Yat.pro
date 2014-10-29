@@ -3,7 +3,7 @@ TARGET = yat_qml_plugin
 TEMPLATE = lib
 CONFIG += plugin
 TARGETPATH = Yat
-DESTDIR = ../../qml/$$TARGETPATH
+DESTDIR = ../../imports/$$TARGETPATH
 
 include(../../backend/backend.pri)
 
