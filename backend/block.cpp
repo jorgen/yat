@@ -543,7 +543,7 @@ void Block::mergeCompatibleStyles()
     for (int i = 1; i < m_style_list.size(); i++) {
         TextStyleLine &current = m_style_list[i];
         if (m_style_list.at(i - 1).isCompatible(current) &&
-                current.start_index % m_width != 0) {
+                current.start_index % m_width) {
             TextStyleLine &prev = m_style_list[i-1];
             prev.end_index = current.end_index;
             prev.text_dirty = true;

@@ -1,7 +1,6 @@
 #include "../../../backend/block.h"
 #include <QtTest/QtTest>
 
-#include <QtQml/QQmlEngine>
 #include "../../../backend/screen.h"
 #include "../../../backend/screen_data.h"
 
@@ -903,9 +902,8 @@ void tst_Block::insertCharacters3Segments()
     int expected_size = block_size + insert_text.size();
     QCOMPARE(block->textLine().size(), expected_size);
 
-    block->printStyleList();
     QVector<TextStyleLine> style_list = block->style_list();
-    QCOMPARE(style_list.size(), 6);
+    QCOMPARE(style_list.size(), 7);
 
     const TextStyleLine &first_style = style_list.at(0);
     QCOMPARE(first_style.start_index, 0);
@@ -929,13 +927,18 @@ void tst_Block::insertCharacters3Segments()
 
     const TextStyleLine &fith_style = style_list.at(4);
     QCOMPARE(fith_style.start_index, 20 + insert_text.size() + replace_text2.size());
-    QCOMPARE(fith_style.end_index, block_size - replace_text.size() + insert_text.size() - 1);
+    QCOMPARE(fith_style.end_index, 99);
     QCOMPARE(fith_style.style, blockHandler.default_text_style);
 
     const TextStyleLine &sixth_style = style_list.at(5);
-    QCOMPARE(sixth_style.start_index, block_size - replace_text.size() + insert_text.size());
-    QCOMPARE(sixth_style.end_index, block_size + insert_text.size() - 1);
-    QCOMPARE(sixth_style.style, TextStyle::Bold);
+    QCOMPARE(sixth_style.start_index, 100);
+    QCOMPARE(sixth_style.end_index, 112);
+    QCOMPARE(sixth_style.style, blockHandler.default_text_style);
+
+    const TextStyleLine &seventh_style = style_list.at(6);
+    QCOMPARE(seventh_style.start_index, 113);
+    QCOMPARE(seventh_style.end_index, block->textSize() -1);
+    QCOMPARE(seventh_style.style, TextStyle::Bold);
 }
 
 #include <tst_block.moc>
