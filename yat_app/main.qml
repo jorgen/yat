@@ -32,7 +32,8 @@ Window {
 
     TabView {
         id: tabView
-        anchors.fill: contentItem
+        frameVisible: false
+        anchors.fill: parent
         tabsVisible: count > 1
         focus: true
 
