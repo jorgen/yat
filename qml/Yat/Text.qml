@@ -50,7 +50,6 @@ ObjectDestructItem {
             color: objectHandle.foregroundColor
             font.family: textItem.font.family
             font.pixelSize: textItem.font.pixelSize
-            font.pointSize: textItem.font.pointSize
             font.bold: objectHandle.bold
             font.underline: objectHandle.underline
             latin: objectHandle.latin
