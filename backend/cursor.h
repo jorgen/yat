@@ -58,6 +58,8 @@ public:
 
     void setTextStyleColor(ushort color);
     ColorPalette *colorPalette() const;
+    void setTextForegroundColor(const QColor &color);
+    void setTextBackgroundColor(const QColor &color);
 
     QPoint position() const;
     int x() const;

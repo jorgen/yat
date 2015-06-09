@@ -32,6 +32,7 @@ public:
     QColor color(Color color, bool bold) const;
     QColor normalColor(Color color) const;
     QColor lightColor(Color color) const;
+    static QColor xtermColor(int index);
 
     void setInverseDefaultColors(bool inverse);
 
@@ -44,6 +45,7 @@ private:
     QVector<QColor> m_normalColors;
     QVector<QColor> m_lightColors;
     QVector<QColor> m_intenseColors;
+    static QVector<QColor> m_xtermColors;
 
     bool m_inverse_default;
 };

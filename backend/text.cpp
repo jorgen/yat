@@ -230,9 +230,9 @@ void Text::setBackgroundColor()
 {
     QColor new_background;
     if (m_style.style & TextStyle::Inverse) {
-        new_background = m_screen->colorPalette()->color(m_style.forground, false);
+        new_background = m_style.forground;
     } else {
-        new_background = m_screen->colorPalette()->color(m_style.background, false);
+        new_background = m_style.background;
     }
     if (new_background != m_backgroundColor) {
         m_backgroundColor = new_background;
@@ -244,9 +244,9 @@ void Text::setForgroundColor()
 {
     QColor new_forground;
     if (m_style.style & TextStyle::Inverse) {
-        new_forground = m_screen->colorPalette()->color(m_style.background, false);
+        new_forground = m_style.background;
     } else {
-        new_forground = m_screen->colorPalette()->color(m_style.forground, false);
+        new_forground = m_style.forground;
     }
     if (new_forground != m_forgroundColor) {
         m_forgroundColor = new_forground;
