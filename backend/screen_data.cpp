@@ -369,6 +369,8 @@ const SelectionRange ScreenData::getDoubleClickSelectionRange(size_t character, 
 const CursorDiff ScreenData::modify(const QPoint &point, const QString &text, const TextStyle &style, bool replace, bool only_latin)
 {
     auto it = it_for_row(point.y());
+    if (it == m_screen_blocks.end())
+        return { 0, 0 };
     Block *block = *it;
     const int start_char = (point.y() - block->screenIndex()) * m_width + point.x();
     const size_t lines_before = block->lineCount();

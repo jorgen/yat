@@ -54,9 +54,9 @@ void Scrollback::addBlock(Block *block)
     m_block_count++;
     m_height += m_blocks.back()->lineCount();
 
-    while (m_height - m_blocks.front()->lineCount() >= m_max_size) {
+    while (m_blocks.front() != block && m_height - m_blocks.front()->lineCount() >= m_max_size) {
         m_block_count--;
-        m_height -= m_blocks.front()->lineCount();
+        m_height -= std::min(m_blocks.front()->lineCount(), (int)m_height);
         delete m_blocks.front();
         m_blocks.pop_front();
         m_adjust_visible_pages++;
