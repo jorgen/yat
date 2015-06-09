@@ -2,8 +2,11 @@
 #define COLOR_PALETTE_H
 
 #include <QtCore/QVector>
+#include <QtCore/QObject>
 
 #include <QtGui/QColor>
+
+
 
 class ColorPalette : public QObject
 {
