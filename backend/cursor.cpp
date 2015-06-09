@@ -208,12 +208,12 @@ void Cursor::setTextStyleColor(ushort color)
     }
 }
 
-void Cursor::setTextForegroundColor(const QColor &color)
+void Cursor::setTextForegroundColor(const QRgb &color)
 {
     m_current_text_style.forground = color;
 }
 
-void Cursor::setTextBackgroundColor(const QColor &color)
+void Cursor::setTextBackgroundColor(const QRgb &color)
 {
     m_current_text_style.background = color;
 }

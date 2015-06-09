@@ -1284,11 +1284,11 @@ void Parser::handleSGR()
 }
 
 void Parser::handleXtermColor(int param, int i) {
-    QColor color;
+    QRgb color;
     switch (m_parameters.at(++i)) {
         case 5:
             if (m_parameters.size() >= 3)
-                color = ColorPalette::xtermColor(m_parameters.at(++i));
+                color = ColorPalette::xtermRgb(m_parameters.at(++i));
             else
                 qDebug() << "8-bit color bytes unexpected" << m_parameters;
             break;

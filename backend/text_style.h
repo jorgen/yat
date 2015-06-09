@@ -29,8 +29,8 @@ public:
     TextStyle();
 
     Styles style;
-    QColor forground;
-    QColor background;
+    QRgb forground;
+    QRgb background;
 
     bool isCompatible(const TextStyle &other) const;
 };
