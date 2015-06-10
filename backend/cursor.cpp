@@ -208,6 +208,16 @@ void Cursor::setTextStyleColor(ushort color)
     }
 }
 
+void Cursor::setTextForegroundColor(const QRgb &color)
+{
+    m_current_text_style.forground = color;
+}
+
+void Cursor::setTextBackgroundColor(const QRgb &color)
+{
+    m_current_text_style.background = color;
+}
+
 ColorPalette *Cursor::colorPalette() const
 {
     return m_screen->colorPalette();

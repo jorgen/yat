@@ -75,6 +75,7 @@ private:
     void resetDecMode(int mode);
 
     void handleSGR();
+    void handleXtermColor(int param, int i);
 
     void tokenFinished();
 

@@ -1258,7 +1258,11 @@ void Parser::handleSGR()
             case 35:
             case 36:
             case 37:
-                //                                case 38:
+                break;
+            case 38:
+            case 48:
+                handleXtermColor(m_parameters.at(i), i);
+                break;
             case 39:
             case 40:
             case 41:
@@ -1268,7 +1272,6 @@ void Parser::handleSGR()
             case 45:
             case 46:
             case 47:
-                //                                case 38:
             case 49:
                 m_screen->currentCursor()->setTextStyleColor(m_parameters.at(i));
                 break;
@@ -1278,6 +1281,28 @@ void Parser::handleSGR()
         }
 
     }
+}
+
+void Parser::handleXtermColor(int param, int i) {
+    QRgb color;
+    switch (m_parameters.at(++i)) {
+        case 5:
+            if (m_parameters.size() >= 3)
+                color = ColorPalette::xtermRgb(m_parameters.at(++i));
+            else
+                qDebug() << "8-bit color bytes unexpected" << m_parameters;
+            break;
+        case 2:
+            if (m_parameters.size() == 5)
+                color = QColor(m_parameters.at(i + 1), m_parameters.at(i + 2), m_parameters.at(i + 3)).rgb();
+            else
+                qDebug() << "24-bit color bytes unexpected" << m_parameters;
+            break;
+    }
+    if (param == 38)
+        m_screen->currentCursor()->setTextForegroundColor(color);
+    else
+        m_screen->currentCursor()->setTextBackgroundColor(color);
 }
 
 void Parser::tokenFinished()
