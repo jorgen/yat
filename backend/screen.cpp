@@ -91,9 +91,9 @@ Screen::~Screen()
 }
 
 
-QColor Screen::defaultForgroundColor() const
+QColor Screen::defaultForegroundColor() const
 {
-    return m_palette->normalColor(ColorPalette::DefaultForground);
+    return m_palette->normalColor(ColorPalette::DefaultForeground);
 }
 
 QColor Screen::defaultBackgroundColor() const
@@ -199,7 +199,7 @@ TextStyle Screen::defaultTextStyle() const
 {
     TextStyle style;
     style.style = TextStyle::Normal;
-    style.forground = ColorPalette::DefaultForground;
+    style.foreground = ColorPalette::DefaultForeground;
     style.background = ColorPalette::DefaultBackground;
     return style;
 }

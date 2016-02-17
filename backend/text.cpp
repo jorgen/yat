@@ -42,7 +42,7 @@ Text::Text(Screen *screen)
     , m_visible_old(true)
     , m_latin(true)
     , m_latin_old(true)
-    , m_forgroundColor(m_screen->defaultForgroundColor())
+    , m_foregroundColor(m_screen->defaultForegroundColor())
     , m_backgroundColor(m_screen->defaultBackgroundColor())
 {
     connect(m_screen->colorPalette(), SIGNAL(changed()), this, SLOT(paletteChanged()));
@@ -88,7 +88,7 @@ QString Text::text() const
 
 QColor Text::foregroundColor() const
 {
-    return m_forgroundColor;
+    return m_foregroundColor;
 }
 
 
@@ -170,7 +170,7 @@ void Text::dispatchEvents()
     if (m_style_dirty) {
         m_style_dirty = false;
 
-        bool emit_forground = m_new_style.forground != m_style.forground;
+        bool emit_foreground = m_new_style.foreground != m_style.foreground;
         bool emit_background = m_new_style.background != m_style.background;
         TextStyle::Styles new_style = m_new_style.style;
         TextStyle::Styles old_style = m_style.style;
@@ -188,11 +188,11 @@ void Text::dispatchEvents()
 
         m_style = m_new_style;
         if (emit_inverse) {
-            setForgroundColor();
+            setForegroundColor();
             setBackgroundColor();
         } else {
-            if (emit_forground || emit_bold) {
-                setForgroundColor();
+            if (emit_foreground || emit_bold) {
+                setForegroundColor();
             }
             if (emit_background) {
                 setBackgroundColor();
@@ -223,14 +223,14 @@ void Text::dispatchEvents()
 void Text::paletteChanged()
 {
     setBackgroundColor();
-    setForgroundColor();
+    setForegroundColor();
 }
 
 void Text::setBackgroundColor()
 {
     QColor new_background;
     if (m_style.style & TextStyle::Inverse) {
-        new_background = m_style.forground;
+        new_background = m_style.foreground;
     } else {
         new_background = m_style.background;
     }
@@ -240,16 +240,16 @@ void Text::setBackgroundColor()
     }
 }
 
-void Text::setForgroundColor()
+void Text::setForegroundColor()
 {
-    QColor new_forground;
+    QColor new_foreground;
     if (m_style.style & TextStyle::Inverse) {
-        new_forground = m_style.background;
+        new_foreground = m_style.background;
     } else {
-        new_forground = m_style.forground;
+        new_foreground = m_style.foreground;
     }
-    if (new_forground != m_forgroundColor) {
-        m_forgroundColor = new_forground;
-        emit forgroundColorChanged();
+    if (new_foreground != m_foregroundColor) {
+        m_foregroundColor = new_foreground;
+        emit foregroundColorChanged();
     }
 }

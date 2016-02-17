@@ -280,10 +280,10 @@ ColorPalette::ColorPalette(QObject *parent)
 QColor ColorPalette::color(ColorPalette::Color color, bool bold) const
 {
     if (m_inverse_default) {
-        if (color == DefaultForground)
+        if (color == DefaultForeground)
             color = DefaultBackground;
         else if (color == DefaultBackground)
-            color = DefaultForground;
+            color = DefaultForeground;
     }
     if (bold)
         return m_lightColors.at(color);

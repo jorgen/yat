@@ -24,7 +24,7 @@ public:
         Magenta,
         Cyan,
         White,
-        DefaultForground,
+        DefaultForeground,
         DefaultBackground,
         numberOfColors
     };

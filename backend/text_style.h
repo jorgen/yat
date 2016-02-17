@@ -29,7 +29,7 @@ public:
     TextStyle();
 
     Styles style;
-    QRgb forground;
+    QRgb foreground;
     QRgb background;
 
     bool isCompatible(const TextStyle &other) const;
@@ -74,7 +74,7 @@ public:
     bool text_dirty;
 
     void setStyle(const TextStyle &style) {
-        forground = style.forground;
+        foreground = style.foreground;
         background = style.background;
         this->style = style.style;
     }

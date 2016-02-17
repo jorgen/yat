@@ -395,41 +395,41 @@ void tst_Block::replaceIncompatibleColor()
 
     QString first_text("291 ");
     TextStyleLine replace_style;
-    replace_style.forground = ColorPalette::Yellow;
+    replace_style.foreground = ColorPalette::Yellow;
     block->replaceAtPos(0,first_text, replace_style);
 
     QString second_text("QPointF Screen::selectionAreaStart() ");
-    replace_style.forground = blockHandler.default_style.forground;
+    replace_style.foreground = blockHandler.default_style.foreground;
     block->replaceAtPos(first_text.size(), second_text, replace_style);
 
     QString third_text("const");
-    replace_style.forground = ColorPalette::Green;
+    replace_style.foreground = ColorPalette::Green;
     block->replaceAtPos(first_text.size() + second_text.size(), third_text, replace_style);
 
     QString brackets("()");
-    replace_style.forground = ColorPalette::Cyan;
+    replace_style.foreground = ColorPalette::Cyan;
     block->replaceAtPos(38, brackets, replace_style);
 
     QVector<TextStyleLine> after_style_list = block->style_list();
 
     const TextStyleLine &first_style = after_style_list.at(0);
-    qDebug() << first_style.forground << palette.color(ColorPalette::Yellow, false);
-//    QCOMPARE(first_style.forground, palette.color(ColorPalette::Yellow, false)); // fails
+    qDebug() << first_style.foreground << palette.color(ColorPalette::Yellow, false);
+//    QCOMPARE(first_style.foreground, palette.color(ColorPalette::Yellow, false)); // fails
     QCOMPARE(first_style.start_index, 0);
     QCOMPARE(first_style.end_index, first_text.size() - 1);
 
     const TextStyleLine &second_style = after_style_list.at(1);
-    QCOMPARE(second_style.forground, blockHandler.default_style.forground);
+    QCOMPARE(second_style.foreground, blockHandler.default_style.foreground);
     QCOMPARE(second_style.start_index, first_text.size());
     QCOMPARE(second_style.end_index, 37);
 
     const TextStyleLine &third_style = after_style_list.at(2);
-//    QCOMPARE(third_style.forground, palette.color(ColorPalette::ColorPalette::Cyan, false)); // fails
+//    QCOMPARE(third_style.foreground, palette.color(ColorPalette::ColorPalette::Cyan, false)); // fails
     QCOMPARE(third_style.start_index, 38);
     QCOMPARE(third_style.end_index, 38 + brackets.size() -1);
 
     const TextStyleLine &fourth_style = after_style_list.at(3);
-    QCOMPARE(fourth_style.forground, blockHandler.default_style.forground);
+    QCOMPARE(fourth_style.foreground, blockHandler.default_style.foreground);
     QCOMPARE(fourth_style.start_index, 38 + brackets.size());
     QCOMPARE(fourth_style.end_index, first_text.size() + second_text.size() -1);
 
