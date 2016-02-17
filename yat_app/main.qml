@@ -23,94 +23,18 @@
 
 import QtQuick 2.0
 import QtQuick.Window 2.0
-import QtQuick.Controls 1.1
 
 import Yat 1.0 as Yat
 
 Window {
     id: terminalWindow
-
-    TabView {
-        id: tabView
-        frameVisible: false
+    Yat.Screen {
+        id: terminal
         anchors.fill: parent
-        tabsVisible: count > 1
-        focus: true
-
-        Component.onCompleted: {
-            add_terminal();
-            set_current_terminal_active(0);
-            terminalWindow.show();
-        }
-
-        Component {
-            id: terminalScreenComponent
-            Yat.Screen {
-            }
-        }
-
-        function add_terminal()
-        {
-            var tab = tabView.addTab("", terminalScreenComponent);
-            tab.active = true;
-            tab.title = Qt.binding(function() { return tab.item.screen.title; } );
-            tab.item.aboutToBeDestroyed.connect(destroy_tab);
-            tabView.currentIndex = tabView.count - 1;
-
-        }
-        function destroy_tab(screenItem) {
-            if (tabView.count == 1) {
-                Qt.quit();
-                return;
-            }
-            for (var i = 0; i < tabView.count; i++) {
-                if (tabView.getTab(i).item === screenItem) {
-                    if (i === 0)
-                        tabView.currentIndex = 1;
-                    tabView.getTab(i).item.parent = null;
-                    tabView.removeTab(i);
-                    break;
-                }
-            }
-        }
-
-        function set_current_terminal_active(index) {
-            terminalWindow.color = Qt.binding(function() { return tabView.getTab(index).item.screen.defaultBackgroundColor;})
-            tabView.getTab(index).item.forceActiveFocus();
-        }
-
-        onCurrentIndexChanged: {
-            set_current_terminal_active(tabView.currentIndex);
-        }
-
-        Action {
-            id: newTabAction
-            shortcut: "Ctrl+Shift+T"
-            onTriggered: {
-                tabView.add_terminal();
-            }
-        }
-        Action {
-            id: nextTabAction
-            shortcut: "Ctrl+Shift+]"
-            onTriggered: {
-                tabView.currentIndex = (tabView.currentIndex + 1) % tabView.count;
-            }
-        }
-        Action {
-            id: previousTabAction
-            shortcut: "Ctrl+Shift+["
-            onTriggered: {
-                if (tabView.currentIndex > 0) {
-                    tabView.currentIndex--;
-                } else {
-                    tabView.currentIndex = tabView.count -1;
-                }
-            }
-        }
+        Component.onCompleted: terminalWindow.visible = true
+        onAboutToBeDestroyed: Qt.quit()
     }
-
     width: 800
     height: 600
-
+    color: terminal.screen.defaultBackgroundColor
 }
