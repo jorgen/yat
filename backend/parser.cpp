@@ -1250,7 +1250,7 @@ void Parser::handleSGR()
             case 28:
                 qDebug() << "SGR: Visible text is allways on";
                 break;
-            case 30:
+            case 30: // Foreground Black
             case 31:
             case 32:
             case 33:
@@ -1258,13 +1258,14 @@ void Parser::handleSGR()
             case 35:
             case 36:
             case 37:
+            case 39: // Foreground Default
+                m_screen->currentCursor()->setTextStyleColor(m_parameters.at(i));
                 break;
             case 38:
             case 48:
                 handleXtermColor(m_parameters.at(i), i);
                 break;
-            case 39:
-            case 40:
+            case 40: // Background black
             case 41:
             case 42:
             case 43:
@@ -1272,7 +1273,7 @@ void Parser::handleSGR()
             case 45:
             case 46:
             case 47:
-            case 49:
+            case 49: // Background default
                 m_screen->currentCursor()->setTextStyleColor(m_parameters.at(i));
                 break;
             default:
