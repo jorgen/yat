@@ -1215,7 +1215,8 @@ void Parser::resetDecMode(int mode)
 void Parser::handleSGR()
 {
     for (int i = 0; i < m_parameters.size();i++) {
-        switch(m_parameters.at(i)) {
+        int param = m_parameters.at(i);
+        switch(param) {
             case 0:
                 //                                    m_screen->setTextStyle(TextStyle::Normal);
                 m_screen->currentCursor()->resetStyle();
@@ -1258,12 +1259,14 @@ void Parser::handleSGR()
             case 35:
             case 36:
             case 37:
+                m_screen->currentCursor()->setTextForegroundColorIndex(ColorPalette::Color(param - 30));
+                break;
             case 39: // Foreground Default
-                m_screen->currentCursor()->setTextStyleColor(m_parameters.at(i));
+                m_screen->currentCursor()->setTextForegroundColorIndex(ColorPalette::DefaultForeground);
                 break;
             case 38:
             case 48:
-                handleXtermColor(m_parameters.at(i), i);
+                handleXtermColor(param, i);
                 break;
             case 40: // Background black
             case 41:
@@ -1273,11 +1276,13 @@ void Parser::handleSGR()
             case 45:
             case 46:
             case 47:
+                m_screen->currentCursor()->setTextBackgroundColorIndex(ColorPalette::Color(param - 40));
+                break;
             case 49: // Background default
-                m_screen->currentCursor()->setTextStyleColor(m_parameters.at(i));
+                m_screen->currentCursor()->setTextBackgroundColorIndex(ColorPalette::DefaultBackground);
                 break;
             default:
-                qDebug() << "Unknown SGR" << m_parameters.at(i);
+                qDebug() << "Unknown SGR" << param;
                 break;
         }
 

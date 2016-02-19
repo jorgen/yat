@@ -192,23 +192,6 @@ TextStyle Cursor::currentTextStyle() const
     return m_current_text_style;
 }
 
-void Cursor::setTextStyleColor(ushort color)
-{
-    Q_ASSERT(color >= 30 && color < 50);
-    if (color < 38) {
-        m_current_text_style.foreground = colorPalette()->color(ColorPalette::Color(color - 30)).rgb();
-    } else if (color == 39) {
-        m_current_text_style.foreground = colorPalette()->color(ColorPalette::DefaultForeground).rgb();
-    } else if (color >= 40 && color < 48) {
-        m_current_text_style.background = colorPalette()->color(ColorPalette::Color(color - 40)).rgb();
-    } else if (color == 49) {
-        m_current_text_style.background = colorPalette()->color(ColorPalette::DefaultBackground).rgb();
-    } else {
-        qDebug() << "Failed to set color";
-    }
-//    qDebug() << color << m_current_text_style.foreground << m_current_text_style.background;
-}
-
 void Cursor::setTextForegroundColor(const QRgb &color)
 {
     m_current_text_style.foreground = color;
@@ -217,6 +200,18 @@ void Cursor::setTextForegroundColor(const QRgb &color)
 void Cursor::setTextBackgroundColor(const QRgb &color)
 {
     m_current_text_style.background = color;
+}
+
+void Cursor::setTextForegroundColorIndex(ColorPalette::Color color)
+{
+    qDebug() << color;
+    setTextForegroundColor(colorPalette()->color(color).rgb());
+}
+
+void Cursor::setTextBackgroundColorIndex(ColorPalette::Color color)
+{
+    qDebug() << color;
+    setTextBackgroundColor(colorPalette()->color(color).rgb());
 }
 
 ColorPalette *Cursor::colorPalette() const

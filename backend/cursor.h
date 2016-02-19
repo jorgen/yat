@@ -56,10 +56,11 @@ public:
     void resetStyle();
     TextStyle currentTextStyle() const;
 
-    void setTextStyleColor(ushort color);
     ColorPalette *colorPalette() const;
     void setTextForegroundColor(const QRgb &color);
     void setTextBackgroundColor(const QRgb &color);
+    void setTextForegroundColorIndex(ColorPalette::Color color);
+    void setTextBackgroundColorIndex(ColorPalette::Color color);
 
     QPoint position() const;
     int x() const;
