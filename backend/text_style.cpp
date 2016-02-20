@@ -7,7 +7,7 @@
 
 TextStyle::TextStyle()
     : style(Normal)
-    , forground(ColorPalette::DefaultForground)
+    , foreground(ColorPalette::DefaultForeground)
     , background(ColorPalette::DefaultBackground)
 {
 
@@ -15,14 +15,14 @@ TextStyle::TextStyle()
 
 bool TextStyle::isCompatible(const TextStyle &other) const
 {
-    return forground == other.forground
+    return foreground == other.foreground
             && background == other.background
             && style == other.style;
 }
 
 QDebug operator<<(QDebug debug, TextStyleLine line)
 {
-    debug << "[" << line.start_index << "(" << line.style << ":" << line.forground << ":" << line.background << ")" << line.end_index << "]";
+    debug << "[" << line.start_index << "(" << line.style << ":" << line.foreground << ":" << line.background << ")" << line.end_index << "]";
     return debug;
 }
 

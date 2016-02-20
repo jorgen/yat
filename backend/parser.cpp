@@ -30,9 +30,10 @@
 
 #include <QtCore/QTextCodec>
 #include <QtCore/QDebug>
+#include <QtCore/QLoggingCategory>
 
 
-static bool yat_parser_debug = qEnvironmentVariableIsSet("YAT_PARSER_DEBUG");
+Q_LOGGING_CATEGORY(lcParser, "yat.parser")
 
 namespace CharacterSet {
 enum CharacterSet {
@@ -104,7 +105,7 @@ QTextCodec *codecForCharacterset(CharacterSet::CharacterSet characterSet) {
             break;
     }
     if (!codec) {
-        qDebug() << "Failed to find codec for" << characterSet << ". Returning utf-8";
+        qCWarning(lcParser) << "Failed to find codec for" << characterSet << ". Returning utf-8";
         return QTextCodec::codecForName("utf-8");
     }
     return codec;
@@ -168,8 +169,7 @@ void Parser::addData(const QByteArray &data)
             if (character < C0::C0_END || m_utf8_decoder.isC1()) {
                 if (m_current_position != m_current_token_start) {
                     const QByteArray to_insert = getByteArrayMidNoCopy(m_current_data, m_current_token_start, m_current_position - m_current_token_start);
-                    if (yat_parser_debug)
-                        qDebug() << "Parser Insert text:" << to_insert;
+                    qCDebug(lcParser) << "Parser Insert text:" << to_insert;
                     m_screen->currentCursor()->addAtCursor(to_insert, m_contains_only_latin);
                     tokenFinished();
                     m_current_token_start--;
@@ -202,8 +202,7 @@ void Parser::addData(const QByteArray &data)
     if (m_decode_state == PlainText) {
         QByteArray to_insert = getByteArrayMidNoCopy(m_current_data, m_current_token_start, m_current_data.size() - m_current_token_start);
         if (to_insert.size()) {
-            if (yat_parser_debug)
-                qDebug() << "Parser Insert text:" << to_insert;
+            qCDebug(lcParser) << "Parser Insert text:" << to_insert;
             m_screen->currentCursor()->addAtCursor(to_insert, m_contains_only_latin);
             tokenFinished();
         }
@@ -213,9 +212,7 @@ void Parser::addData(const QByteArray &data)
 
 void Parser::decodeC0(uchar character)
 {
-    if (yat_parser_debug) {
-        qDebug() << C0::C0(character);
-    }
+    qCDebug(lcParser) << C0::C0(character);
     switch (character) {
     case C0::NUL:
     case C0::SOH:
@@ -224,7 +221,7 @@ void Parser::decodeC0(uchar character)
     case C0::EOT:
     case C0::ENQ:
     case C0::ACK:
-        qDebug() << "Unhandled" << C0::C0(character);
+        qCWarning(lcParser) << "Unhandled" << C0::C0(character);
         if (m_decode_state == DecodeC0)
             tokenFinished();
         break;
@@ -278,7 +275,7 @@ void Parser::decodeC0(uchar character)
     case C0::CAN:
     case C0::EM:
     case C0::SUB:
-        qDebug() << "Unhandled" << C0::C0(character);
+        qCWarning(lcParser) << "Unhandled" << C0::C0(character);
         if (m_decode_state == DecodeC0)
             tokenFinished();
         break;
@@ -297,7 +294,7 @@ void Parser::decodeC0(uchar character)
     case C0::IS2:
     case C0::IS1:
     default:
-        qDebug() << "Unhandled" << C0::C0(character);
+        qCWarning(lcParser) << "Unhandled" << C0::C0(character);
         if (m_decode_state == DecodeC0)
             tokenFinished();
         break;
@@ -306,9 +303,7 @@ void Parser::decodeC0(uchar character)
 
 void Parser::decodeC1_7bit(uchar character)
 {
-    if (yat_parser_debug) {
-        qDebug() << C1_7bit::C1_7bit(character);
-    }
+    qCDebug(lcParser) << C1_7bit::C1_7bit(character);
     switch(character) {
     case C1_7bit::ESC:
         tokenFinished();
@@ -341,18 +336,18 @@ void Parser::decodeC1_7bit(uchar character)
         tokenFinished();
         break;
     case '=':
-        qDebug() << "Application keypad";
+        qCDebug(lcParser) << "Application keypad";
         tokenFinished();
         break;
     case '>':
-        qDebug() << "Normal keypad mode";
+        qCDebug(lcParser) << "Normal keypad mode";
         tokenFinished();
         break;
     case C1_7bit::NOT_DEFINED:
     case C1_7bit::NOT_DEFINED1:
     case C1_7bit::BPH:
     case C1_7bit::NBH:
-        qDebug() << "Unhandled" << C1_7bit::C1_7bit(character);
+        qCWarning(lcParser) << "Unhandled" << C1_7bit::C1_7bit(character);
         tokenFinished();
         break;
     case C1_7bit::IND:
@@ -366,7 +361,7 @@ void Parser::decodeC1_7bit(uchar character)
         break;
     case C1_7bit::SSA:
     case C1_7bit::ESA:
-        qDebug() << "Unhandled" << C1_7bit::C1_7bit(character);
+        qCWarning(lcParser) << "Unhandled" << C1_7bit::C1_7bit(character);
         tokenFinished();
         break;
     case C1_7bit::HTS:
@@ -377,7 +372,7 @@ void Parser::decodeC1_7bit(uchar character)
     case C1_7bit::VTS:
     case C1_7bit::PLD:
     case C1_7bit::PLU:
-        qDebug() << "Unhandled" << C1_7bit::C1_7bit(character);
+        qCWarning(lcParser) << "Unhandled" << C1_7bit::C1_7bit(character);
         tokenFinished();
         break;
     case C1_7bit::RI:
@@ -397,14 +392,14 @@ void Parser::decodeC1_7bit(uchar character)
     case C1_7bit::SOS:
     case C1_7bit::NOT_DEFINED3:
     case C1_7bit::SCI:
-        qDebug() << "Unhandled" << C1_7bit::C1_7bit(character);
+        qCWarning(lcParser) << "Unhandled" << C1_7bit::C1_7bit(character);
         tokenFinished();
         break;
     case C1_7bit::CSI:
         m_decode_state = DecodeCSI;
         break;
     case C1_7bit::ST :
-        qDebug() << "Unhandled" << C1_7bit::C1_7bit(character);
+        qCWarning(lcParser) << "Unhandled" << C1_7bit::C1_7bit(character);
         tokenFinished();
         break;
     case C1_7bit::OSC:
@@ -413,7 +408,7 @@ void Parser::decodeC1_7bit(uchar character)
     case C1_7bit::PM :
     case C1_7bit::APC:
     default:
-        qDebug() << "Unhandled" << C1_7bit::C1_7bit(character);
+        qCWarning(lcParser) << "Unhandled" << C1_7bit::C1_7bit(character);
         tokenFinished();
         break;
     }
@@ -435,7 +430,7 @@ void Parser::decodeParameters(uchar character)
         m_parameter_string.append(character);
         break;
     case 0x3a:
-        qDebug() << "Encountered special delimiter in parameterbyte";
+        qCDebug(lcParser) << "Encountered special delimiter in parameterbyte";
         break;
     case 0x3b:
         if (!m_parameter_string.size()) {
@@ -448,7 +443,7 @@ void Parser::decodeParameters(uchar character)
     case 0x3c:
     case 0x3d:
         appendParameter();
-        qDebug() << "Parameter decoding INVALID RANGE" << char(character);
+        qCWarning(lcParser) << "Parameter decoding INVALID RANGE" << char(character);
         m_parameters.append(-character);
         break;
     case 0x3e:
@@ -456,7 +451,7 @@ void Parser::decodeParameters(uchar character)
             m_gt_param = true;
         } else {
             appendParameter();
-            qDebug() << "unknown parameter state";
+            qCWarning(lcParser) << "unknown parameter state";
         }
         break;
     case 0x3f:
@@ -464,12 +459,12 @@ void Parser::decodeParameters(uchar character)
             m_dec_mode = true;
         } else {
             appendParameter();
-            qDebug() << "unknown parameter state";
+            qCWarning(lcParser) << "unknown parameter state";
         }
         break;
     default:
         //this is undefined for now
-        qDebug() << "Encountered undefined parameter byte";
+        qCWarning(lcParser) << "Encountered undefined parameter byte";
         break;
     }
 }
@@ -487,11 +482,11 @@ void Parser::decodeCSI(uchar character)
             appendParameter();
             if (character >= 0x20 && character <= 0x2f) {
                 if (m_intermediate_char.unicode())
-                    qDebug() << "Warning!: double intermediate bytes found in CSI";
+                    qCWarning(lcParser) << "double intermediate bytes found in CSI";
                 m_intermediate_char = character;
             } else if (character >= 0x40 && character <= 0x7d) {
                 if (m_intermediate_char.unicode()) {
-                    if (yat_parser_debug) {
+                    if (lcParser().isDebugEnabled()) {
                         QDebug debug = qDebug();
                         debug << FinalBytesSingleIntermediate::FinalBytesSingleIntermediate(character);
                         printParameters(m_parameters, debug, m_dec_mode);
@@ -539,12 +534,12 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesSingleIntermediate::SLS:
                     case FinalBytesSingleIntermediate::SCP:
                     default:
-                        qDebug() << "unhandled CSI" << FinalBytesSingleIntermediate::FinalBytesSingleIntermediate(character);
+                        qCWarning(lcParser) << "unhandled CSI" << FinalBytesSingleIntermediate::FinalBytesSingleIntermediate(character);
                         break;
                     }
                     tokenFinished();
                 } else {
-                    if (yat_parser_debug) {
+                    if (lcParser().isDebugEnabled()) {
                         QDebug debug = qDebug();
                         debug << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         printParameters(m_parameters, debug, m_dec_mode);
@@ -581,7 +576,7 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::CNL:
                     case FinalBytesNoIntermediate::CPL:
-                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
+                        qCWarning(lcParser) << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         break;
                     case FinalBytesNoIntermediate::CHA: {
                         Q_ASSERT(m_parameters.size() < 2);
@@ -601,7 +596,7 @@ void Parser::decodeCSI(uchar character)
                         }
                         break;
                     case FinalBytesNoIntermediate::CHT:
-                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
+                        qCWarning(lcParser) << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         break;
                     case FinalBytesNoIntermediate::ED:
                         if (!m_parameters.size()) {
@@ -619,7 +614,7 @@ void Parser::decodeCSI(uchar character)
                                 m_screen->clearScreen();
                                 break;
                             default:
-                                qDebug() << "Invalid parameter value for FinalBytesNoIntermediate::ED";
+                                qCWarning(lcParser) << "Invalid parameter value for FinalBytesNoIntermediate::ED";
                             }
                         }
 
@@ -632,7 +627,7 @@ void Parser::decodeCSI(uchar character)
                         } else if (m_parameters.at(0) == 2) {
                             m_screen->currentCursor()->clearLine();
                         } else{
-                            qDebug() << "Fault when processing FinalBytesNoIntermediate::EL";
+                            qCWarning(lcParser) << "Fault when processing FinalBytesNoIntermediate::EL";
                         }
                         break;
                     case FinalBytesNoIntermediate::IL: {
@@ -653,7 +648,7 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::EF:
                     case FinalBytesNoIntermediate::EA:
-                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
+                        qCWarning(lcParser) << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         break;
                     case FinalBytesNoIntermediate::DCH:{
                         Q_ASSERT(m_parameters.size() < 2);
@@ -678,7 +673,7 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::HPA:
                     case FinalBytesNoIntermediate::HPR:
                     case FinalBytesNoIntermediate::REP:
-                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
+                        qCWarning(lcParser) << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         break;
                     case FinalBytesNoIntermediate::DA:
                         if (m_gt_param) {
@@ -695,7 +690,7 @@ void Parser::decodeCSI(uchar character)
                     }
                         break;
                     case FinalBytesNoIntermediate::VPR:
-                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
+                        qCWarning(lcParser) << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         break;
                     case FinalBytesNoIntermediate::HVP: {
                         Q_ASSERT(m_parameters.size() <= 2);
@@ -718,7 +713,7 @@ void Parser::decodeCSI(uchar character)
                         break;
                     case FinalBytesNoIntermediate::SM:
                         if (!m_parameters.size()) {
-                            qDebug() << FinalBytesNoIntermediate::SM << "called without parameter";
+                            qCWarning(lcParser) << FinalBytesNoIntermediate::SM << "called without parameter";
                             break;
                         }
                         for (int i = 0; i < m_parameters.size(); i++) {
@@ -732,11 +727,11 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::MC:
                     case FinalBytesNoIntermediate::HPB:
                     case FinalBytesNoIntermediate::VPB:
-                        qDebug() << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
+                        qCWarning(lcParser) << "unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         break;
                     case FinalBytesNoIntermediate::RM:
                         if (!m_parameters.size()) {
-                            qDebug() << FinalBytesNoIntermediate::RM << "called without parameter";
+                            qCWarning(lcParser) << FinalBytesNoIntermediate::RM << "called without parameter";
                             break;
                         }
                         for (int i = 0; i < m_parameters.size(); i++) {
@@ -755,18 +750,18 @@ void Parser::decodeCSI(uchar character)
                         handleSGR();
                         break;
                     case FinalBytesNoIntermediate::DSR:
-                        qDebug() << "report";
+                        qCDebug(lcParser) << "report";
                     case FinalBytesNoIntermediate::DAQ:
                     case FinalBytesNoIntermediate::Reserved0:
                     case FinalBytesNoIntermediate::Reserved1:
-                        qDebug() << "Unhandeled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
+                        qCWarning(lcParser) << "Unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         break;
                     case FinalBytesNoIntermediate::DECSTBM:
                         if (m_parameters.size() == 2) {
                             if (m_parameters.at(0) >= 0) {
                                 m_screen->currentCursor()->setScrollArea(m_parameters.at(0) - 1,m_parameters.at(1) - 1);
                             } else {
-                                qDebug() << "Unknown value for scrollRegion" << m_parameters.at(0);
+                                qCWarning(lcParser)<< "Unknown value for scrollRegion" << m_parameters.at(0);
                             }
                         } else {
                             m_screen->currentCursor()->resetScrollArea();
@@ -787,7 +782,7 @@ void Parser::decodeCSI(uchar character)
                     case FinalBytesNoIntermediate::Reservede:
                     case FinalBytesNoIntermediate::Reservedf:
                     default:
-                        qDebug() << "Unhandeled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
+                        qCWarning(lcParser) << "Unhandled CSI" << FinalBytesNoIntermediate::FinalBytesNoIntermediate(character);
                         break;
                     }
                     tokenFinished();
@@ -808,7 +803,7 @@ void Parser::decodeOSC(uchar character)
             if (m_parameters.size() == 0) {
                 return;
             } else if (m_parameters.size() > 1) {
-                qDebug() << m_parameters;
+                qCDebug(lcParser) << m_parameters;
                 tokenFinished();
                 return;
             }
@@ -828,7 +823,7 @@ void Parser::decodeOSC(uchar character)
                     break;
                 default:
                     m_decode_osc_state = Unknown;
-                    qDebug() << "Unknown parameter state" << m_parameters.at(0);
+                    qCWarning(lcParser) << "Unknown parameter state" << m_parameters.at(0);
                     break;
             }
         }
@@ -857,7 +852,7 @@ void Parser::decodeOSC(uchar character)
 void Parser::decodeCharacterSet(uchar character)
 {
     if (m_decode_graphics_set < 0 || m_decode_graphics_set > (int) (sizeof(m_graphic_codecs) / sizeof(*m_graphic_codecs))) {
-        qDebug() << "Parser state is illigal. m_decode_graphics_set is: " << m_decode_graphics_set << "array size is:" << (sizeof(m_graphic_codecs) / sizeof(*m_graphic_codecs));
+        qCWarning(lcParser) << "Parser state is illigal. m_decode_graphics_set is: " << m_decode_graphics_set << "array size is:" << (sizeof(m_graphic_codecs) / sizeof(*m_graphic_codecs));
         m_decode_graphics_set = 0;
         return;
     }
@@ -911,7 +906,7 @@ void Parser::decodeCharacterSet(uchar character)
             m_graphic_codecs[m_decode_graphics_set] = codecForCharacterset(CharacterSet::nrc_swiss);
             break;
         default:
-            qDebug() << "Not supported Character set!" << character << (char) character;
+            qCWarning(lcParser) << "unsupported character set" << character << (char) character;
     }
     tokenFinished();
 }
@@ -920,12 +915,11 @@ void Parser::decodeFontSize(uchar character)
 {
     switch(character) {
         case '8':
-            if (yat_parser_debug)
-                qDebug() << "Filling screen with 'E'";
+            qCDebug(lcParser) << "Filling screen with 'E'";
             m_screen->fill(QChar('E'));
             break;
         default:
-            qDebug() << "Failed to decode font size for" << character;
+            qCWarning(lcParser) << "Failed to decode font size for" << character;
             break;
     }
     tokenFinished();
@@ -958,7 +952,7 @@ void Parser::setMode(int mode)
             m_lnm_mode_set = true;
             break;
         default:
-            qDebug() << "Unhandeled setMode" << mode;
+            qCWarning(lcParser) << "Unhandled setMode" << mode;
             break;
     }
 }
@@ -1068,7 +1062,7 @@ void Parser::setDecMode(int mode)
 //1061 -> Set VT220 keyboard emulation.
 //2004 -> Set bracketed paste mode
     default:
-        qDebug() << "Unhandeled setDecMode" << mode;
+        qCWarning(lcParser) << "Unhandled setDecMode" << mode;
     }
 }
 
@@ -1099,7 +1093,7 @@ void Parser::resetMode(int mode)
             m_lnm_mode_set = false;
             break;
         default:
-            qDebug() << "Unhandeled resetMode" << mode;
+            qCWarning(lcParser) << "Unhandled resetMode" << mode;
             break;
     }
 }
@@ -1207,7 +1201,7 @@ void Parser::resetDecMode(int mode)
 //1061 -> Reset keyboard emulation to Sun/PC style.
 //2004 -> Reset bracketed paste mode
     default:
-        qDebug() << "Unhandeled resetDecMode" << mode;
+        qCWarning(lcParser) << "Unhandled resetDecMode" << mode;
         break;
     }
 }
@@ -1215,7 +1209,8 @@ void Parser::resetDecMode(int mode)
 void Parser::handleSGR()
 {
     for (int i = 0; i < m_parameters.size();i++) {
-        switch(m_parameters.at(i)) {
+        int param = m_parameters.at(i);
+        switch(param) {
             case 0:
                 //                                    m_screen->setTextStyle(TextStyle::Normal);
                 m_screen->currentCursor()->resetStyle();
@@ -1233,7 +1228,7 @@ void Parser::handleSGR()
                 m_screen->currentCursor()->setTextStyle(TextStyle::Inverse);
                 break;
             case 8:
-                qDebug() << "SGR: Hidden text not supported";
+                qCDebug(lcParser) << "SGR: Hidden text not supported";
                 break;
             case 22:
                 m_screen->currentCursor()->setTextStyle(TextStyle::Bold, false);
@@ -1248,9 +1243,9 @@ void Parser::handleSGR()
                 m_screen->currentCursor()->setTextStyle(TextStyle::Inverse, false);
                 break;
             case 28:
-                qDebug() << "SGR: Visible text is allways on";
+                qCDebug(lcParser) << "SGR: Visible text is always on";
                 break;
-            case 30:
+            case 30: // Foreground Black
             case 31:
             case 32:
             case 33:
@@ -1258,13 +1253,16 @@ void Parser::handleSGR()
             case 35:
             case 36:
             case 37:
+                m_screen->currentCursor()->setTextForegroundColorIndex(ColorPalette::Color(param - 30));
+                break;
+            case 39: // Foreground Default
+                m_screen->currentCursor()->setTextForegroundColorIndex(ColorPalette::DefaultForeground);
                 break;
             case 38:
             case 48:
-                handleXtermColor(m_parameters.at(i), i);
+                handleXtermColor(param, i);
                 break;
-            case 39:
-            case 40:
+            case 40: // Background black
             case 41:
             case 42:
             case 43:
@@ -1272,11 +1270,13 @@ void Parser::handleSGR()
             case 45:
             case 46:
             case 47:
-            case 49:
-                m_screen->currentCursor()->setTextStyleColor(m_parameters.at(i));
+                m_screen->currentCursor()->setTextBackgroundColorIndex(ColorPalette::Color(param - 40));
+                break;
+            case 49: // Background default
+                m_screen->currentCursor()->setTextBackgroundColorIndex(ColorPalette::DefaultBackground);
                 break;
             default:
-                qDebug() << "Unknown SGR" << m_parameters.at(i);
+                qCWarning(lcParser) << "Unknown SGR" << param;
                 break;
         }
 
@@ -1290,13 +1290,13 @@ void Parser::handleXtermColor(int param, int i) {
             if (m_parameters.size() >= 3)
                 color = ColorPalette::xtermRgb(m_parameters.at(++i));
             else
-                qDebug() << "8-bit color bytes unexpected" << m_parameters;
+                qCWarning(lcParser) << "8-bit color bytes unexpected" << m_parameters;
             break;
         case 2:
             if (m_parameters.size() == 5)
                 color = QColor(m_parameters.at(i + 1), m_parameters.at(i + 2), m_parameters.at(i + 3)).rgb();
             else
-                qDebug() << "24-bit color bytes unexpected" << m_parameters;
+                qCWarning(lcParser) << "24-bit color bytes unexpected" << m_parameters;
             break;
     }
     if (param == 38)

@@ -24,12 +24,13 @@ public:
         Magenta,
         Cyan,
         White,
-        DefaultForground,
+        DefaultForeground,
         DefaultBackground,
         numberOfColors
     };
+    Q_ENUM(Color)
 
-    QColor color(Color color, bool bold) const;
+    QColor color(Color color, bool bold = false) const;
     QColor normalColor(Color color) const;
     QColor lightColor(Color color) const;
     static QColor xtermColor(int index);

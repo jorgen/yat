@@ -240,7 +240,7 @@ void Block::replaceAtPos(int pos, const QString &text, const TextStyle &style, b
                         } else {
                             current_style.end_index = pos + text.size() - 1;
                             current_style.style = style.style;
-                            current_style.forground = style.forground;
+                            current_style.foreground = style.foreground;
                             current_style.background = style.background;
                             current_style.text_dirty = true;
                             current_style.style_dirty = true;

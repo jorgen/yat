@@ -38,7 +38,7 @@ class Text : public QObject
     Q_PROPERTY(int line READ line NOTIFY lineChanged)
     Q_PROPERTY(bool visible READ visible NOTIFY visibleChanged)
     Q_PROPERTY(QString text READ text NOTIFY textChanged)
-    Q_PROPERTY(QColor foregroundColor READ foregroundColor NOTIFY forgroundColorChanged)
+    Q_PROPERTY(QColor foregroundColor READ foregroundColor NOTIFY foregroundColorChanged)
     Q_PROPERTY(QColor backgroundColor READ backgroundColor NOTIFY backgroundColorChanged)
     Q_PROPERTY(bool bold READ bold NOTIFY boldChanged)
     Q_PROPERTY(bool blinking READ blinking NOTIFY blinkingChanged)
@@ -80,7 +80,7 @@ signals:
     void lineChanged();
     void visibleChanged();
     void textChanged();
-    void forgroundColorChanged();
+    void foregroundColorChanged();
     void backgroundColorChanged();
     void boldChanged();
     void blinkingChanged();
@@ -92,7 +92,7 @@ private slots:
 
 private:
     void setBackgroundColor();
-    void setForgroundColor();
+    void setForegroundColor();
 
     Screen *m_screen;
     QString m_text;
@@ -114,7 +114,7 @@ private:
     bool m_latin;
     bool m_latin_old;
 
-    QColor m_forgroundColor;
+    QColor m_foregroundColor;
     QColor m_backgroundColor;
 };
 

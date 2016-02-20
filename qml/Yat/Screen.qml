@@ -191,8 +191,9 @@ Yat.TerminalScreen {
     }
 
     Component.onCompleted: {
-        setTerminalWidth();
-        setTerminalHeight();
+        // it will be 1 x 1 temporarily if we do this here
+//        setTerminalWidth();
+//        setTerminalHeight();
     }
 
     function setTerminalWidth() {

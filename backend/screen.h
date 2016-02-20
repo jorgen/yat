@@ -77,7 +77,7 @@ public:
 
     TextStyle defaultTextStyle() const;
 
-    QColor defaultForgroundColor() const;
+    QColor defaultForegroundColor() const;
     QColor defaultBackgroundColor() const;
 
     ColorPalette *colorPalette() const;
