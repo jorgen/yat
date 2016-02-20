@@ -26,7 +26,10 @@
 #include "block.h"
 #include "screen_data.h"
 
+#include <QtCore/QLoggingCategory>
 #include <QTextCodec>
+
+Q_LOGGING_CATEGORY(lcCursor, "yat.cursor")
 
 Cursor::Cursor(Screen* screen)
     : QObject(screen)
@@ -204,13 +207,13 @@ void Cursor::setTextBackgroundColor(const QRgb &color)
 
 void Cursor::setTextForegroundColorIndex(ColorPalette::Color color)
 {
-    qDebug() << color;
+    qCDebug(lcCursor) << color;
     setTextForegroundColor(colorPalette()->color(color).rgb());
 }
 
 void Cursor::setTextBackgroundColorIndex(ColorPalette::Color color)
 {
-    qDebug() << color;
+    qCDebug(lcCursor) << color;
     setTextBackgroundColor(colorPalette()->color(color).rgb());
 }
 
