@@ -199,8 +199,8 @@ TextStyle Screen::defaultTextStyle() const
 {
     TextStyle style;
     style.style = TextStyle::Normal;
-    style.foreground = ColorPalette::DefaultForeground;
-    style.background = ColorPalette::DefaultBackground;
+    style.foreground = colorPalette()->defaultForeground().rgb();
+    style.background = colorPalette()->defaultBackground().rgb();
     return style;
 }
 

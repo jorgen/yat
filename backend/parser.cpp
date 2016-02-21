@@ -1288,7 +1288,7 @@ void Parser::handleXtermColor(int param, int i) {
     switch (m_parameters.at(++i)) {
         case 5:
             if (m_parameters.size() >= 3)
-                color = ColorPalette::xtermRgb(m_parameters.at(++i));
+                color = m_screen->colorPalette()->xtermRgb(m_parameters.at(++i));
             else
                 qCWarning(lcParser) << "8-bit color bytes unexpected" << m_parameters;
             break;

@@ -2,7 +2,7 @@
 
 #include <QDebug>
 
-QVector<QRgb> ColorPalette::m_xtermColors {
+static QVector<QRgb> defaultXtermColors = {
     QColor(0,0,0).rgb(),    // index 16
     QColor(0,0,95).rgb(),
     QColor(0,0,135).rgb(),
@@ -250,7 +250,7 @@ ColorPalette::ColorPalette(QObject *parent)
     : QObject(parent)
     , m_normalColors(numberOfColors)
     , m_lightColors(numberOfColors)
-    , m_intenseColors(numberOfColors)
+    , m_xtermColors(defaultXtermColors)
     , m_inverse_default(false)
 {
     m_normalColors[0].setRgb(0,0,0);
@@ -301,10 +301,9 @@ QColor ColorPalette::lightColor(ColorPalette::Color color) const
     return this->color(color,true);
 }
 
-QColor ColorPalette::xtermColor(int index)
+QRgb ColorPalette::normalRgb(int index)
 {
-    Q_ASSERT(index >= 16);
-    return QColor(m_xtermColors[index - 16]);
+    return m_normalColors[index].rgb();
 }
 
 QRgb ColorPalette::xtermRgb(int index)
@@ -321,6 +320,11 @@ void ColorPalette::setInverseDefaultColors(bool inverse)
         emit changed();
         emit defaultBackgroundColorChanged();
     }
+}
+
+QColor ColorPalette::defaultForeground() const
+{
+    return normalColor(DefaultForeground);
 }
 
 QColor ColorPalette::defaultBackground() const
