@@ -190,12 +190,6 @@ Yat.TerminalScreen {
         setTerminalHeight();
     }
 
-    Component.onCompleted: {
-        // it will be 1 x 1 temporarily if we do this here
-//        setTerminalWidth();
-//        setTerminalHeight();
-    }
-
     function setTerminalWidth() {
         if (fontWidth > 0) {
             var pty_width = Math.floor(width / fontWidth);
