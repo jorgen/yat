@@ -21,8 +21,8 @@
 *
 *******************************************************************************/
 
-import QtQuick 2.5
-
+import QtQuick 2.6
+import Qt.labs.controls 1.0
 import Yat 1.0 as Yat
 
 Yat.TerminalScreen {
@@ -90,6 +90,7 @@ Yat.TerminalScreen {
         interactive: true
         flickableDirection: Flickable.VerticalFlick
         contentY: ((screen.contentHeight - screen.height) * screenItem.fontHeight)
+        ScrollBar.vertical: ScrollBar { }
 
         Item {
             id: textContainer
