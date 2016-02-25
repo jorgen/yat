@@ -21,8 +21,7 @@
 *
 *******************************************************************************/
 
-import QtQuick 2.0
-import QtQuick.Controls 1.1
+import QtQuick 2.5
 
 import Yat 1.0 as Yat
 
@@ -47,15 +46,13 @@ Yat.TerminalScreen {
         Yat.Cursor {
         }
     }
-    Action {
-        id: copyAction
-        shortcut: "Ctrl+Shift+C"
-        onTriggered: screen.selection.sendToClipboard()
+    Shortcut {
+        sequence: "Ctrl+Shift+C"
+        onActivated: screen.selection.sendToClipboard()
     }
-    Action {
-        id: paseAction
-        shortcut: "Ctrl+Shift+V"
-        onTriggered: screen.selection.pasteFromClipboard()
+    Shortcut {
+        sequence: "Ctrl+Shift+V"
+        onActivated: screen.selection.pasteFromClipboard()
     }
 
     onActiveFocusChanged: {
