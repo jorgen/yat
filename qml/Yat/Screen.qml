@@ -21,7 +21,7 @@
 *
 *******************************************************************************/
 
-import QtQuick 2.6
+import QtQuick 2.7
 import Qt.labs.controls 1.0
 import Yat 1.0 as Yat
 
@@ -110,6 +110,61 @@ Yat.TerminalScreen {
 
                 visible: screen.selection.enable
             }
+
+            MouseHandler {
+                property int drag_start_x
+                property int drag_start_y
+                onPressed: {
+                    var transformed_mouse = mapToItem(textContainer, event.pos.x, event.pos.y);
+                    var character = Math.floor((transformed_mouse.x / fontWidth));
+                    var line = Math.floor(transformed_mouse.y / fontHeight);
+                    var start = Qt.point(character,line);
+                    drag_start_x = character;
+                    drag_start_y = line;
+                    screen.selection.startX = character;
+                    screen.selection.startY = line;
+                    screen.selection.endX = character;
+                    screen.selection.endY = line;
+                    console.log("pressed button " + event.button + " @ " + event.scenePos + " sel starts at " + character + " on line " + line)
+                }
+                onUpdated: {
+                    var transformed_mouse = mapToItem(textContainer, event.pos.x, event.pos.y);
+                    var character = Math.floor(transformed_mouse.x / fontWidth);
+                    var line = Math.floor(transformed_mouse.y / fontHeight);
+                    var current_pos = Qt.point(character,line);
+                    console.log("updated @ " + event.pos + " scene " + event.scenePos + " transformed " + transformed_mouse + " in chars " + current_pos)
+                    if (line < drag_start_y || (line === drag_start_y && character < drag_start_x)) {
+                        screen.selection.startX = character;
+                        screen.selection.startY = line;
+                        screen.selection.endX = drag_start_x;
+                        screen.selection.endY = drag_start_y;
+                    } else {
+                        screen.selection.startX = drag_start_x;
+                        screen.selection.startY = drag_start_y;
+                        screen.selection.endX = character;
+                        screen.selection.endY = line;
+                    }
+                }
+                onReleased: screen.selection.sendToSelection();
+            }
+
+            TapHandler {
+                acceptedButtons: Qt.MiddleButton
+                onTapped: screen.pasteFromSelection()
+            }
+
+            TapHandler {
+//                acceptedButtons: Qt.LeftButton
+                onTapped: {
+                    console.log("clicked" + tapCount)
+                    if (tapCount === 2) {
+                        var transformed_mouse = mapToItem(textContainer, event.pos.x, event.pos.y);
+                        var character = Math.floor(transformed_mouse.x / fontWidth);
+                        var line = Math.floor(transformed_mouse.y / fontHeight);
+                        screen.doubleClicked(character,line);
+                    }
+                }
+            }
         }
 
         Item {
@@ -117,7 +172,6 @@ Yat.TerminalScreen {
             width: textContainer.width
             height: textContainer.height
         }
-
 
         onContentYChanged: {
             if (!atYEnd) {
@@ -223,71 +277,6 @@ Yat.TerminalScreen {
                 property: "opacity"
                 to: 0
                 duration: 75
-            }
-        }
-    }
-
-    MouseArea {
-        id:mousArea
-
-        property int drag_start_x
-        property int drag_start_y
-
-        anchors.fill: parent
-        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-        onPressed: {
-            if (mouse.button == Qt.LeftButton) {
-                hoverEnabled = true;
-                var transformed_mouse = mapToItem(textContainer, mouse.x, mouse.y);
-                var character = Math.floor((transformed_mouse.x / fontWidth));
-                var line = Math.floor(transformed_mouse.y / fontHeight);
-                var start = Qt.point(character,line);
-                drag_start_x = character;
-                drag_start_y = line;
-                screen.selection.startX = character;
-                screen.selection.startY = line;
-                screen.selection.endX = character;
-                screen.selection.endY = line;
-            }
-        }
-
-        onPositionChanged: {
-            var transformed_mouse = mapToItem(textContainer, mouse.x, mouse.y);
-            var character = Math.floor(transformed_mouse.x / fontWidth);
-            var line = Math.floor(transformed_mouse.y / fontHeight);
-            var current_pos = Qt.point(character,line);
-            if (line < drag_start_y || (line === drag_start_y && character < drag_start_x)) {
-                screen.selection.startX = character;
-                screen.selection.startY = line;
-                screen.selection.endX = drag_start_x;
-                screen.selection.endY = drag_start_y;
-            } else {
-                screen.selection.startX = drag_start_x;
-                screen.selection.startY = drag_start_y;
-                screen.selection.endX = character;
-                screen.selection.endY = line;
-            }
-        }
-
-        onReleased: {
-            if (mouse.button == Qt.LeftButton) {
-                hoverEnabled = false;
-                screen.selection.sendToSelection();
-            }
-        }
-
-        onClicked: {
-            if (mouse.button == Qt.MiddleButton) {
-                screen.pasteFromSelection();
-            }
-        }
-
-        onDoubleClicked: {
-            if (mouse.button == Qt.LeftButton) {
-                var transformed_mouse = mapToItem(textContainer, mouse.x, mouse.y);
-                var character = Math.floor(transformed_mouse.x / fontWidth);
-                var line = Math.floor(transformed_mouse.y / fontHeight);
-                screen.doubleClicked(character,line);
             }
         }
     }
