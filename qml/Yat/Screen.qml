@@ -21,8 +21,9 @@
 *
 *******************************************************************************/
 
-import QtQuick 2.7
-import Qt.labs.controls 1.0
+import QtQuick 2.10
+import QtQuick.Controls 2.2
+import Qt.labs.handlers 1.0
 import Yat 1.0 as Yat
 
 Yat.TerminalScreen {
@@ -107,32 +108,31 @@ Yat.TerminalScreen {
 
                 endX: screen.selection.endX
                 endY: screen.selection.endY
-
                 visible: screen.selection.enable
+                z: 1
             }
 
-            MouseHandler {
+            DragHandler {
+                target: null
+                acceptedDevices: PointerDevice.Mouse
                 property int drag_start_x
                 property int drag_start_y
-                onPressed: {
-                    var transformed_mouse = mapToItem(textContainer, event.pos.x, event.pos.y);
-                    var character = Math.floor((transformed_mouse.x / fontWidth));
-                    var line = Math.floor(transformed_mouse.y / fontHeight);
-                    var start = Qt.point(character,line);
-                    drag_start_x = character;
-                    drag_start_y = line;
-                    screen.selection.startX = character;
-                    screen.selection.startY = line;
-                    screen.selection.endX = character;
-                    screen.selection.endY = line;
-                    console.log("pressed button " + event.button + " @ " + event.scenePos + " sel starts at " + character + " on line " + line)
+                onActiveChanged: {
+                    if (active) {
+                        drag_start_x = Math.floor((point.pressPosition.x / fontWidth));
+                        drag_start_y = Math.floor(point.pressPosition.y / fontHeight);
+                        screen.selection.startX = drag_start_x;
+                        screen.selection.startY = drag_start_y;
+                        screen.selection.endX = drag_start_x;
+                        screen.selection.endY = drag_start_y;
+                    } else {
+                        screen.selection.sendToSelection();
+                    }
                 }
-                onUpdated: {
-                    var transformed_mouse = mapToItem(textContainer, event.pos.x, event.pos.y);
-                    var character = Math.floor(transformed_mouse.x / fontWidth);
-                    var line = Math.floor(transformed_mouse.y / fontHeight);
+                onPointChanged: if (active) {
+                    var character = Math.floor(point.position.x / fontWidth);
+                    var line = Math.floor(point.position.y / fontHeight);
                     var current_pos = Qt.point(character,line);
-                    console.log("updated @ " + event.pos + " scene " + event.scenePos + " transformed " + transformed_mouse + " in chars " + current_pos)
                     if (line < drag_start_y || (line === drag_start_y && character < drag_start_x)) {
                         screen.selection.startX = character;
                         screen.selection.startY = line;
@@ -145,23 +145,30 @@ Yat.TerminalScreen {
                         screen.selection.endY = line;
                     }
                 }
-                onReleased: screen.selection.sendToSelection();
             }
 
             TapHandler {
                 acceptedButtons: Qt.MiddleButton
-                onTapped: screen.pasteFromSelection()
+                gesturePolicy: TapHandler.DragThreshold
+                onTapped: screen.selection.pasteFromSelection()
             }
 
             TapHandler {
-//                acceptedButtons: Qt.LeftButton
+                gesturePolicy: TapHandler.DragThreshold
                 onTapped: {
-                    console.log("clicked" + tapCount)
-                    if (tapCount === 2) {
-                        var transformed_mouse = mapToItem(textContainer, event.pos.x, event.pos.y);
-                        var character = Math.floor(transformed_mouse.x / fontWidth);
-                        var line = Math.floor(transformed_mouse.y / fontHeight);
+                    switch (tapCount) {
+                    case 1:
+                        screen.selection.startX = 0;
+                        screen.selection.startY = 0;
+                        screen.selection.endX = 0;
+                        screen.selection.endY = 0;
+                        break;
+                    case 2:
+                        var character = Math.floor(point.position.x / fontWidth);
+                        var line = Math.floor(point.position.y / fontHeight);
                         screen.doubleClicked(character,line);
+                        screen.selection.sendToSelection();
+                        break;
                     }
                 }
             }
