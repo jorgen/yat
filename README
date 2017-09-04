@@ -1,6 +1,0 @@
-Yat is a qml plugin for the a VT100 emulation screen and an example of how to use this plugin
-
-Do
-$ ./configure && make
-in the top level directory. Then you can run the example from the same directory with the command:
-$ qmlscene -I imports yat_app/main.qml

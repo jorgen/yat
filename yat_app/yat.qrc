@@ -1,5 +1,5 @@
 <RCC>
     <qresource>
-        <file>main.qml</file>
+        <file>yat.qml</file>
     </qresource>
 </RCC>
