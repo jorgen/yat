@@ -39,13 +39,11 @@ Yat.TerminalScreen {
 
     Component {
         id: textComponent
-        Yat.Text {
-        }
+        Yat.Text { }
     }
     Component {
         id: cursorComponent
-        Yat.Cursor {
-        }
+        Yat.Cursor { }
     }
     Shortcut {
         sequence: "Ctrl+Shift+C"
@@ -61,15 +59,13 @@ Yat.TerminalScreen {
     }
 
     onActiveFocusChanged: {
-        if (activeFocus) {
+        if (activeFocus)
             Qt.inputMethod.show();
-        }
     }
 
     Keys.onPressed: {
-        if (event.text === "?") {
+        if (event.text === "?")
             screen.printScreen()
-        }
         screen.sendKey(event.text, event.key, event.modifiers);
     }
 
@@ -194,16 +190,9 @@ Yat.TerminalScreen {
 
     Connections {
         id: connections
-
         target: screen
-
-        onFlash: {
-            flashAnimation.start()
-        }
-
-        onReset: {
-            resetScreenItems();
-        }
+        onFlash: flashAnimation.start()
+        onReset: resetScreenItems();
 
         onTextCreated: {
             var textSegment = textComponent.createObject(screenItem,
@@ -246,12 +235,9 @@ Yat.TerminalScreen {
         setTerminalWidth();
     }
 
-    onWidthChanged: {
-        setTerminalWidth();
-    }
-    onHeightChanged: {
-        setTerminalHeight();
-    }
+    onWidthChanged: setTerminalWidth();
+
+    onHeightChanged: setTerminalHeight();
 
     function setTerminalWidth() {
         if (fontWidth > 0) {
