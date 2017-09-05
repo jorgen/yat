@@ -55,6 +55,10 @@ Yat.TerminalScreen {
         sequence: "Ctrl+Shift+V"
         onActivated: screen.selection.pasteFromClipboard()
     }
+    Shortcut {
+        sequence: "Shift+Insert"
+        onActivated: screen.selection.pasteFromSelection()
+    }
 
     onActiveFocusChanged: {
         if (activeFocus) {
