@@ -33,11 +33,12 @@ public:
     QColor color(Color color, bool bold = false) const;
     QColor normalColor(Color color) const;
     QColor lightColor(Color color) const;
-    static QColor xtermColor(int index);
-    static QRgb xtermRgb(int index);
+    QRgb normalRgb(int index);
+    QRgb xtermRgb(int index);
 
     void setInverseDefaultColors(bool inverse);
 
+    QColor defaultForeground() const;
     QColor defaultBackground() const;
 signals:
     void changed();
@@ -46,8 +47,7 @@ signals:
 private:
     QVector<QColor> m_normalColors;
     QVector<QColor> m_lightColors;
-    QVector<QColor> m_intenseColors;
-    static QVector<QRgb> m_xtermColors;
+    QVector<QRgb> m_xtermColors;
 
     bool m_inverse_default;
 };

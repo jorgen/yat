@@ -7,10 +7,9 @@
 
 TextStyle::TextStyle()
     : style(Normal)
-    , foreground(ColorPalette::DefaultForeground)
-    , background(ColorPalette::DefaultBackground)
+    , foreground(0)
+    , background(0)
 {
-
 }
 
 bool TextStyle::isCompatible(const TextStyle &other) const

@@ -157,8 +157,8 @@ void Cursor::setTextStyle(TextStyle::Style style, bool add)
 
 void Cursor::resetStyle()
 {
-    m_current_text_style.background = ColorPalette::DefaultBackground;
-    m_current_text_style.foreground = ColorPalette::DefaultForeground;
+    m_current_text_style.background = colorPalette()->defaultBackground().rgb();
+    m_current_text_style.foreground = colorPalette()->defaultForeground().rgb();
     m_current_text_style.style = TextStyle::Normal;
 }
 
@@ -195,12 +195,12 @@ TextStyle Cursor::currentTextStyle() const
     return m_current_text_style;
 }
 
-void Cursor::setTextForegroundColor(const QRgb &color)
+void Cursor::setTextForegroundColor(QRgb color)
 {
     m_current_text_style.foreground = color;
 }
 
-void Cursor::setTextBackgroundColor(const QRgb &color)
+void Cursor::setTextBackgroundColor(QRgb color)
 {
     m_current_text_style.background = color;
 }

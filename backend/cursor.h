@@ -57,8 +57,8 @@ public:
     TextStyle currentTextStyle() const;
 
     ColorPalette *colorPalette() const;
-    void setTextForegroundColor(const QRgb &color);
-    void setTextBackgroundColor(const QRgb &color);
+    void setTextForegroundColor(QRgb color);
+    void setTextBackgroundColor(QRgb color);
     void setTextForegroundColorIndex(ColorPalette::Color color);
     void setTextBackgroundColorIndex(ColorPalette::Color color);
 

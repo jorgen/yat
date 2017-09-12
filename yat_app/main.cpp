@@ -10,6 +10,6 @@ int main(int argc, char* argv[])
     qputenv("QT_LOGGING_CONF", QDir::homePath().toLocal8Bit() + "/.config/QtProject/qtlogging.ini");
     QGuiApplication app(argc, argv);
     QLoggingCategory::setFilterRules(QStringLiteral("yat.*.debug=false\nyat.*.info=false"));
-    QQmlApplicationEngine engine(QUrl("qrc:///main.qml"));
+    QQmlApplicationEngine engine(QUrl("qrc:///yat.qml"));
     return app.exec();
 }

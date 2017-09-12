@@ -1,5 +1,5 @@
 QT += core-private gui-private qml-private quick quick-private
-TARGET = yat_qml_plugin
+TARGET = yat
 TEMPLATE = lib
 CONFIG += plugin
 TARGETPATH = Yat

@@ -21,9 +21,9 @@
 *
 *******************************************************************************/
 
-import QtQuick 2.0
-import QtQuick.Controls 1.1
-
+import QtQuick 2.10
+import QtQuick.Controls 2.2
+import Qt.labs.handlers 1.0
 import Yat 1.0 as Yat
 
 Yat.TerminalScreen {
@@ -39,35 +39,33 @@ Yat.TerminalScreen {
 
     Component {
         id: textComponent
-        Yat.Text {
-        }
+        Yat.Text { }
     }
     Component {
         id: cursorComponent
-        Yat.Cursor {
-        }
+        Yat.Cursor { }
     }
-    Action {
-        id: copyAction
-        shortcut: "Ctrl+Shift+C"
-        onTriggered: screen.selection.sendToClipboard()
+    Shortcut {
+        sequence: "Ctrl+Shift+C"
+        onActivated: screen.selection.sendToClipboard()
     }
-    Action {
-        id: paseAction
-        shortcut: "Ctrl+Shift+V"
-        onTriggered: screen.selection.pasteFromClipboard()
+    Shortcut {
+        sequence: "Ctrl+Shift+V"
+        onActivated: screen.selection.pasteFromClipboard()
+    }
+    Shortcut {
+        sequence: "Shift+Insert"
+        onActivated: screen.selection.pasteFromSelection()
     }
 
     onActiveFocusChanged: {
-        if (activeFocus) {
+        if (activeFocus)
             Qt.inputMethod.show();
-        }
     }
 
     Keys.onPressed: {
-        if (event.text === "?") {
+        if (event.text === "?")
             screen.printScreen()
-        }
         screen.sendKey(event.text, event.key, event.modifiers);
     }
 
@@ -93,6 +91,7 @@ Yat.TerminalScreen {
         interactive: true
         flickableDirection: Flickable.VerticalFlick
         contentY: ((screen.contentHeight - screen.height) * screenItem.fontHeight)
+        ScrollBar.vertical: ScrollBar { }
 
         Item {
             id: textContainer
@@ -109,8 +108,69 @@ Yat.TerminalScreen {
 
                 endX: screen.selection.endX
                 endY: screen.selection.endY
-
                 visible: screen.selection.enable
+                z: 1
+            }
+
+            DragHandler {
+                target: null
+                acceptedDevices: PointerDevice.Mouse
+                property int drag_start_x
+                property int drag_start_y
+                onActiveChanged: {
+                    if (active) {
+                        drag_start_x = Math.floor((point.pressPosition.x / fontWidth));
+                        drag_start_y = Math.floor(point.pressPosition.y / fontHeight);
+                        screen.selection.startX = drag_start_x;
+                        screen.selection.startY = drag_start_y;
+                        screen.selection.endX = drag_start_x;
+                        screen.selection.endY = drag_start_y;
+                    } else {
+                        screen.selection.sendToSelection();
+                    }
+                }
+                onPointChanged: if (active) {
+                    var character = Math.floor(point.position.x / fontWidth);
+                    var line = Math.floor(point.position.y / fontHeight);
+                    var current_pos = Qt.point(character,line);
+                    if (line < drag_start_y || (line === drag_start_y && character < drag_start_x)) {
+                        screen.selection.startX = character;
+                        screen.selection.startY = line;
+                        screen.selection.endX = drag_start_x;
+                        screen.selection.endY = drag_start_y;
+                    } else {
+                        screen.selection.startX = drag_start_x;
+                        screen.selection.startY = drag_start_y;
+                        screen.selection.endX = character;
+                        screen.selection.endY = line;
+                    }
+                }
+            }
+
+            TapHandler {
+                acceptedButtons: Qt.MiddleButton
+                gesturePolicy: TapHandler.DragThreshold
+                onTapped: screen.selection.pasteFromSelection()
+            }
+
+            TapHandler {
+                gesturePolicy: TapHandler.DragThreshold
+                onTapped: {
+                    switch (tapCount) {
+                    case 1:
+                        screen.selection.startX = 0;
+                        screen.selection.startY = 0;
+                        screen.selection.endX = 0;
+                        screen.selection.endY = 0;
+                        break;
+                    case 2:
+                        var character = Math.floor(point.position.x / fontWidth);
+                        var line = Math.floor(point.position.y / fontHeight);
+                        screen.doubleClicked(character,line);
+                        screen.selection.sendToSelection();
+                        break;
+                    }
+                }
             }
         }
 
@@ -119,7 +179,6 @@ Yat.TerminalScreen {
             width: textContainer.width
             height: textContainer.height
         }
-
 
         onContentYChanged: {
             if (!atYEnd) {
@@ -131,16 +190,9 @@ Yat.TerminalScreen {
 
     Connections {
         id: connections
-
         target: screen
-
-        onFlash: {
-            flashAnimation.start()
-        }
-
-        onReset: {
-            resetScreenItems();
-        }
+        onFlash: flashAnimation.start()
+        onReset: resetScreenItems();
 
         onTextCreated: {
             var textSegment = textComponent.createObject(screenItem,
@@ -183,18 +235,9 @@ Yat.TerminalScreen {
         setTerminalWidth();
     }
 
-    onWidthChanged: {
-        setTerminalWidth();
-    }
-    onHeightChanged: {
-        setTerminalHeight();
-    }
+    onWidthChanged: setTerminalWidth();
 
-    Component.onCompleted: {
-        // it will be 1 x 1 temporarily if we do this here
-//        setTerminalWidth();
-//        setTerminalHeight();
-    }
+    onHeightChanged: setTerminalHeight();
 
     function setTerminalWidth() {
         if (fontWidth > 0) {
@@ -231,71 +274,6 @@ Yat.TerminalScreen {
                 property: "opacity"
                 to: 0
                 duration: 75
-            }
-        }
-    }
-
-    MouseArea {
-        id:mousArea
-
-        property int drag_start_x
-        property int drag_start_y
-
-        anchors.fill: parent
-        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-        onPressed: {
-            if (mouse.button == Qt.LeftButton) {
-                hoverEnabled = true;
-                var transformed_mouse = mapToItem(textContainer, mouse.x, mouse.y);
-                var character = Math.floor((transformed_mouse.x / fontWidth));
-                var line = Math.floor(transformed_mouse.y / fontHeight);
-                var start = Qt.point(character,line);
-                drag_start_x = character;
-                drag_start_y = line;
-                screen.selection.startX = character;
-                screen.selection.startY = line;
-                screen.selection.endX = character;
-                screen.selection.endY = line;
-            }
-        }
-
-        onPositionChanged: {
-            var transformed_mouse = mapToItem(textContainer, mouse.x, mouse.y);
-            var character = Math.floor(transformed_mouse.x / fontWidth);
-            var line = Math.floor(transformed_mouse.y / fontHeight);
-            var current_pos = Qt.point(character,line);
-            if (line < drag_start_y || (line === drag_start_y && character < drag_start_x)) {
-                screen.selection.startX = character;
-                screen.selection.startY = line;
-                screen.selection.endX = drag_start_x;
-                screen.selection.endY = drag_start_y;
-            } else {
-                screen.selection.startX = drag_start_x;
-                screen.selection.startY = drag_start_y;
-                screen.selection.endX = character;
-                screen.selection.endY = line;
-            }
-        }
-
-        onReleased: {
-            if (mouse.button == Qt.LeftButton) {
-                hoverEnabled = false;
-                screen.selection.sendToSelection();
-            }
-        }
-
-        onClicked: {
-            if (mouse.button == Qt.MiddleButton) {
-                screen.pasteFromSelection();
-            }
-        }
-
-        onDoubleClicked: {
-            if (mouse.button == Qt.LeftButton) {
-                var transformed_mouse = mapToItem(textContainer, mouse.x, mouse.y);
-                var character = Math.floor(transformed_mouse.x / fontWidth);
-                var line = Math.floor(transformed_mouse.y / fontHeight);
-                screen.doubleClicked(character,line);
             }
         }
     }
